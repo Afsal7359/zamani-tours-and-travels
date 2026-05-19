@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm prune *)",
+      "Bash(npm why *)",
+      "Bash(mkdir -p /Users/afsal/Desktop/freelance/zamani-nextjs/src/app/\\\\\\(site\\\\\\)/services/\\\\[id\\\\])",
+      "Bash(node --input-type=module --disable-warning=MODULE_TYPELESS_PACKAGE_JSON)",
+      "Bash(node -e ' *)",
+      "Bash(sed -i '' 's/settings\\\\.bannerProcess || defaultSiteSettings\\\\.bannerProcess/settings?.bannerProcess/g' '/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/\\(site\\)/process/page.js')",
+      "Bash(sed -i '' 's/\\(settings\\\\.phone1 || '\\\\''8592002549'\\\\''\\)\\\\.replace/settings?.phone1?.replace/g' '/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/\\(site\\)/process/page.js')",
+      "Bash(sed -i '' 's/{settings\\\\.phone1 || '\\\\''859 2002 549'\\\\''}/{settings?.phone1}/g' '/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/\\(site\\)/process/page.js')",
+      "Bash(ffmpeg -i /Users/afsal/Desktop/freelance/zamani-nextjs/public/logoloading.mp4 -vframes 1 -ss 0.1 /tmp/loader_frame.png)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(python3 -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/(site)/services"
+    ]
+  }
+}

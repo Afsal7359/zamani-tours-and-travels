@@ -1,0 +1,20 @@
+{
+  "name": "zamani-travels",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "npm install --prefix scripts --silent && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mjs"
+  },
+  "dependencies": {
+    "firebase": "^10.12.0",
+    "next": "^16.2.6",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "overrides": {
+    "@opentelemetry/api": "1.8.0"
+  }
+}
