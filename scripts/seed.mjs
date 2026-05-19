@@ -41,13 +41,14 @@ const db = admin.firestore();
 // ─── Default data ─────────────────────────────────────────────────────────────
 const {
   defaultServices,
+  defaultPackages,
   defaultTestimonials,
-  defaultDestinations,
   defaultProcessSteps,
   defaultBlogPosts,
   defaultHomeContent,
   defaultSiteSettings,
   defaultAboutContent,
+  defaultGallery,
 } = await import('../src/lib/defaultData.js');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -85,8 +86,8 @@ if (!force) {
 if (force) {
   console.log('⚠  Force mode — clearing existing data…');
   await clearCollection('services');
+  await clearCollection('packages');
   await clearCollection('testimonials');
-  await clearCollection('destinations');
   await clearCollection('process_steps');
   await clearCollection('blog_posts');
   console.log('');
@@ -94,15 +95,16 @@ if (force) {
 
 console.log('Seeding…');
 await seedCollection('services',      defaultServices);
+await seedCollection('packages',      defaultPackages);
 await seedCollection('testimonials',  defaultTestimonials);
-await seedCollection('destinations',  defaultDestinations);
 await seedCollection('process_steps', defaultProcessSteps);
 await seedCollection('blog_posts',    defaultBlogPosts);
 
 await db.collection('site_data').doc('settings').set(defaultSiteSettings);
 await db.collection('site_data').doc('home_content').set(defaultHomeContent);
 await db.collection('site_data').doc('about_content').set(defaultAboutContent);
-console.log('  ✓ site_data (settings, home_content, about_content)');
+await db.collection('site_data').doc('gallery').set(defaultGallery);
+console.log('  ✓ site_data (settings, home_content, about_content, gallery)');
 
 console.log('\n✅  Done!\n');
 process.exit(0);

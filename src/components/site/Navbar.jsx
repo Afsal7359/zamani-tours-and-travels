@@ -34,6 +34,7 @@ export default function Navbar({ activePage }) {
     { href: '/', label: 'Home', key: 'home' },
     { href: '/about', label: 'About', key: 'about' },
     { href: '/services', label: 'Services', key: 'services' },
+    { href: '/packages', label: 'Packages', key: 'packages' },
     { href: '/process', label: 'Process', key: 'process' },
     { href: '/blog', label: 'Blog', key: 'blog' },
     { href: '/contact', label: 'Contact', key: 'contact' },

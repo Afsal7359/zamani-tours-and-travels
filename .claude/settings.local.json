@@ -14,7 +14,12 @@
       "Bash(ffmpeg -i /Users/afsal/Desktop/freelance/zamani-nextjs/public/logoloading.mp4 -vframes 1 -ss 0.1 /tmp/loader_frame.png)",
       "Read(//tmp/**)",
       "Read(//private/tmp/**)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -nA12 '\"scripts\"' package.json)",
+      "Bash(npx next *)",
+      "Bash(sed -n '348,372p' \"src/lib/defaultData.js\")",
+      "Bash(sed -n '726,832p' src/app/globals.css)"
     ],
     "additionalDirectories": [
       "/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/(site)/services"

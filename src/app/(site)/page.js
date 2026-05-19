@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/site/Navbar';
@@ -7,36 +7,46 @@ import Footer from '@/components/site/Footer';
 import {
   getHomeContent,
   getServices,
-  getDestinations,
+  getPackages,
   getTestimonials,
   getSiteSettings,
+  getGallery,
 } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+
+const fallbackGallery = Array.from(
+  { length: 17 },
+  (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
+);
 
 export default function HomePage() {
   const router = useRouter();
   const [home, setHome] = useState(null);
   const [services, setServices] = useState([]);
-  const [destinations, setDestinations] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [settings, setSettings] = useState({});
+  const [gallery, setGallery] = useState([]);
   const [loading, setLoading] = useState(true);
+  const pkgTrackRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [h, s, d, t, st] = await Promise.all([
+        const [h, s, p, t, st, g] = await Promise.all([
           getHomeContent(),
           getServices(),
-          getDestinations(),
+          getPackages(),
           getTestimonials(),
           getSiteSettings(),
+          getGallery(),
         ]);
         if (h) setHome(h);
         if (s) setServices(s);
-        if (d) setDestinations(d);
+        if (p) setPackages(p);
         if (t) setTestimonials(t);
         if (st) setSettings(st);
+        if (g?.images?.length) setGallery(g.images);
       } catch (e) {
         console.error('Error loading home data:', e);
       } finally {
@@ -58,12 +68,31 @@ export default function HomePage() {
       io.observe(el);
     });
     return () => io.disconnect();
-  }, [home, services, destinations, testimonials, loading]);
+  }, [home, services, packages, testimonials, loading]);
+
+  // Auto-scroll the package carousel on mobile (≤768px). On larger screens
+  // the packages render as a static grid, so nothing scrolls.
+  useEffect(() => {
+    if (loading || !packages.length) return;
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches) return;
+    const track = pkgTrackRef.current;
+    if (!track) return;
+    const id = setInterval(() => {
+      const max = track.scrollWidth - track.clientWidth;
+      if (track.scrollLeft >= max - 4) {
+        track.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        track.scrollBy({ left: track.clientWidth * 0.82, behavior: 'smooth' });
+      }
+    }, 3200);
+    return () => clearInterval(id);
+  }, [packages, loading]);
 
   if (loading) return <LoadingScreen />;
 
   const marqueeItems = home?.marqueeItems || [];
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
+  const galleryStrip = gallery.length ? gallery : fallbackGallery;
 
   return (
     <>
@@ -238,37 +267,93 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Destinations ─────────────────────────────────────────────── */}
-      <section className="destinations">
+      {/* ─── Gallery Strip ────────────────────────────────────────────── */}
+      <section className="gallery-strip">
         <div className="container">
-          <div className="dest-head">
-            <div>
-              <span className="eyebrow royal">Popular Destinations</span>
-              <h2>Where will you<br /><em>go next?</em></h2>
-            </div>
-            <Link href="/contact" className="btn btn-outline">Enquire Now</Link>
+          <div className="gallery-head reveal">
+            <span className="eyebrow royal">Our Gallery</span>
+            <h2>Moments from<br /><em>our journey.</em></h2>
+            <p>A glimpse inside our office, our team, and the travellers we are proud to serve.</p>
           </div>
-          <div className="dest-tabs">
-            <button className="dest-tab active">All</button>
-            <button className="dest-tab">Pilgrimage</button>
-            <button className="dest-tab">Beach</button>
-            <button className="dest-tab">City Break</button>
-          </div>
-          <div className="dest-grid">
-            {destinations.map((dest, i) => (
-              <div className="dest-card reveal" key={dest.id || i}>
-                <img src={dest.image} alt={dest.name} />
-                <div className="dest-info">
-                  {dest.badge && <span className="badge">{dest.badge}</span>}
-                  <h3>{dest.name}</h3>
-                  <p>{dest.country}</p>
-                  {dest.showPrice !== false && <div className="price">{dest.price}</div>}
-                </div>
+        </div>
+        <div className="gallery-marquee">
+          <div className="gallery-marquee-track">
+            {[...galleryStrip, ...galleryStrip].map((src, i) => (
+              <div className="gallery-slide" key={i} aria-hidden={i >= galleryStrip.length}>
+                <img src={src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="lazy" />
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {/* ─── Tour Packages ────────────────────────────────────────────── */}
+      {packages.length > 0 && (
+        <section className="home-packages">
+          <div className="container">
+            <div className="home-pkg-head">
+              <span className="eyebrow royal">Tour Packages</span>
+              <h2>Handpicked trips,<br /><em>ready to go.</em></h2>
+              <p>Curated island escapes and hill-country getaways — every transfer, stay, and detail arranged for you.</p>
+            </div>
+            <div className="home-pkg-track" ref={pkgTrackRef}>
+              {packages.slice(0, 4).map((pkg, i) => (
+                <Link
+                  href={`/packages/${pkg.slug || pkg.id}`}
+                  className="pkg-card"
+                  key={pkg.id || i}
+                >
+                  <div className="pkg-img">
+                    <img src={pkg.image} alt={pkg.title} />
+                    {pkg.badge && <span className="pkg-badge">{pkg.badge}</span>}
+                    {pkg.duration && <span className="pkg-duration">{pkg.duration}</span>}
+                  </div>
+                  <div className="pkg-body">
+                    {pkg.location && (
+                      <span className="pkg-location">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        {pkg.location}
+                      </span>
+                    )}
+                    <h3>{pkg.title}</h3>
+                    <p>{pkg.description}</p>
+                    <div className="pkg-tags">
+                      {(pkg.tags || []).slice(0, 3).map((tag, ti) => (
+                        <span key={ti}>{tag}</span>
+                      ))}
+                    </div>
+                    <div className="pkg-card-foot">
+                      <div className="pkg-price">
+                        {pkg.price && <strong>{pkg.price}</strong>}
+                        {pkg.priceNote && <small>{pkg.priceNote}</small>}
+                      </div>
+                      <span className="pkg-view">
+                        View Details
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <Link href="/packages" className="btn btn-primary">
+                More Packages
+                <span className="arr">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 8L8 2M8 2H3M8 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ─── Process (static) ─────────────────────────────────────────── */}
       <section className="process">

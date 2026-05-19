@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Public site content ──────────────────────────────────────────────
+    // Anyone can read; only a signed-in admin can create/update/delete.
+    match /services/{id}      { allow read: if true; allow write: if request.auth != null; }
+    match /packages/{id}      { allow read: if true; allow write: if request.auth != null; }
+    match /blog_posts/{id}    { allow read: if true; allow write: if request.auth != null; }
+    match /testimonials/{id}  { allow read: if true; allow write: if request.auth != null; }
+    match /process_steps/{id} { allow read: if true; allow write: if request.auth != null; }
+    match /site_data/{id}     { allow read: if true; allow write: if request.auth != null; }
+
+    // ─── Contact form submissions ─────────────────────────────────────────
+    // Anyone may submit; only a signed-in admin can read or delete.
+    match /contact_submissions/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}

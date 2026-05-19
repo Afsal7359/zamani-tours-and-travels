@@ -1,26 +1,26 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getServices, getBlogPosts, getDestinations, getContactSubmissions } from '@/lib/firestore';
+import { getServices, getPackages, getBlogPosts, getContactSubmissions } from '@/lib/firestore';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ services: 0, posts: 0, destinations: 0, contacts: 0 });
+  const [stats, setStats] = useState({ services: 0, packages: 0, posts: 0, contacts: 0 });
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [s, p, d, c] = await Promise.all([
+        const [s, pk, p, c] = await Promise.all([
           getServices(),
+          getPackages(),
           getBlogPosts(),
-          getDestinations(),
           getContactSubmissions(),
         ]);
         setStats({
           services: s.length,
+          packages: pk.length,
           posts: p.length,
-          destinations: d.length,
           contacts: c.length,
         });
         setSubmissions(c.slice(0, 5));
@@ -37,8 +37,8 @@ export default function AdminDashboard() {
     { href: '/admin/home', label: 'Edit Home Page', desc: 'Hero text, about section, stats' },
     { href: '/admin/about', label: 'Edit About Page', desc: 'Story, values, timeline' },
     { href: '/admin/services', label: 'Manage Services', desc: 'Add, edit or remove services' },
+    { href: '/admin/packages', label: 'Manage Packages', desc: 'Tour packages and itineraries' },
     { href: '/admin/blog', label: 'Manage Blog', desc: 'Publish and manage articles' },
-    { href: '/admin/destinations', label: 'Manage Destinations', desc: 'Featured destinations' },
     { href: '/admin/settings', label: 'Site Settings', desc: 'Phone, email, social links' },
   ];
 
@@ -57,8 +57,8 @@ export default function AdminDashboard() {
           <div className="lbl">Blog Posts</div>
         </div>
         <div className="admin-stat-card">
-          <div className="num">{loading ? '—' : stats.destinations}</div>
-          <div className="lbl">Destinations</div>
+          <div className="num">{loading ? '—' : stats.packages}</div>
+          <div className="lbl">Tour Packages</div>
         </div>
         <div className="admin-stat-card">
           <div className="num">{loading ? '—' : stats.contacts}</div>

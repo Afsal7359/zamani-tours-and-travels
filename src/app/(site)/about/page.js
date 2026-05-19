@@ -3,20 +3,28 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
-import { getAboutContent, getSiteSettings } from '@/lib/firestore';
+import { getAboutContent, getSiteSettings, getGallery } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+
+const fallbackGallery = Array.from(
+  { length: 17 },
+  (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
+);
 
 export default function AboutPage() {
   const [about, setAbout] = useState(null);
   const [settings, setSettings] = useState({});
+  const [gallery, setGallery] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [a, s] = await Promise.all([getAboutContent(), getSiteSettings()]);
+        const [a, s, g] = await Promise.all([getAboutContent(), getSiteSettings(), getGallery()]);
         if (a) setAbout(a);
         if (s) setSettings(s);
+        if (g?.images?.length) setGallery(g.images);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }
@@ -41,6 +49,7 @@ export default function AboutPage() {
 
   const values = about?.values || [];
   const timeline = about?.timeline || [];
+  const galleryList = gallery.length ? gallery : fallbackGallery;
 
   return (
     <>
@@ -97,8 +106,8 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="story-visual reveal">
-              {about?.storyImg1 && <img className="img-main" src={about.storyImg1} alt="Our office" />}
-              {about?.storyImg2 && <img className="img-accent" src={about.storyImg2} alt="Travel" />}
+              <img className="img-main" src={about?.storyImg1 || '/images/gallery-03.jpeg'} alt="Zamani office" />
+              <img className="img-accent" src={about?.storyImg2 || '/images/gallery-08.jpeg'} alt="Zamani team" />
             </div>
           </div>
         </div>
@@ -139,6 +148,30 @@ export default function AboutPage() {
                   <p>{item.description}</p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Gallery ────────────────────────────────────────────────────── */}
+      <section className="gallery">
+        <div className="container">
+          <div className="gallery-head">
+            <span className="eyebrow royal">Our Gallery</span>
+            <h2>Moments from<br /><em>our journey.</em></h2>
+            <p>A glimpse inside our office, our team, and the travellers we have had the privilege to serve.</p>
+          </div>
+          <div className="gallery-grid">
+            {galleryList.map((src, i) => (
+              <button
+                type="button"
+                className="gallery-item reveal"
+                key={`${src}-${i}`}
+                onClick={() => setLightbox(i)}
+                aria-label={`View gallery image ${i + 1}`}
+              >
+                <img src={src} alt={`Zamani gallery ${i + 1}`} loading="lazy" />
+              </button>
             ))}
           </div>
         </div>
@@ -215,6 +248,44 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── Lightbox ───────────────────────────────────────────────────── */}
+      {lightbox !== null && (
+        <div className="lightbox" onClick={() => setLightbox(null)}>
+          <button
+            className="lightbox-close"
+            onClick={() => setLightbox(null)}
+            aria-label="Close gallery"
+          >
+            ×
+          </button>
+          <button
+            className="lightbox-nav prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox((lightbox - 1 + galleryList.length) % galleryList.length);
+            }}
+            aria-label="Previous image"
+          >
+            ‹
+          </button>
+          <img
+            src={galleryList[lightbox]}
+            alt={`Zamani gallery ${lightbox + 1}`}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="lightbox-nav next"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox((lightbox + 1) % galleryList.length);
+            }}
+            aria-label="Next image"
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       <Footer settings={settings} />
     </>

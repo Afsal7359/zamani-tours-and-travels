@@ -151,18 +151,202 @@ export const defaultServices = [
   },
 ];
 
+export const defaultPackages = [
+  {
+    order: 1,
+    slug: 'lakshadweep',
+    title: 'Lakshadweep',
+    location: 'Union Territory, India',
+    duration: '4 Days / 3 Nights',
+    price: 'From ₹26,999',
+    priceNote: 'per person',
+    badge: 'Bestseller',
+    description: 'Coral atolls, glass-clear lagoons, and untouched white-sand beaches. A serene island escape with snorkelling, kayaking, and sunset cruises across the Arabian Sea.',
+    longDescription: "Lakshadweep is India's best-kept secret — a scattering of 36 coral islands ringed by turquoise lagoons and living reefs. With permits, transfers, and stays all handled by Zamani, you simply arrive and unwind.\n\nYour days move at island pace: snorkel over coral gardens alive with parrotfish and rays, glide across mirror-still lagoons by kayak, or simply stretch out on sand so fine and white it feels unreal. Evenings bring slow sunset cruises and fresh seafood under a sky thick with stars.\n\nThis package covers the Agatti–Bangaram–Kavaratti circuit with comfortable beach-side accommodation, all inter-island transfers by boat, and the special-area entry permit that Lakshadweep requires — arranged well before you travel so there are no surprises.",
+    image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?w=900&q=80',
+      'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=900&q=80',
+      'https://images.unsplash.com/photo-1468413253725-0d5181091126?w=900&q=80',
+      'https://images.unsplash.com/photo-1502209524164-acea936639a2?w=900&q=80',
+    ],
+    highlights: [
+      'Lakshadweep entry permit arranged in advance',
+      'Snorkelling over living coral reefs',
+      'Lagoon kayaking and glass-bottom boat rides',
+      'Sunset cruise across the Arabian Sea',
+      'Beach-side stay with fresh seafood meals',
+      'Return flights and inter-island boat transfers',
+    ],
+    inclusions: [
+      'Return airfare from Kochi to Agatti',
+      '3 nights beach-side accommodation',
+      'Daily breakfast and dinner',
+      'Special-area entry permit',
+      'All inter-island boat transfers',
+      'Snorkelling gear and guided reef walk',
+    ],
+    exclusions: [
+      'Lunch and personal expenses',
+      'Scuba diving and paid water sports',
+      'Travel insurance',
+      'Anything not mentioned in inclusions',
+    ],
+    itinerary: [
+      { day: 'Day 1', title: 'Arrival at Agatti', description: 'Fly into Agatti and transfer to your beach resort. Spend the afternoon settling in with a guided lagoon walk and an evening at the shore.' },
+      { day: 'Day 2', title: 'Bangaram Island', description: 'Boat across to Bangaram for a full day of snorkelling over coral reefs, kayaking, and a beach picnic lunch on the sand.' },
+      { day: 'Day 3', title: 'Kavaratti & Sunset Cruise', description: 'Visit Kavaratti — the capital island — its marine aquarium and mosque, followed by a relaxed sunset cruise across the Arabian Sea.' },
+      { day: 'Day 4', title: 'Departure', description: 'A final morning by the lagoon before your transfer to Agatti airport for the return flight home.' },
+    ],
+    tags: ['Beach', 'Island', 'Snorkelling', 'Family'],
+  },
+  {
+    order: 2,
+    slug: 'gokarna',
+    title: 'Gokarna',
+    location: 'Karnataka, India',
+    duration: '3 Days / 2 Nights',
+    price: 'From ₹13,499',
+    priceNote: 'per person',
+    badge: 'Popular',
+    description: 'A laid-back temple town wrapped in golden beaches and clifftop trails. Beach-hop from Om to Kudle, watch the sunset from the cliffs, and slow right down.',
+    longDescription: "Gokarna is where a centuries-old temple town meets a string of some of the most beautiful, uncrowded beaches on India's west coast. It has the calm of a pilgrimage town and the freedom of a coastal escape — without the crowds of Goa.\n\nThe days here are simple and unhurried. Walk the clifftop trail that links Om Beach, Half Moon, and Paradise Beach; swim in warm Arabian Sea water; and end each evening watching the sun drop into the ocean from a beach shack with a plate of fresh-caught fish.\n\nThis package includes comfortable beach-view accommodation, a guided beach-trek, and a visit to the historic Mahabaleshwar Temple — balancing the spiritual and the restful in one easy trip.",
+    image: 'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6?w=900&q=80',
+      'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=900&q=80',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80',
+      'https://images.unsplash.com/photo-1540202404-a2f29016b523?w=900&q=80',
+    ],
+    highlights: [
+      'Clifftop beach trek — Om, Half Moon & Paradise',
+      'Sunset views over the Arabian Sea',
+      'Visit to the historic Mahabaleshwar Temple',
+      'Beach-view stay with relaxed coastal vibe',
+      'Optional boat ride and dolphin spotting',
+      'Fresh seafood and a slow, unhurried pace',
+    ],
+    inclusions: [
+      '2 nights beach-view accommodation',
+      'Daily breakfast',
+      'Guided beach trek with a local guide',
+      'Mahabaleshwar Temple visit',
+      'All ground transfers in an air-conditioned vehicle',
+      'Pick-up and drop from the nearest railway station',
+    ],
+    exclusions: [
+      'Lunch, dinner and personal expenses',
+      'Boat rides and paid activities',
+      'Travel insurance',
+      'Anything not mentioned in inclusions',
+    ],
+    itinerary: [
+      { day: 'Day 1', title: 'Arrival & Om Beach', description: 'Arrive in Gokarna and check in to your beach-view stay. Spend the evening unwinding at Om Beach with a coastal sunset.' },
+      { day: 'Day 2', title: 'Beach Trek & Temple', description: 'Trek the clifftop trail to Half Moon and Paradise beaches, then visit the Mahabaleshwar Temple in the old town before a relaxed evening.' },
+      { day: 'Day 3', title: 'Kudle Beach & Departure', description: 'A morning at calm Kudle Beach before your transfer for the journey home.' },
+    ],
+    tags: ['Beach', 'Temple', 'Trekking', 'Budget'],
+  },
+  {
+    order: 3,
+    slug: 'vythiri',
+    title: 'Vythiri',
+    location: 'Wayanad, Kerala',
+    duration: '3 Days / 2 Nights',
+    price: 'From ₹15,999',
+    priceNote: 'per person',
+    badge: '',
+    description: 'A misty rainforest retreat in the Wayanad hills. Tree-house stays, waterfalls, spice plantations, and cool mountain air — nature at its most restful.',
+    longDescription: "Tucked into the Western Ghats, Vythiri is Wayanad's green heart — a place of mist-wrapped rainforest, tumbling streams, and air that smells of cardamom and rain. It is the kind of place you go to genuinely slow down.\n\nStay among the canopy in comfortable resort cottages or a tree-house, wake to birdsong, and spend your days exploring spice and coffee plantations, bamboo groves, and hidden waterfalls. The pace is gentle and the scenery does the work.\n\nThis package includes a guided plantation walk, a visit to the Pookode freshwater lake, and time at a forest waterfall — a restful escape ideal for couples and families looking for cool weather and quiet greenery.",
+    image: 'https://images.unsplash.com/photo-1571536802807-30451e3955d8?w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=900&q=80',
+      'https://images.unsplash.com/photo-1545241047-6083a3684587?w=900&q=80',
+      'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=900&q=80',
+      'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=900&q=80',
+    ],
+    highlights: [
+      'Rainforest resort or tree-house stay',
+      'Guided spice & coffee plantation walk',
+      'Pookode freshwater lake and boating',
+      'Forest waterfall visit',
+      'Cool mountain climate year-round',
+      'Ideal for couples and families',
+    ],
+    inclusions: [
+      '2 nights resort accommodation in Vythiri',
+      'Daily breakfast and dinner',
+      'Guided plantation walk',
+      'Pookode Lake entry and boating',
+      'All sightseeing transfers by private vehicle',
+      'Pick-up and drop from Kozhikode',
+    ],
+    exclusions: [
+      'Lunch and personal expenses',
+      'Tree-house upgrade charges',
+      'Travel insurance',
+      'Anything not mentioned in inclusions',
+    ],
+    itinerary: [
+      { day: 'Day 1', title: 'Arrival in Vythiri', description: 'Drive up into the Wayanad hills and check in to your rainforest resort. Spend the evening exploring the property and its surrounding greenery.' },
+      { day: 'Day 2', title: 'Plantations & Pookode Lake', description: 'A guided walk through spice and coffee plantations, followed by boating at the Pookode freshwater lake and a forest waterfall in the afternoon.' },
+      { day: 'Day 3', title: 'Departure', description: 'A slow morning amid the mist before your transfer back down to Kozhikode for the journey home.' },
+    ],
+    tags: ['Hill Station', 'Nature', 'Honeymoon', 'Family'],
+  },
+  {
+    order: 4,
+    slug: 'meppadi',
+    title: 'Meppadi',
+    location: 'Wayanad, Kerala',
+    duration: '3 Days / 2 Nights',
+    price: 'From ₹14,499',
+    priceNote: 'per person',
+    badge: '',
+    description: 'Rolling tea estates, the climb to Chembra Peak, and the roar of Soochipara Falls. A green, gentle highland getaway in the heart of Wayanad.',
+    longDescription: "Meppadi sits among some of Wayanad's most beautiful highland scenery — endless tea gardens that ripple over the hills, framed by the peaks of the Western Ghats. It is quieter than the better-known hill stations and all the better for it.\n\nWalk the estate paths between rows of tea, breathe in the cool highland air, and take in views that stretch for miles. The package places the region's signature sights within easy reach — the heart-shaped lake on the Chembra Peak trail, the three-tiered Soochipara waterfall, and working tea factories where you can see the leaf become the cup.\n\nWith comfortable estate-side accommodation and a private vehicle for all sightseeing, this is an easy, scenic escape for nature lovers, photographers, and families alike.",
+    image: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?w=900&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1597211833712-5e41faa202ea?w=900&q=80',
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=900&q=80',
+      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&q=80',
+      'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=900&q=80',
+    ],
+    highlights: [
+      'Stay surrounded by working tea estates',
+      'Chembra Peak trek to the heart-shaped lake',
+      'Soochipara three-tiered waterfall',
+      'Tea factory visit and tasting',
+      'Cool highland climate and sweeping views',
+      'Private vehicle for all sightseeing',
+    ],
+    inclusions: [
+      '2 nights estate-side accommodation',
+      'Daily breakfast and dinner',
+      'Guided tea factory visit',
+      'Soochipara Falls and Chembra base entry',
+      'All sightseeing transfers by private vehicle',
+      'Pick-up and drop from Kozhikode',
+    ],
+    exclusions: [
+      'Lunch and personal expenses',
+      'Chembra Peak trek permit and guide fees',
+      'Travel insurance',
+      'Anything not mentioned in inclusions',
+    ],
+    itinerary: [
+      { day: 'Day 1', title: 'Arrival in Meppadi', description: 'Arrive amid the tea estates and check in to your highland stay. Spend the evening on an estate walk as the light softens over the hills.' },
+      { day: 'Day 2', title: 'Chembra Peak & Soochipara Falls', description: 'Trek towards the heart-shaped lake on the Chembra Peak trail, then visit the three-tiered Soochipara waterfall in the afternoon.' },
+      { day: 'Day 3', title: 'Tea Factory & Departure', description: 'Tour a working tea factory with a tasting session before your transfer back to Kozhikode.' },
+    ],
+    tags: ['Hill Station', 'Tea Estate', 'Trekking', 'Nature'],
+  },
+];
+
 export const defaultTestimonials = [
   { stars: 5, quote: "Zamani arranged our family's Umrah end-to-end. From the visa to the hotel near Haram — everything was exactly as promised. Will return for our next pilgrimage.", author: 'Fathima A.', role: 'Umrah Client · 2024', initials: 'FA' },
   { stars: 5, quote: 'Got my GCC job visa processed in record time. The team handled my attestation, medical and stamping while I was still in India. Genuinely impressed.', author: 'Rashid M.', role: 'Job Visa · Dubai', initials: 'RM' },
   { stars: 5, quote: 'Booked our Maldives honeymoon through Zamani. Forex, flights, hotel — one call, one invoice. Clean, transparent, and they actually pick up the phone.', author: 'Sajid & Khadija', role: 'Honeymoon · Maldives', initials: 'SK' },
-];
-
-export const defaultDestinations = [
-  { order: 1, name: 'Umrah · Mecca', country: 'Saudi Arabia', price: 'From ₹78,000', image: 'https://images.unsplash.com/photo-1565552645632-d725f8bfc19a?w=1200&q=80', badge: 'Featured' },
-  { order: 2, name: 'Dubai', country: 'UAE', price: '₹52,000', image: 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80', badge: '' },
-  { order: 3, name: 'Maldives', country: 'Indian Ocean', price: '₹89,000', image: 'https://images.unsplash.com/photo-1539367628448-4bc5c9d171c8?w=800&q=80', badge: '' },
-  { order: 4, name: 'Istanbul', country: 'Türkiye', price: '₹68,000', image: 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=800&q=80', badge: '' },
-  { order: 5, name: 'Paris', country: 'France', price: '₹1,12,000', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80', badge: '' },
 ];
 
 export const defaultProcessSteps = [
@@ -252,4 +436,12 @@ export const defaultAboutContent = {
     { year: '2021', title: '10,000 Clients Milestone', description: 'Crossed 10,000 satisfied clients — a testament to the trust families and professionals across Kerala place in us year after year.' },
     { year: '2025', title: 'Eleven Services, One Trusted Desk', description: 'Today, Zamani offers eleven specialised services — from Holyland tours and travel insurance to holiday packages for every budget and occasion.' },
   ],
+};
+
+// Shared gallery — powers the Home page scrolling strip and the About page grid.
+export const defaultGallery = {
+  images: Array.from(
+    { length: 17 },
+    (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
+  ),
 };

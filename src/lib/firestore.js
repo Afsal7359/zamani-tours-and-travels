@@ -55,6 +55,47 @@ export async function deleteService(id) {
   await deleteDoc(doc(db, 'services', id));
 }
 
+// ─── Tour Packages ────────────────────────────────────────────────────────────
+
+export async function getPackages() {
+  const db = getFirebaseDb();
+  const q = query(collection(db, 'packages'), orderBy('order', 'asc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function getPackage(id) {
+  const db = getFirebaseDb();
+  const snap = await getDoc(doc(db, 'packages', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+export async function getPackageBySlug(slug) {
+  const db = getFirebaseDb();
+  const q = query(collection(db, 'packages'), where('slug', '==', slug));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+export async function savePackage(id, data) {
+  const db = getFirebaseDb();
+  if (id) {
+    await setDoc(doc(db, 'packages', id), data, { merge: true });
+    return id;
+  } else {
+    const ref = await addDoc(collection(db, 'packages'), data);
+    return ref.id;
+  }
+}
+
+export async function deletePackage(id) {
+  const db = getFirebaseDb();
+  await deleteDoc(doc(db, 'packages', id));
+}
+
 // ─── Blog Posts ───────────────────────────────────────────────────────────────
 
 export async function getBlogPosts(options = {}) {
@@ -125,31 +166,6 @@ export async function deleteTestimonial(id) {
   await deleteDoc(doc(db, 'testimonials', id));
 }
 
-// ─── Destinations ─────────────────────────────────────────────────────────────
-
-export async function getDestinations() {
-  const db = getFirebaseDb();
-  const q = query(collection(db, 'destinations'), orderBy('order', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
-
-export async function saveDestination(id, data) {
-  const db = getFirebaseDb();
-  if (id) {
-    await setDoc(doc(db, 'destinations', id), data, { merge: true });
-    return id;
-  } else {
-    const ref = await addDoc(collection(db, 'destinations'), data);
-    return ref.id;
-  }
-}
-
-export async function deleteDestination(id) {
-  const db = getFirebaseDb();
-  await deleteDoc(doc(db, 'destinations', id));
-}
-
 // ─── Process Steps ────────────────────────────────────────────────────────────
 
 export async function getProcessSteps() {
@@ -215,6 +231,20 @@ export async function getAboutContent() {
 export async function saveAboutContent(data) {
   const db = getFirebaseDb();
   await setDoc(doc(db, 'site_data', 'about_content'), data, { merge: true });
+}
+
+// ─── Gallery ──────────────────────────────────────────────────────────────────
+
+export async function getGallery() {
+  const db = getFirebaseDb();
+  const snap = await getDoc(doc(db, 'site_data', 'gallery'));
+  if (!snap.exists()) return null;
+  return snap.data();
+}
+
+export async function saveGallery(data) {
+  const db = getFirebaseDb();
+  await setDoc(doc(db, 'site_data', 'gallery'), data, { merge: true });
 }
 
 // ─── Contact Submissions ──────────────────────────────────────────────────────

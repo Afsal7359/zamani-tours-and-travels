@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed": "npm install --prefix scripts --silent && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mjs"
+    "seed": "npm install --prefix scripts --silent && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mjs",
+    "seed:packages": "npm install --prefix scripts --silent && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-packages.mjs"
   },
   "dependencies": {
     "firebase": "^10.12.0",
