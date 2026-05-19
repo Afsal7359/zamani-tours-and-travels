@@ -13,6 +13,7 @@ import {
   getGallery,
 } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const fallbackGallery = Array.from(
   { length: 17 },
@@ -88,6 +89,8 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, [packages, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   const marqueeItems = home?.marqueeItems || [];
@@ -96,6 +99,7 @@ export default function HomePage() {
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}

@@ -194,8 +194,8 @@ export default function AdminGalleryPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || uploading}>
+            {uploading ? 'Uploading images…' : saving ? 'Saving...' : 'Save Changes'}
           </button>
           {saved && (
             <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.88rem' }}>

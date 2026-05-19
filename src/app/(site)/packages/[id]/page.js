@@ -6,6 +6,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getPackageBySlug, getPackage, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 export default function PackageDetailPage() {
   const { id } = useParams();
@@ -44,6 +45,8 @@ export default function PackageDetailPage() {
     return () => io.disconnect();
   }, [pkg]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   if (!pkg) {
@@ -69,6 +72,7 @@ export default function PackageDetailPage() {
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="packages" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}

@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { getAboutContent, saveAboutContent } from '@/lib/firestore';
 import { defaultAboutContent } from '@/lib/defaultData';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { useUpload } from '@/components/admin/UploadContext';
 
 export default function AdminAboutPage() {
   const [form, setForm] = useState(defaultAboutContent);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { isUploading } = useUpload();
 
   useEffect(() => {
     async function load() {
@@ -194,8 +196,8 @@ export default function AdminAboutPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || isUploading}>
+            {isUploading ? 'Uploading image…' : saving ? 'Saving...' : 'Save Changes'}
           </button>
           {saved && <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.88rem' }}>✓ Saved successfully</span>}
         </div>

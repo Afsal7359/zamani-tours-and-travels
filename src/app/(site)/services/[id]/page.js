@@ -6,6 +6,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getServiceBySlug, getService, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const iconMap = {
   plane: <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 8.82a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91"/><path d="M21 2l-9 9M15 2h6v6"/></svg>,
@@ -59,6 +60,8 @@ export default function ServiceDetailPage() {
     return () => io.disconnect();
   }, [service]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   if (!service) {
@@ -82,6 +85,7 @@ export default function ServiceDetailPage() {
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="services" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}

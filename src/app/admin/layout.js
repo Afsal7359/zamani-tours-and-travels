@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import { UploadProvider } from '@/components/admin/UploadContext';
 import '@/app/globals.css';
 
 export default function AdminLayout({ children }) {
@@ -55,19 +56,21 @@ export default function AdminLayout({ children }) {
   }[pathname] || 'Admin Panel';
 
   return (
-    <div className="admin-layout">
-      <AdminSidebar user={user} />
-      <div className="admin-main">
-        <div className="admin-topbar">
-          <h1>{pageTitle}</h1>
-          <div className="user-info">
-            <span style={{ color: '#5a627d' }}>{user.email}</span>
+    <UploadProvider>
+      <div className="admin-layout">
+        <AdminSidebar user={user} />
+        <div className="admin-main">
+          <div className="admin-topbar">
+            <h1>{pageTitle}</h1>
+            <div className="user-info">
+              <span style={{ color: '#5a627d' }}>{user.email}</span>
+            </div>
+          </div>
+          <div className="admin-content">
+            {children}
           </div>
         </div>
-        <div className="admin-content">
-          {children}
-        </div>
       </div>
-    </div>
+    </UploadProvider>
   );
 }

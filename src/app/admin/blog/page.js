@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getBlogPosts, saveBlogPost, deleteBlogPost } from '@/lib/firestore';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { useUpload } from '@/components/admin/UploadContext';
 
 const CATEGORIES = ['Visa Guides', 'Umrah', 'Destinations', 'Forex', 'GCC Work'];
 const emptyForm = { title: '', excerpt: '', content: '', image: '', category: 'Visa Guides', date: '', readTime: '', featured: false };
@@ -14,6 +15,7 @@ export default function AdminBlogPage() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const { isUploading } = useUpload();
 
   async function load() {
     setLoading(true);
@@ -164,8 +166,8 @@ export default function AdminBlogPage() {
               </div>
               <div className="admin-modal-footer">
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setModal(false)}>Cancel</button>
-                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Post'}
+                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || isUploading}>
+                  {isUploading ? 'Uploading image…' : saving ? 'Saving...' : 'Save Post'}
                 </button>
               </div>
             </form>

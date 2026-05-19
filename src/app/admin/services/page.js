@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getServices, saveService, deleteService } from '@/lib/firestore';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { useUpload } from '@/components/admin/UploadContext';
 
 const iconTypes = ['plane', 'passport', 'stamp', 'mosque', 'suitcase', 'id', 'document', 'shield', 'work', 'temple', 'forex'];
 function toSlug(str) {
@@ -31,6 +32,7 @@ export default function AdminServicesPage() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const { isUploading } = useUpload();
 
   async function load() {
     setLoading(true);
@@ -325,8 +327,8 @@ export default function AdminServicesPage() {
 
               <div className="admin-modal-footer">
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setModal(false)}>Cancel</button>
-                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Service'}
+                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || isUploading}>
+                  {isUploading ? 'Uploading image…' : saving ? 'Saving...' : 'Save Service'}
                 </button>
               </div>
             </form>

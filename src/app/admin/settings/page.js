@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { getSiteSettings, saveSiteSettings } from '@/lib/firestore';
 import { defaultSiteSettings } from '@/lib/defaultData';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { useUpload } from '@/components/admin/UploadContext';
 
 export default function AdminSettingsPage() {
   const [form, setForm] = useState(defaultSiteSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { isUploading } = useUpload();
 
   useEffect(() => {
     async function load() {
@@ -213,8 +215,8 @@ export default function AdminSettingsPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Settings'}
+          <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || isUploading}>
+            {isUploading ? 'Uploading image…' : saving ? 'Saving...' : 'Save Settings'}
           </button>
           {saved && <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.88rem' }}>✓ Settings saved successfully</span>}
         </div>

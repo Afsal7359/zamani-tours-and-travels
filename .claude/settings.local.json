@@ -19,7 +19,8 @@
       "Bash(grep -nA12 '\"scripts\"' package.json)",
       "Bash(npx next *)",
       "Bash(sed -n '348,372p' \"src/lib/defaultData.js\")",
-      "Bash(sed -n '726,832p' src/app/globals.css)"
+      "Bash(sed -n '726,832p' src/app/globals.css)",
+      "Bash(grep -nE 'if \\\\\\(loading\\\\\\) return|return \\\\\\(|<Navbar|useImagesLoaded' 'src/app/\\(site\\)/__TRACKED_VAR__.js')"
     ],
     "additionalDirectories": [
       "/Users/afsal/Desktop/freelance/zamani-nextjs/src/app/(site)/services"

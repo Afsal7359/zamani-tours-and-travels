@@ -5,6 +5,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getPackages, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const PinIcon = () => (
   <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -44,10 +45,13 @@ export default function PackagesPage() {
     return () => io.disconnect();
   }, [packages, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="packages" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

@@ -5,6 +5,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getAboutContent, getSiteSettings, getGallery } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const fallbackGallery = Array.from(
   { length: 17 },
@@ -45,6 +46,8 @@ export default function AboutPage() {
     return () => io.disconnect();
   }, [about, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   const values = about?.values || [];
@@ -53,6 +56,7 @@ export default function AboutPage() {
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="about" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

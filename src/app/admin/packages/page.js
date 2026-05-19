@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getPackages, savePackage, deletePackage } from '@/lib/firestore';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { useUpload } from '@/components/admin/UploadContext';
 
 function toSlug(str) {
   return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -35,6 +36,7 @@ export default function AdminPackagesPage() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const { isUploading } = useUpload();
 
   async function load() {
     setLoading(true);
@@ -375,8 +377,8 @@ export default function AdminPackagesPage() {
 
               <div className="admin-modal-footer">
                 <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setModal(false)}>Cancel</button>
-                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Package'}
+                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || isUploading}>
+                  {isUploading ? 'Uploading image…' : saving ? 'Saving...' : 'Save Package'}
                 </button>
               </div>
             </form>

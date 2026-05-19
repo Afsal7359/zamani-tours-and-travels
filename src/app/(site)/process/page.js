@@ -5,6 +5,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getProcessSteps, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const faqs = [
   { q: 'How quickly can you process a visa?', a: 'Turnaround times depend on the destination and visa type. Standard visas typically take 3–7 working days, while express or tatkal processing can be done in 24–48 hours for eligible applications. We always advise you on the realistic timeline before you confirm.' },
@@ -47,10 +48,13 @@ export default function ProcessPage() {
     return () => io.disconnect();
   }, [steps, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="process" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

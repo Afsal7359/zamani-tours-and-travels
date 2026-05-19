@@ -1,14 +1,27 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useUpload } from './UploadContext';
 
 export default function ImageUpload({ value, onChange, label }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef();
+  const { beginUpload, endUpload } = useUpload();
+  const activeRef = useRef(false);
+
+  // If this field unmounts mid-upload (e.g. modal closed), release the counter.
+  useEffect(() => () => {
+    if (activeRef.current) {
+      endUpload();
+      activeRef.current = false;
+    }
+  }, [endUpload]);
 
   async function handleFile(e) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
+    beginUpload();
+    activeRef.current = true;
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -24,6 +37,10 @@ export default function ImageUpload({ value, onChange, label }) {
       alert('Image upload failed. Please try again.');
     } finally {
       setUploading(false);
+      if (activeRef.current) {
+        endUpload();
+        activeRef.current = false;
+      }
       if (inputRef.current) inputRef.current.value = '';
     }
   }

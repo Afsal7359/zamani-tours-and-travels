@@ -5,6 +5,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getServices, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const iconMap = {
   plane: (
@@ -114,10 +115,13 @@ export default function ServicesPage() {
     return () => io.disconnect();
   }, [services, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="services" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

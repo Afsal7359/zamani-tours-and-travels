@@ -5,6 +5,7 @@ import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getBlogPosts, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
+import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const CATEGORIES = ['All', 'Umrah', 'Visa Guides', 'Destinations', 'GCC Work', 'Forex'];
 
@@ -40,6 +41,8 @@ export default function BlogPage() {
     return () => io.disconnect();
   }, [posts, activeCategory, loading]);
 
+  const imagesReady = useImagesLoaded(!loading);
+
   if (loading) return <LoadingScreen />;
 
   const filteredPosts = activeCategory === 'All'
@@ -52,6 +55,7 @@ export default function BlogPage() {
 
   return (
     <>
+      {!imagesReady && <LoadingScreen />}
       <Navbar activePage="blog" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
