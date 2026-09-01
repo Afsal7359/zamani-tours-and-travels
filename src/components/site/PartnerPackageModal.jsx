@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { savePackageRequest } from '@/lib/firestore';
+import { uploadToCloudinary } from '@/lib/upload';
 
 export default function PartnerPackageModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);
@@ -29,22 +30,25 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
     image: '',
     images: [],
     
+    includes: ['Accommodation', 'Daily Breakfast', 'Sightseeing Transfers', 'All Taxes & Tolls'],
+    excludes: ['Airfare / Train tickets', 'Personal expenses', 'Optional activities / Entry tickets'],
+    
     itinerary: [
-      { day: 'Day 1', title: 'Arrival & Check-in', description: '', image: '' },
-      { day: 'Day 2', title: 'Sightseeing & Experience', description: '', image: '' },
+      { day: 1, title: 'Arrival & Check-in', desc: 'Welcome drink on arrival. Leisure evening.', image: '' },
+      { day: 2, title: 'Full Day Sightseeing', desc: 'Explore top tourist spots with private driver.', image: '' },
+      { day: 3, title: 'Check-out & Departure', desc: 'Breakfast and onward transfer.', image: '' }
     ],
     
-    highlights: '',
-    inclusions: 'Luxury accommodation\nDaily Breakfast & Dinner\nAll transfers & sightseeing\nWelcome drink on arrival',
-    exclusions: 'Airfare / Train tickets\nPersonal expenses & tips\nOptional water sports / adventure activities',
+    specialNote: ''
   });
 
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingItinIdx, setUploadingItinIdx] = useState(null);
 
-  const mainFileInputRef = useRef();
-  const galleryFileInputRef = useRef();
+  const mainImageInputRef = useRef(null);
+  const galleryImagesInputRef = useRef(null);
+  const itinImageInputRefs = useRef({});
 
   if (!isOpen) return null;
 
@@ -58,14 +62,9 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
     if (!file) return;
     setUploadingMain(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.url) {
-        updateField('image', data.url);
-      } else {
-        alert(data.error || 'Image upload failed');
+      const url = await uploadToCloudinary(file);
+      if (url) {
+        updateField('image', url);
       }
     } catch (err) {
       console.error(err);
@@ -82,11 +81,8 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
     try {
       const uploadedUrls = [];
       for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.url) uploadedUrls.push(data.url);
+        const url = await uploadToCloudinary(file);
+        if (url) uploadedUrls.push(url);
       }
       setFormData(prev => ({
         ...prev,
@@ -112,14 +108,11 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
     if (!file) return;
     setUploadingItinIdx(index);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.url) {
+      const url = await uploadToCloudinary(file);
+      if (url) {
         setFormData(prev => {
           const list = [...prev.itinerary];
-          list[index] = { ...list[index], image: data.url };
+          list[index] = { ...list[index], image: url };
           return { ...prev, itinerary: list };
         });
       }

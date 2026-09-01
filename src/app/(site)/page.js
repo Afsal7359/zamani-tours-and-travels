@@ -19,6 +19,7 @@ import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
 import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
+import PhotoReelModal from '@/components/site/PhotoReelModal';
 
 function getSlideConnectionClass(list, i) {
   if (!list || list.length <= 1) return '';
@@ -68,6 +69,8 @@ export default function HomePage() {
   const [videoGallery, setVideoGallery] = useState([]);
   const [feedbackGallery, setFeedbackGallery] = useState([]);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
+  const [selectedFeedbackIndex, setSelectedFeedbackIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const pkgTrackRef = useRef(null);
 
@@ -345,9 +348,12 @@ export default function HomePage() {
               const conn = getSlideConnectionClass(marqueeGallery, i);
               return (
                 <div
-                  className={`gallery-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                  className={`gallery-slide gallery-clickable-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
                   key={`g1-${i}`}
                   aria-hidden={i >= galleryStrip.length}
+                  onClick={() => setSelectedPhotoIndex(i % galleryStrip.length)}
+                  role="button"
+                  tabIndex={0}
                 >
                   <img src={item.src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="lazy" />
                 </div>
@@ -427,9 +433,12 @@ export default function HomePage() {
               const conn = getSlideConnectionClass(marqueeFeedbacks, i);
               return (
                 <div
-                  className={`gallery-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                  className={`gallery-slide gallery-clickable-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
                   key={`g2-${i}`}
                   aria-hidden={i >= feedbackStrip.length}
+                  onClick={() => setSelectedFeedbackIndex(i % feedbackStrip.length)}
+                  role="button"
+                  tabIndex={0}
                 >
                   <img src={item.src} alt={`Customer review ${(i % feedbackStrip.length) + 1}`} loading="lazy" />
                 </div>
@@ -439,12 +448,32 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Full-Screen Interactive Instagram Reels Modal */}
+      {/* Full-Screen Interactive Video Reels Modal */}
       {selectedVideoIndex !== null && (
         <ReelModal
           videos={videoStrip}
           initialIndex={selectedVideoIndex}
           onClose={() => setSelectedVideoIndex(null)}
+        />
+      )}
+
+      {/* Full-Screen Interactive Photo Reels Modal (Company Banners) */}
+      {selectedPhotoIndex !== null && (
+        <PhotoReelModal
+          photos={galleryStrip}
+          initialIndex={selectedPhotoIndex}
+          categoryTitle="Company Banners & Moments"
+          onClose={() => setSelectedPhotoIndex(null)}
+        />
+      )}
+
+      {/* Full-Screen Interactive Photo Reels Modal (Customer Feedbacks & Reviews) */}
+      {selectedFeedbackIndex !== null && (
+        <PhotoReelModal
+          photos={feedbackStrip}
+          initialIndex={selectedFeedbackIndex}
+          categoryTitle="Customer Reviews & Stories"
+          onClose={() => setSelectedFeedbackIndex(null)}
         />
       )}
 

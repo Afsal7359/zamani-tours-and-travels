@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useUpload } from './UploadContext';
+import { uploadToCloudinary } from '@/lib/upload';
 
 export default function ImageUpload({ value, onChange, label }) {
   const [uploading, setUploading] = useState(false);
@@ -23,14 +24,9 @@ export default function ImageUpload({ value, onChange, label }) {
     beginUpload();
     activeRef.current = true;
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.url) {
-        onChange(data.url);
-      } else {
-        throw new Error(data.error || 'Upload failed');
+      const url = await uploadToCloudinary(file);
+      if (url) {
+        onChange(url);
       }
     } catch (err) {
       console.error('Upload error:', err);

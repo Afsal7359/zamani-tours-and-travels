@@ -1530,6 +1530,13 @@ footer {
 }
 .gallery-slide:hover img { transform: scale(1.06); }
 
+.gallery-clickable-slide {
+  cursor: pointer;
+}
+.gallery-clickable-slide:hover {
+  cursor: pointer;
+}
+
 .video-badge {
   background: rgba(220, 38, 38, 0.08) !important;
   color: #dc2626 !important;
@@ -1800,6 +1807,39 @@ footer {
   object-fit: cover;
   display: block;
 }
+
+/* ─── Photo Reels Specific Styling ─── */
+.photo-reel-card-wrapper {
+  width: clamp(300px, 90vw, 560px);
+  height: min(88vh, 760px);
+  max-width: 95vw;
+}
+
+.photo-reel-slide-item {
+  background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+  overflow: hidden;
+}
+
+.photo-reel-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.3s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.photo-reel-slide-item:hover .photo-reel-img {
+  transform: scale(1.02);
+}
+
+.reel-slide-item.photo-reel-slide-item {
+  cursor: default;
+}
+
 
 .reel-play-indicator {
   position: absolute;

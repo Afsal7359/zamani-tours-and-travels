@@ -10,6 +10,7 @@ import {
   saveFeedbackGallery,
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
+import { uploadToCloudinary } from '@/lib/upload';
 
 function normalizeItems(list = []) {
   if (!Array.isArray(list)) return [];
@@ -82,20 +83,17 @@ export default function AdminGalleryPage() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploading(true);
-    setUploadProgress(`Uploading 1 of ${files.length}...`);
+    setUploadProgress(`Preparing ${files.length} file${files.length > 1 ? 's' : ''}...`);
     try {
       const newItems = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         setUploadProgress(`Uploading ${i + 1} of ${files.length} (${file.name})...`);
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.url) {
-          newItems.push({ src: data.url, span: 1, connectNext: false });
-        } else {
-          throw new Error(data.error || 'Upload failed');
+        const url = await uploadToCloudinary(file, (pct) => {
+          setUploadProgress(`Uploading ${i + 1} of ${files.length} (${file.name}) — ${pct}%`);
+        });
+        if (url) {
+          newItems.push({ src: url, span: 1, connectNext: false });
         }
       }
       setCurrentList(prev => [...prev, ...newItems]);

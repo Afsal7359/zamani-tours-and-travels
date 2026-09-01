@@ -6,6 +6,7 @@ import Footer from '@/components/site/Footer';
 import { getAboutContent, getSiteSettings, getGallery } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
+import PhotoReelModal from '@/components/site/PhotoReelModal';
 
 function normalizeGalleryItems(list = []) {
   if (!Array.isArray(list)) return [];
@@ -267,42 +268,14 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ─── Lightbox ───────────────────────────────────────────────────── */}
+      {/* ─── Full-Screen Photo Reel Lightbox ────────────────────────── */}
       {lightbox !== null && (
-        <div className="lightbox" onClick={() => setLightbox(null)}>
-          <button
-            className="lightbox-close"
-            onClick={() => setLightbox(null)}
-            aria-label="Close gallery"
-          >
-            ×
-          </button>
-          <button
-            className="lightbox-nav prev"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((lightbox - 1 + galleryList.length) % galleryList.length);
-            }}
-            aria-label="Previous image"
-          >
-            ‹
-          </button>
-          <img
-            src={galleryList[lightbox]?.src || galleryList[lightbox]}
-            alt={`Zamani gallery ${lightbox + 1}`}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            className="lightbox-nav next"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightbox((lightbox + 1) % galleryList.length);
-            }}
-            aria-label="Next image"
-          >
-            ›
-          </button>
-        </div>
+        <PhotoReelModal
+          photos={galleryList}
+          initialIndex={lightbox}
+          categoryTitle="Moments From Our Journey"
+          onClose={() => setLightbox(null)}
+        />
       )}
 
       <Footer settings={settings} />
