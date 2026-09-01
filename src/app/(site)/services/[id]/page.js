@@ -95,7 +95,18 @@ export default function ServiceDetailPage() {
       >
         {allImages[0] && (
           <div className="svc-detail-hero-bg">
-            <img src={allImages[activeImg]} alt={service.title} />
+            {/\.(mp4|webm|mov|ogg)($|\?)/i.test(allImages[0]) || allImages[0].includes('/video/upload/') ? (
+              <video
+                src={allImages[0]}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <img src={allImages[0]} alt={service.title} />
+            )}
             <div className="svc-detail-hero-overlay" />
           </div>
         )}

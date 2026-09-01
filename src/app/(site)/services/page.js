@@ -151,7 +151,18 @@ export default function ServicesPage() {
                 style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div className="svc-img">
-                  <img src={svc.image} alt={svc.title} />
+                  {/\.(mp4|webm|mov|ogg)($|\?)/i.test(svc.image || '') || (svc.image || '').includes('/video/upload/') ? (
+                    <video
+                      src={svc.image}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <img src={svc.image} alt={svc.title} />
+                  )}
                   <span className="svc-num">{svc.num}</span>
                   <span className="svc-icon-badge">
                     {iconMap[svc.iconType] || iconMap.document}
