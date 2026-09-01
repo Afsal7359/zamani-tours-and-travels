@@ -1,29 +1,35 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getServices, getPackages, getBlogPosts, getContactSubmissions } from '@/lib/firestore';
+import { getServices, getPackages, getBlogPosts, getContactSubmissions, getPackageRequests } from '@/lib/firestore';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ services: 0, packages: 0, posts: 0, contacts: 0 });
+  const [stats, setStats] = useState({ services: 0, packages: 0, posts: 0, contacts: 0, packageRequests: 0, pendingRequests: 0 });
   const [submissions, setSubmissions] = useState([]);
+  const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [s, pk, p, c] = await Promise.all([
+        const [s, pk, p, c, reqs] = await Promise.all([
           getServices(),
           getPackages(),
           getBlogPosts(),
           getContactSubmissions(),
+          getPackageRequests(),
         ]);
+        const pendingCount = reqs.filter(r => (r.status || 'pending') === 'pending').length;
         setStats({
           services: s.length,
           packages: pk.length,
           posts: p.length,
           contacts: c.length,
+          packageRequests: reqs.length,
+          pendingRequests: pendingCount,
         });
         setSubmissions(c.slice(0, 5));
+        setRecentRequests(reqs.slice(0, 5));
       } catch (e) {
         console.error(e);
       } finally {
@@ -34,12 +40,12 @@ export default function AdminDashboard() {
   }, []);
 
   const quickLinks = [
-    { href: '/admin/home', label: 'Edit Home Page', desc: 'Hero text, about section, stats' },
-    { href: '/admin/about', label: 'Edit About Page', desc: 'Story, values, timeline' },
-    { href: '/admin/services', label: 'Manage Services', desc: 'Add, edit or remove services' },
+    { href: '/admin/package-requests', label: 'Package Requests', desc: 'Review submitted partner itineraries & rates' },
     { href: '/admin/packages', label: 'Manage Packages', desc: 'Tour packages and itineraries' },
+    { href: '/admin/services', label: 'Manage Services', desc: 'Add, edit or remove services' },
+    { href: '/admin/home', label: 'Edit Home Page', desc: 'Hero text, about section, stats' },
     { href: '/admin/blog', label: 'Manage Blog', desc: 'Publish and manage articles' },
-    { href: '/admin/settings', label: 'Site Settings', desc: 'Phone, email, social links' },
+    { href: '/admin/contacts', label: 'Contact Submissions', desc: 'User queries and leads' },
   ];
 
   return (
@@ -47,7 +53,17 @@ export default function AdminDashboard() {
       <div className="admin-breadcrumb">Dashboard</div>
 
       {/* Stats */}
-      <div className="admin-stats-grid">
+      <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <div className="admin-stat-card" style={stats.pendingRequests > 0 ? { border: '2px solid #F6C042', background: '#fffcf2' } : {}}>
+          <div className="num" style={{ color: stats.pendingRequests > 0 ? '#d97706' : 'inherit' }}>
+            {loading ? '—' : stats.pendingRequests}
+          </div>
+          <div className="lbl">Pending Package Requests</div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="num">{loading ? '—' : stats.packages}</div>
+          <div className="lbl">Live Packages</div>
+        </div>
         <div className="admin-stat-card">
           <div className="num">{loading ? '—' : stats.services}</div>
           <div className="lbl">Services</div>
@@ -57,12 +73,8 @@ export default function AdminDashboard() {
           <div className="lbl">Blog Posts</div>
         </div>
         <div className="admin-stat-card">
-          <div className="num">{loading ? '—' : stats.packages}</div>
-          <div className="lbl">Tour Packages</div>
-        </div>
-        <div className="admin-stat-card">
           <div className="num">{loading ? '—' : stats.contacts}</div>
-          <div className="lbl">Contact Submissions</div>
+          <div className="lbl">Contact Leads</div>
         </div>
       </div>
 

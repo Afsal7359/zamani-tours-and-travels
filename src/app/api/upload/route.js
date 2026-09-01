@@ -32,7 +32,7 @@ export async function POST(request) {
     uploadForm.append('folder', 'zamani');
 
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
       { method: 'POST', body: uploadForm }
     );
 

@@ -6,6 +6,8 @@ import Footer from '@/components/site/Footer';
 import { getPackages, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
+import PackageCard from '@/components/site/PackageCard';
+import PartnerPackageModal from '@/components/site/PartnerPackageModal';
 
 const PinIcon = () => (
   <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -18,6 +20,7 @@ export default function PackagesPage() {
   const [packages, setPackages] = useState([]);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
+  const [partnerModalOpen, setPartnerModalOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -47,12 +50,14 @@ export default function PackagesPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="packages" />
+      <PartnerPackageModal
+        isOpen={partnerModalOpen}
+        onClose={() => setPartnerModalOpen(false)}
+      />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
       <section className="page-hero">
@@ -63,16 +68,38 @@ export default function PackagesPage() {
           <span className="eyebrow light">Tour Packages</span>
           <h1>Curated journeys,<br /><em>ready to book.</em></h1>
           <p>Handpicked island escapes and hill-country getaways — every transfer, stay, and detail arranged for you.</p>
+          <div style={{ marginTop: '1.8rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setPartnerModalOpen(true)}
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#F6C042', color: '#0A1235', borderColor: '#F6C042', fontWeight: 700 }}
+            >
+              <span>🏨</span> List Your Resort / Package
+            </button>
+            <a href="#featured" className="btn btn-ghost">
+              Explore Packages ↓
+            </a>
+          </div>
         </div>
       </section>
 
       {/* ─── Packages Grid ─────────────────────────────────────────────── */}
-      <section className="svc-section">
+      <section id="featured" className="svc-section">
         <div className="container">
-          <div className="svc-head">
-            <span className="eyebrow royal">Featured Destinations</span>
-            <h2>Pick your<br /><em>perfect escape.</em></h2>
-            <p>Each package is fully managed by our advisors — clear pricing, comfortable stays, and no hidden surprises.</p>
+          <div className="svc-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div>
+              <span className="eyebrow royal">Featured Destinations</span>
+              <h2>Pick your<br /><em>perfect escape.</em></h2>
+              <p>Each package is fully managed by our advisors — clear pricing, comfortable stays, and no hidden surprises.</p>
+            </div>
+            <button
+              onClick={() => setPartnerModalOpen(true)}
+              className="partner-quick-btn"
+            >
+              <span className="sparkle">✨</span>
+              <span><strong>Resort Owners & Partners:</strong> Submit Your Itinerary</span>
+              <span className="arrow">→</span>
+            </button>
           </div>
 
           {packages.length === 0 ? (
@@ -80,44 +107,40 @@ export default function PackagesPage() {
           ) : (
             <div className="pkg-grid">
               {packages.map((pkg, i) => (
-                <Link
-                  href={`/packages/${pkg.slug || pkg.id}`}
-                  className="pkg-card reveal"
-                  key={pkg.id || i}
-                >
-                  <div className="pkg-img">
-                    <img src={pkg.image} alt={pkg.title} />
-                    {pkg.badge && <span className="pkg-badge">{pkg.badge}</span>}
-                    {pkg.duration && <span className="pkg-duration">{pkg.duration}</span>}
-                  </div>
-                  <div className="pkg-body">
-                    {pkg.location && (
-                      <span className="pkg-location"><PinIcon />{pkg.location}</span>
-                    )}
-                    <h3>{pkg.title}</h3>
-                    <p>{pkg.description}</p>
-                    <div className="pkg-tags">
-                      {(pkg.tags || []).slice(0, 3).map((tag, ti) => (
-                        <span key={ti}>{tag}</span>
-                      ))}
-                    </div>
-                    <div className="pkg-card-foot">
-                      <div className="pkg-price">
-                        {pkg.price && <strong>{pkg.price}</strong>}
-                        {pkg.priceNote && <small>{pkg.priceNote}</small>}
-                      </div>
-                      <span className="pkg-view">
-                        View Details
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </Link>
+                <PackageCard key={pkg.id || i} pkg={pkg} index={i} className="reveal" />
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ─── Partner & Resort Listing Feature Banner ───────────────────── */}
+      <section className="partner-feature-section">
+        <div className="container">
+          <div className="partner-banner-card reveal">
+            <div className="partner-banner-text">
+              <span className="eyebrow light">Partner With Zamani</span>
+              <h2>Are you a Resort Manager<br /><em>or Tour Operator?</em></h2>
+              <p>
+                List your exclusive stays, custom itineraries, and package deals with adult and child rates. Our admin team will review and feature your property to thousands of high-intent travelers.
+              </p>
+              <div className="partner-badges">
+                <span>✓ Zero Listing Hassle</span>
+                <span>✓ Day-by-Day Itineraries</span>
+                <span>✓ High-Quality Media Showcase</span>
+                <span>✓ Direct Admin Approval</span>
+              </div>
+            </div>
+            <div className="partner-banner-action">
+              <button
+                onClick={() => setPartnerModalOpen(true)}
+                className="btn btn-partner-cta"
+              >
+                <span>➕ Submit Your Package & Itinerary</span>
+              </button>
+              <small>Fast review & listing within 24-48 hours</small>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -164,6 +187,139 @@ export default function PackagesPage() {
       </section>
 
       <Footer settings={settings} />
+
+      <style jsx>{`
+        .partner-quick-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.6rem;
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          padding: 0.75rem 1.25rem;
+          border-radius: 50px;
+          color: #1e40af;
+          font-size: 0.88rem;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          box-shadow: 0 4px 12px rgba(30, 64, 175, 0.08);
+        }
+        .partner-quick-btn:hover {
+          background: #2B47E5;
+          color: #ffffff;
+          border-color: #2B47E5;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(43, 71, 229, 0.25);
+        }
+        .partner-quick-btn .arrow {
+          transition: transform 0.2s;
+        }
+        .partner-quick-btn:hover .arrow {
+          transform: translateX(4px);
+        }
+        .partner-feature-section {
+          padding: 2.5rem 0 4.5rem 0;
+          background: #fdfbf7;
+        }
+        .partner-banner-card {
+          background: linear-gradient(135deg, #0A1235 0%, #152259 100%);
+          border-radius: 24px;
+          padding: 3rem 3.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 2.5rem;
+          color: #fff;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 20px 40px -10px rgba(10, 18, 53, 0.35);
+        }
+        .partner-banner-card::after {
+          content: '';
+          position: absolute;
+          right: -50px;
+          bottom: -50px;
+          width: 300px;
+          height: 300px;
+          background: radial-gradient(circle, rgba(246, 192, 66, 0.15) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .partner-banner-text h2 {
+          color: #fff;
+          font-size: 2rem;
+          margin: 0.6rem 0 1rem 0;
+        }
+        .partner-banner-text h2 em {
+          color: #F6C042;
+          font-style: normal;
+        }
+        .partner-banner-text p {
+          color: #cbd5e1;
+          font-size: 0.95rem;
+          max-width: 580px;
+          line-height: 1.6;
+        }
+        .partner-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.8rem;
+          margin-top: 1.4rem;
+        }
+        .partner-badges span {
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(4px);
+          font-size: 0.78rem;
+          padding: 0.35rem 0.8rem;
+          border-radius: 50px;
+          color: #e2e8f0;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .partner-banner-action {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.6rem;
+          flex-shrink: 0;
+        }
+        .btn-partner-cta {
+          background: #F6C042;
+          color: #0A1235;
+          border: none;
+          padding: 1.1rem 2rem;
+          border-radius: 14px;
+          font-size: 1rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.25s;
+          box-shadow: 0 8px 25px rgba(246, 192, 66, 0.3);
+          white-space: nowrap;
+        }
+        .btn-partner-cta:hover {
+          background: #ffcf56;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(246, 192, 66, 0.45);
+        }
+        .partner-banner-action small {
+          color: #94a3b8;
+          font-size: 0.75rem;
+        }
+        @media (max-width: 900px) {
+          .partner-banner-card {
+            flex-direction: column;
+            padding: 2.2rem;
+            text-align: left;
+            align-items: flex-start;
+          }
+          .partner-banner-action {
+            width: 100%;
+            align-items: flex-start;
+          }
+          .btn-partner-cta {
+            width: 100%;
+            text-align: center;
+          }
+        }
+      `}</style>
     </>
   );
 }
+

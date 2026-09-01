@@ -96,13 +96,49 @@ export default function ContactPage() {
                     </svg>
                   </div>
                   <div className="ch-text">
-                    <h4>Phone</h4>
-                    <p>
-                      {settings?.phone1 && <><a href={`tel:${settings.phone1.replace(/\s/g, '')}`}>{settings.phone1}</a><br /></>}
-                      {settings?.phone2 && <><a href={`tel:${settings.phone2.replace(/\s/g, '')}`}>{settings.phone2}</a><br /></>}
-                      {settings?.phone3 && <><a href={`tel:${settings.phone3.replace(/\s/g, '')}`}>{settings.phone3}</a><br /></>}
-                      {settings?.phone4 && <a href={`tel:${settings.phone4.replace(/\s/g, '')}`}>{settings.phone4}</a>}
-                    </p>
+                    <h4>Direct Phone Contacts</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.4rem' }}>
+                      {settings?.phone1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <a href={`tel:${settings.phone1.replace(/\s/g, '')}`} style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                            {settings.phone1}
+                          </a>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', borderRadius: '6px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {settings?.phone1Label || 'Managing Director'}
+                          </span>
+                        </div>
+                      )}
+                      {settings?.phone2 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <a href={`tel:${settings.phone2.replace(/\s/g, '')}`} style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                            {settings.phone2}
+                          </a>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', background: 'rgba(16,185,129,0.08)', color: '#047857', borderRadius: '6px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {settings?.phone2Label || 'Holidays'}
+                          </span>
+                        </div>
+                      )}
+                      {settings?.phone3 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <a href={`tel:${settings.phone3.replace(/\s/g, '')}`} style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                            {settings.phone3}
+                          </a>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', background: 'rgba(139,92,246,0.08)', color: '#6d28d9', borderRadius: '6px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {settings?.phone3Label || 'Reservation'}
+                          </span>
+                        </div>
+                      )}
+                      {settings?.phone4 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <a href={`tel:${settings.phone4.replace(/\s/g, '')}`} style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                            {settings.phone4}
+                          </a>
+                          <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem', background: 'rgba(245,158,11,0.08)', color: '#b45309', borderRadius: '6px', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {settings?.phone4Label || 'HR & Job Consulting'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

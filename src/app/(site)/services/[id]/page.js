@@ -7,6 +7,7 @@ import Footer from '@/components/site/Footer';
 import { getServiceBySlug, getService, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
+import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 
 const iconMap = {
   plane: <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 8.82a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91"/><path d="M21 2l-9 9M15 2h6v6"/></svg>,
@@ -28,7 +29,6 @@ export default function ServiceDetailPage() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState(null);
-  const [activeImg, setActiveImg] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -62,7 +62,7 @@ export default function ServiceDetailPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen isReady={false} />;
 
   if (!service) {
     return (
@@ -85,7 +85,7 @@ export default function ServiceDetailPage() {
 
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="services" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -144,25 +144,7 @@ export default function ServiceDetailPage() {
               )}
 
               {/* Image Gallery */}
-              {allImages.length > 1 && (
-                <div className="svc-detail-gallery reveal">
-                  <h3>Gallery</h3>
-                  <div className="svc-gallery-main">
-                    <img src={allImages[activeImg]} alt={service.title} />
-                  </div>
-                  <div className="svc-gallery-thumbs">
-                    {allImages.map((img, i) => (
-                      <button
-                        key={i}
-                        className={`svc-gallery-thumb${activeImg === i ? ' active' : ''}`}
-                        onClick={() => setActiveImg(i)}
-                      >
-                        <img src={img} alt={`${service.title} ${i + 1}`} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <DetailGallerySlider images={allImages} title={service.title} />
 
               {/* FAQs */}
               {faqs.length > 0 && (
@@ -254,7 +236,7 @@ export default function ServiceDetailPage() {
             <div className="cta-right reveal">
               <div className="phone-block">
                 <span>Call us directly</span>
-                <a href={`tel:${(settings.phone1 || '8592002549').replace(/\s/g, '')}`}>{settings.phone1 || '859 2002 549'}</a>
+                <a href={`tel:${(settings.phone1 || '8592042002').replace(/\s/g, '')}`}>{settings.phone1 || '859 2042 002'}</a>
               </div>
             </div>
           </div>

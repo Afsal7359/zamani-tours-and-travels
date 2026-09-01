@@ -11,14 +11,51 @@ import {
   getTestimonials,
   getSiteSettings,
   getGallery,
+  getVideoGallery,
+  getFeedbackGallery,
 } from '@/lib/firestore';
+import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
+import PackageCard from '@/components/site/PackageCard';
+import ReelModal from '@/components/site/ReelModal';
 
-const fallbackGallery = Array.from(
-  { length: 17 },
-  (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
-);
+function getSlideConnectionClass(list, i) {
+  if (!list || list.length <= 1) return '';
+  const item = list[i];
+  const prev = list[(i - 1 + list.length) % list.length];
+  
+  if (item?.connectNext && !prev?.connectNext) return 'gallery-connect-start';
+  if (item?.connectNext && prev?.connectNext) return 'gallery-connect-middle';
+  if (!item?.connectNext && prev?.connectNext) return 'gallery-connect-end';
+  return '';
+}
+
+function normalizeGalleryList(list = []) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(item => {
+      if (typeof item === 'string') return { src: item, span: 1, connectNext: false };
+      if (item && typeof item === 'object') {
+        return {
+          src: item.src || item.url || '',
+          span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
+          connectNext: Boolean(item.connectNext),
+        };
+      }
+      return null;
+    })
+    .filter(item => item && Boolean(item.src));
+}
+
+function createMarqueeItems(items, minCount = 12) {
+  if (!items || !items.length) return [];
+  let list = [...items];
+  while (list.length < minCount) {
+    list = [...list, ...items];
+  }
+  return [...list, ...list];
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -28,26 +65,33 @@ export default function HomePage() {
   const [testimonials, setTestimonials] = useState([]);
   const [settings, setSettings] = useState({});
   const [gallery, setGallery] = useState([]);
+  const [videoGallery, setVideoGallery] = useState([]);
+  const [feedbackGallery, setFeedbackGallery] = useState([]);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const pkgTrackRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [h, s, p, t, st, g] = await Promise.all([
+        const [h, s, p, t, st, g, vg, fg] = await Promise.all([
           getHomeContent(),
           getServices(),
           getPackages(),
           getTestimonials(),
           getSiteSettings(),
           getGallery(),
+          getVideoGallery(),
+          getFeedbackGallery(),
         ]);
         if (h) setHome(h);
         if (s) setServices(s);
         if (p) setPackages(p);
         if (t) setTestimonials(t);
         if (st) setSettings(st);
-        if (g?.images?.length) setGallery(g.images);
+        if (g?.images?.length) setGallery(normalizeGalleryList(g.images));
+        if (vg?.videos?.length) setVideoGallery(normalizeGalleryList(vg.videos));
+        if (fg?.images?.length) setFeedbackGallery(normalizeGalleryList(fg.images));
       } catch (e) {
         console.error('Error loading home data:', e);
       } finally {
@@ -71,8 +115,6 @@ export default function HomePage() {
     return () => io.disconnect();
   }, [home, services, packages, testimonials, loading]);
 
-  // Auto-scroll the package carousel on mobile (≤768px). On larger screens
-  // the packages render as a static grid, so nothing scrolls.
   useEffect(() => {
     if (loading || !packages.length) return;
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches) return;
@@ -91,15 +133,19 @@ export default function HomePage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   const marqueeItems = home?.marqueeItems || [];
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
-  const galleryStrip = gallery.length ? gallery : fallbackGallery;
+  const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images);
+  const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos);
+  const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images);
+
+  const marqueeGallery = createMarqueeItems(galleryStrip);
+  const marqueeVideos = createMarqueeItems(videoStrip);
+  const marqueeFeedbacks = createMarqueeItems(feedbackStrip);
 
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -277,19 +323,130 @@ export default function HomePage() {
           <div className="gallery-head reveal">
             <span className="eyebrow royal">Our Gallery</span>
             <h2>Moments from<br /><em>our journey.</em></h2>
-            <p>A glimpse inside our office, our team, and the travellers we are proud to serve.</p>
+            <p>A glimpse inside our services, video highlights, banners, and the travellers we are proud to serve.</p>
+          </div>
+
+          <div className="gallery-row-label">
+            <span className="gallery-row-badge">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              Company Banners &amp; Updates
+            </span>
+            <span className="gallery-row-desc">Latest service announcements, packages &amp; posters</span>
           </div>
         </div>
+
         <div className="gallery-marquee">
           <div className="gallery-marquee-track">
-            {[...galleryStrip, ...galleryStrip].map((src, i) => (
-              <div className="gallery-slide" key={i} aria-hidden={i >= galleryStrip.length}>
-                <img src={src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="lazy" />
+            {marqueeGallery.map((item, i) => {
+              const conn = getSlideConnectionClass(marqueeGallery, i);
+              return (
+                <div
+                  className={`gallery-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                  key={`g1-${i}`}
+                  aria-hidden={i >= galleryStrip.length}
+                >
+                  <img src={item.src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="lazy" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {videoStrip.length > 0 && (
+          <>
+            <div className="container" style={{ marginTop: '2.5rem' }}>
+              <div className="gallery-row-label">
+                <span className="gallery-row-badge video-badge">
+                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Video Highlights &amp; Reels
+                </span>
+                <span className="gallery-row-desc">Real glimpses of our tours, destinations &amp; experiences</span>
               </div>
-            ))}
+            </div>
+
+            <div className="gallery-marquee">
+              <div className="gallery-marquee-track">
+                {marqueeVideos.map((item, i) => {
+                  const conn = getSlideConnectionClass(marqueeVideos, i);
+                  return (
+                    <div
+                      className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                      key={`gv-${i}`}
+                      aria-hidden={i >= videoStrip.length}
+                      onClick={() => setSelectedVideoIndex(i % videoStrip.length)}
+                    >
+                      <video
+                        src={item.src}
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                        onLoadedData={e => e.currentTarget.play().catch(() => {})}
+                        className="gallery-video-element"
+                      />
+                      <div className="gallery-video-overlay">
+                        <div className="gallery-video-play-btn">
+                          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                        <span className="gallery-video-tag">
+                          {item.span === 3 ? 'Panorama Reel' : item.span === 2 ? 'Wide Reel' : 'Watch Reel'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="container" style={{ marginTop: '2.5rem' }}>
+          <div className="gallery-row-label">
+            <span className="gallery-row-badge feedback-badge">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+              </svg>
+              Customer Feedbacks &amp; Reviews
+            </span>
+            <span className="gallery-row-desc">Real stories, reviews &amp; happy traveller memories</span>
+          </div>
+        </div>
+
+        <div className="gallery-marquee gallery-marquee-reverse">
+          <div className="gallery-marquee-track">
+            {marqueeFeedbacks.map((item, i) => {
+              const conn = getSlideConnectionClass(marqueeFeedbacks, i);
+              return (
+                <div
+                  className={`gallery-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                  key={`g2-${i}`}
+                  aria-hidden={i >= feedbackStrip.length}
+                >
+                  <img src={item.src} alt={`Customer review ${(i % feedbackStrip.length) + 1}`} loading="lazy" />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
+
+      {/* Full-Screen Interactive Instagram Reels Modal */}
+      {selectedVideoIndex !== null && (
+        <ReelModal
+          videos={videoStrip}
+          initialIndex={selectedVideoIndex}
+          onClose={() => setSelectedVideoIndex(null)}
+        />
+      )}
 
       {/* ─── Tour Packages ────────────────────────────────────────────── */}
       {packages.length > 0 && (
@@ -302,47 +459,7 @@ export default function HomePage() {
             </div>
             <div className="home-pkg-track" ref={pkgTrackRef}>
               {packages.slice(0, 4).map((pkg, i) => (
-                <Link
-                  href={`/packages/${pkg.slug || pkg.id}`}
-                  className="pkg-card"
-                  key={pkg.id || i}
-                >
-                  <div className="pkg-img">
-                    <img src={pkg.image} alt={pkg.title} />
-                    {pkg.badge && <span className="pkg-badge">{pkg.badge}</span>}
-                    {pkg.duration && <span className="pkg-duration">{pkg.duration}</span>}
-                  </div>
-                  <div className="pkg-body">
-                    {pkg.location && (
-                      <span className="pkg-location">
-                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                        {pkg.location}
-                      </span>
-                    )}
-                    <h3>{pkg.title}</h3>
-                    <p>{pkg.description}</p>
-                    <div className="pkg-tags">
-                      {(pkg.tags || []).slice(0, 3).map((tag, ti) => (
-                        <span key={ti}>{tag}</span>
-                      ))}
-                    </div>
-                    <div className="pkg-card-foot">
-                      <div className="pkg-price">
-                        {pkg.price && <strong>{pkg.price}</strong>}
-                        {pkg.priceNote && <small>{pkg.priceNote}</small>}
-                      </div>
-                      <span className="pkg-view">
-                        View Details
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                </Link>
+                <PackageCard key={pkg.id || i} pkg={pkg} index={i} />
               ))}
             </div>
             <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>

@@ -44,20 +44,16 @@ export default function Navbar({ activePage }) {
     <>
       <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-inner">
-          <Link href="/" className="brand">
+          <Link href="/" className="brand" aria-label="Zamani Tours & Travels">
             <div className="brand-mark">
               <img
-                src={logoUrl}
+                src={settings.logoUrl && settings.logoUrl !== '/images/zamaniLogo.svg' && settings.logoUrl !== '/images/zamaniLogo.png'
+                  ? settings.logoUrl
+                  : (scrolled ? '/images/zamaniLogo.png' : '/images/zamani-logo-white.png')}
                 alt={brandName}
-                onError={e => { e.currentTarget.src = '/images/zamaniLogo.svg'; }}
+                onError={e => { e.currentTarget.src = scrolled ? '/images/zamaniLogo.png' : '/images/zamani-logo-white.png'; }}
               />
             </div>
-            {showBrandText && (
-              <div className="brand-text">
-                <strong>{brandName}</strong>
-                <span>{brandSubtitle}</span>
-              </div>
-            )}
           </Link>
 
           <ul className="nav-links">

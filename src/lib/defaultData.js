@@ -344,16 +344,16 @@ export const defaultPackages = [
 ];
 
 export const defaultTestimonials = [
-  { stars: 5, quote: "Zamani arranged our family's Umrah end-to-end. From the visa to the hotel near Haram — everything was exactly as promised. Will return for our next pilgrimage.", author: 'Fathima A.', role: 'Umrah Client · 2024', initials: 'FA' },
-  { stars: 5, quote: 'Got my GCC job visa processed in record time. The team handled my attestation, medical and stamping while I was still in India. Genuinely impressed.', author: 'Rashid M.', role: 'Job Visa · Dubai', initials: 'RM' },
-  { stars: 5, quote: 'Booked our Maldives honeymoon through Zamani. Forex, flights, hotel — one call, one invoice. Clean, transparent, and they actually pick up the phone.', author: 'Sajid & Khadija', role: 'Honeymoon · Maldives', initials: 'SK' },
+  { id: 'test-1', stars: 5, quote: "Zamani arranged our family's Umrah end-to-end. From the visa to the hotel near Haram — everything was exactly as promised. Will return for our next pilgrimage.", author: 'Fathima A.', role: 'Umrah Client · 2024', initials: 'FA' },
+  { id: 'test-2', stars: 5, quote: 'Got my GCC job visa processed in record time. The team handled my attestation, medical and stamping while I was still in India. Genuinely impressed.', author: 'Rashid M.', role: 'Job Visa · Dubai', initials: 'RM' },
+  { id: 'test-3', stars: 5, quote: 'Booked our Maldives honeymoon through Zamani. Forex, flights, hotel — one call, one invoice. Clean, transparent, and they actually pick up the phone.', author: 'Sajid & Khadija', role: 'Honeymoon · Maldives', initials: 'SK' },
 ];
 
 export const defaultProcessSteps = [
-  { order: 1, num: '01', title: 'Tell Us Your Plan', description: "Start with a call, WhatsApp message, or a walk-in visit. Tell us what you need — whether it's a flight, a visa, an Umrah package, or something you're not sure about yet.", items: ['Free initial consultation — no commitment', 'Available by call, WhatsApp, or in-person', 'We listen first, advise second', 'Response within the same working day'], image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80', tag: 'Free Consultation' },
-  { order: 2, num: '02', title: 'Get a Tailored Quote', description: "We build the right package or document solution around your needs — transparently, with no hidden fees. You see exactly what you're paying for, and why.", items: ['Itemised, transparent pricing', 'Multiple options across budgets', 'No hidden charges — ever', 'Quote sent by WhatsApp or email'], image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80', tag: 'Same-day Quote' },
-  { order: 3, num: '03', title: 'We Handle Everything', description: 'Once you confirm, your dedicated advisor takes over. Bookings, visas, attestations, insurance, forex — all coordinated and tracked. You receive updates at every stage.', items: ['Dedicated advisor for your case', 'Document checklist provided upfront', 'Embassy, airline, and hotel coordination', 'Regular status updates via WhatsApp'], image: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=800&q=80', tag: 'Fully Managed' },
-  { order: 4, num: '04', title: 'Travel With Peace', description: "Step out with all documents in hand, pre-travel briefing completed, and our support number saved. We're on call from departure to safe return — for anything that comes up.", items: ['Documents delivered before travel', 'Pre-departure briefing included', '24/7 support line for emergencies', 'Post-travel follow-up for repeat needs'], image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80', tag: 'Bon Voyage' },
+  { id: 'step-1', order: 1, num: '01', title: 'Tell Us Your Plan', description: "Start with a call, WhatsApp message, or a walk-in visit. Tell us what you need — whether it's a flight, a visa, an Umrah package, or something you're not sure about yet.", items: ['Free initial consultation — no commitment', 'Available by call, WhatsApp, or in-person', 'We listen first, advise second', 'Response within the same working day'], image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80', tag: 'Free Consultation' },
+  { id: 'step-2', order: 2, num: '02', title: 'Get a Tailored Quote', description: "We build the right package or document solution around your needs — transparently, with no hidden fees. You see exactly what you're paying for, and why.", items: ['Itemised, transparent pricing', 'Multiple options across budgets', 'No hidden charges — ever', 'Quote sent by WhatsApp or email'], image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80', tag: 'Same-day Quote' },
+  { id: 'step-3', order: 3, num: '03', title: 'We Handle Everything', description: 'Once you confirm, your dedicated advisor takes over. Bookings, visas, attestations, insurance, forex — all coordinated and tracked. You receive updates at every stage.', items: ['Dedicated advisor for your case', 'Document checklist provided upfront', 'Embassy, airline, and hotel coordination', 'Regular status updates via WhatsApp'], image: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=800&q=80', tag: 'Fully Managed' },
+  { id: 'step-4', order: 4, num: '04', title: 'Travel With Peace', description: "Step out with all documents in hand, pre-travel briefing completed, and our support number saved. We're on call from departure to safe return — for anything that comes up.", items: ['Documents delivered before travel', 'Pre-departure briefing included', '24/7 support line for emergencies', 'Post-travel follow-up for repeat needs'], image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80', tag: 'Bon Voyage' },
 ];
 
 export const defaultBlogPosts = [
@@ -389,24 +389,29 @@ export const defaultHomeContent = {
 };
 
 export const defaultSiteSettings = {
-  phone1: '859 2002 549',
-  phone2: '859 2002 584',
+  phone1: '859 2042 002',
+  phone1Label: 'Managing Director',
+  phone2: '859 2002 549',
+  phone2Label: 'Holidays',
   phone3: '859 2002 529',
-  phone4: '859 2042 002',
+  phone3Label: 'Reservation',
+  phone4: '859 2002 584',
+  phone4Label: 'HR & Job Consulting',
   email: 'info@zamanitours.com',
-  address: 'Kerala, India',
+  address: 'PP 19/575, Odungakkad, Puduppadi, Thamarassery, Kozhikode, 673586, Kerala, India',
+  location: 'Thamarassery, Kozhikode, Kerala',
   instagram: '#',
   facebook: '#',
-  whatsapp: 'https://wa.me/918592002549',
+  whatsapp: 'https://wa.me/918592042002',
   linkedin: '#',
-  logoUrl: '/images/zamaniLogo.svg',
+  logoUrl: '/images/zamaniLogo.png',
   bannerServices: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80',
   bannerBlog: 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1920&q=80',
   bannerProcess: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1920&q=80',
   bannerContact: 'https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1920&q=80',
   brandName: 'Zamani',
   brandSubtitle: 'Tours & Travels',
-  showBrandText: true,
+  showBrandText: false,
 };
 
 export const defaultAboutContent = {
@@ -445,3 +450,39 @@ export const defaultGallery = {
     (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
   ),
 };
+
+// Second gallery row dedicated to customer feedbacks & traveller moments
+export const defaultFeedbackGallery = {
+  images: [
+    '/images/gallery-10.jpeg',
+    '/images/gallery-11.jpeg',
+    '/images/gallery-12.jpeg',
+    '/images/gallery-13.jpeg',
+    '/images/gallery-14.jpeg',
+    '/images/gallery-15.jpeg',
+    '/images/gallery-16.jpeg',
+    '/images/gallery-17.jpeg',
+    '/images/gallery-01.jpeg',
+    '/images/gallery-02.jpeg',
+    '/images/gallery-03.jpeg',
+    '/images/gallery-04.jpeg',
+    '/images/gallery-05.jpeg',
+    '/images/gallery-06.jpeg',
+    '/images/gallery-07.jpeg',
+    '/images/gallery-08.jpeg',
+    '/images/gallery-09.jpeg',
+  ],
+};
+
+// Video gallery row for journey reels & video highlights
+export const defaultVideoGallery = {
+  videos: [
+    'https://assets.mixkit.co/videos/preview/mixkit-traveling-over-the-clouds-in-an-airplane-42790-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-beach-resort-and-the-ocean-43187-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-palm-tree-on-a-tropical-beach-43185-large.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-top-view-of-the-sea-coast-with-turquoise-water-43360-large.mp4',
+  ],
+};
+
+

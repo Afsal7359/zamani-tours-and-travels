@@ -43,8 +43,6 @@ export default function BlogPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   const filteredPosts = activeCategory === 'All'
     ? posts
     : posts.filter(p => p.category === activeCategory);
@@ -55,7 +53,7 @@ export default function BlogPage() {
 
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="blog" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
@@ -190,7 +188,7 @@ export default function BlogPage() {
             <div className="cta-right reveal">
               <div className="phone-block">
                 <span>Call us directly</span>
-                <a href={`tel:${(settings?.phone1).replace(/\s/g, '')}`}>{settings?.phone1}</a>
+                <a href={`tel:${(settings?.phone1 || '').replace(/\s/g, '')}`}>{settings?.phone1 || ''}</a>
               </div>
             </div>
           </div>

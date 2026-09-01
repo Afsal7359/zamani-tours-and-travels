@@ -7,9 +7,25 @@ import { getAboutContent, getSiteSettings, getGallery } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
 
+function normalizeGalleryItems(list = []) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(item => {
+      if (typeof item === 'string') return { src: item, span: 1 };
+      if (item && typeof item === 'object') {
+        return {
+          src: item.src || item.url || '',
+          span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
+        };
+      }
+      return null;
+    })
+    .filter(item => item && Boolean(item.src));
+}
+
 const fallbackGallery = Array.from(
   { length: 17 },
-  (_, i) => `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`
+  (_, i) => ({ src: `/images/gallery-${String(i + 1).padStart(2, '0')}.jpeg`, span: 1 })
 );
 
 export default function AboutPage() {
@@ -25,7 +41,7 @@ export default function AboutPage() {
         const [a, s, g] = await Promise.all([getAboutContent(), getSiteSettings(), getGallery()]);
         if (a) setAbout(a);
         if (s) setSettings(s);
-        if (g?.images?.length) setGallery(g.images);
+        if (g?.images?.length) setGallery(normalizeGalleryItems(g.images));
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }
@@ -48,15 +64,13 @@ export default function AboutPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   const values = about?.values || [];
   const timeline = about?.timeline || [];
   const galleryList = gallery.length ? gallery : fallbackGallery;
 
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="about" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
@@ -166,15 +180,15 @@ export default function AboutPage() {
             <p>A glimpse inside our office, our team, and the travellers we have had the privilege to serve.</p>
           </div>
           <div className="gallery-grid">
-            {galleryList.map((src, i) => (
+            {galleryList.map((item, i) => (
               <button
                 type="button"
-                className="gallery-item reveal"
-                key={`${src}-${i}`}
+                className={`gallery-item reveal ${item.span === 2 ? 'gallery-span-2' : item.span === 3 ? 'gallery-span-3' : ''}`}
+                key={`${item.src}-${i}`}
                 onClick={() => setLightbox(i)}
                 aria-label={`View gallery image ${i + 1}`}
               >
-                <img src={src} alt={`Zamani gallery ${i + 1}`} loading="lazy" />
+                <img src={item.src} alt={`Zamani gallery ${i + 1}`} loading="lazy" />
               </button>
             ))}
           </div>
@@ -274,7 +288,7 @@ export default function AboutPage() {
             ‹
           </button>
           <img
-            src={galleryList[lightbox]}
+            src={galleryList[lightbox]?.src || galleryList[lightbox]}
             alt={`Zamani gallery ${lightbox + 1}`}
             onClick={(e) => e.stopPropagation()}
           />

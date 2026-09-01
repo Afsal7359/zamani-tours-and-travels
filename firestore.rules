@@ -18,5 +18,18 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
+
+    // ─── Video Reels Interactions (Likes & Comments) ──────────────────────
+    // Anyone can read and post comments; only admin can delete/edit.
+    match /video_comments/{id} {
+      allow read, create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Anyone can read and update likes count.
+    match /video_likes/{id} {
+      allow read, write: if true;
+    }
   }
 }
+

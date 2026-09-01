@@ -50,11 +50,9 @@ export default function ProcessPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="process" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

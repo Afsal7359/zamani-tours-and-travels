@@ -11,37 +11,51 @@ export default function BottomBar() {
     getSiteSettings().then(s => { if (s) setSettings(s); }).catch(() => {});
   }, []);
 
-  const callHref = `tel:${(settings.phone1 || defaultSiteSettings.phone1).replace(/\s/g, '')}`;
-  const waHref = settings.whatsapp || defaultSiteSettings.whatsapp;
+  const rawPhone = settings.phone1 || defaultSiteSettings.phone1;
+  const callHref = `tel:${rawPhone.replace(/\s/g, '')}`;
+  const waHref = (settings.whatsapp && !settings.whatsapp.includes('8592002549')) 
+    ? settings.whatsapp 
+    : 'https://wa.me/918592042002';
 
   return (
-    <div className="bottom-bar">
-      <a href={callHref} className="bb-btn bb-call">
-        <span className="bb-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
-          </svg>
-        </span>
-        <span className="bb-label">Call Now</span>
-      </a>
+    <aside className="floating-action-dock-wrapper" aria-label="Quick Actions">
+      <div className="floating-action-dock">
+        {/* ─── CALL BUTTON ─── */}
+        <a href={callHref} className="dock-item dock-call" aria-label={`Call us at ${rawPhone}`}>
+          <div className="dock-btn-circle call-circle">
+            <svg className="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF">
+              <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+            </svg>
+          </div>
+          <span className="dock-label">CALL</span>
+        </a>
 
-      <Link href="/contact" className="bb-btn bb-enquire">
-        <span className="bb-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </span>
-        <span className="bb-label">Enquire</span>
-      </Link>
+        {/* ─── WHATSAPP BUTTON (ELEVATED HERO) ─── */}
+        <a href={waHref} target="_blank" rel="noopener noreferrer" className="dock-item dock-whatsapp" aria-label="Chat on WhatsApp">
+          <div className="dock-btn-circle whatsapp-circle">
+            <div className="whatsapp-badge-inner">
+              <svg className="dock-icon-wa" width="34" height="34" viewBox="0 0 36 36">
+                <path d="M18 4C10.27 4 4 10.27 4 18c0 2.76.8 5.33 2.18 7.5L4 32l6.73-2.14C12.83 31.18 15.34 32 18 32c7.73 0 14-6.27 14-14S25.73 4 18 4z" fill="#FFFFFF"/>
+                <path d="M24.2 21.6c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.65.08-.3-.15-1.25-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.91-2.21-.24-.58-.49-.5-.67-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.88 1.21 3.08.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.08-.13-.27-.2-.57-.35z" fill="#25D366"/>
+              </svg>
+            </div>
+          </div>
+          <span className="dock-label dock-label-hero">WHATSAPP</span>
+        </a>
 
-      <a href={waHref} target="_blank" rel="noopener noreferrer" className="bb-btn bb-whatsapp">
-        <span className="bb-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
-          </svg>
-        </span>
-        <span className="bb-label">WhatsApp</span>
-      </a>
-    </div>
+        {/* ─── ENQUIRE BUTTON ─── */}
+        <Link href="/contact" className="dock-item dock-enquire" aria-label="Enquire with Zamani">
+          <div className="dock-btn-circle enquire-circle">
+            <svg className="dock-icon" width="26" height="26" viewBox="0 0 28 28">
+              <path d="M14 3C7.92 3 3 7.48 3 13c0 2.2.8 4.23 2.15 5.86L3 25l6.32-2.08C10.82 23.57 12.37 24 14 24c6.08 0 11-4.48 11-11S20.08 3 14 3z" fill="#FFFFFF"/>
+              <circle cx="9.5" cy="13" r="1.8" fill="#C9A961"/>
+              <circle cx="14" cy="13" r="1.8" fill="#C9A961"/>
+              <circle cx="18.5" cy="13" r="1.8" fill="#C9A961"/>
+            </svg>
+          </div>
+          <span className="dock-label">ENQUIRE</span>
+        </Link>
+      </div>
+    </aside>
   );
 }

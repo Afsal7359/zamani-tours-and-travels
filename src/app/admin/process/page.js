@@ -89,8 +89,8 @@ export default function AdminProcessPage() {
               </tr>
             </thead>
             <tbody>
-              {steps.map(step => (
-                <tr key={step.id}>
+              {steps.map((step, idx) => (
+                <tr key={step.id || step.num || step.order || idx}>
                   <td style={{ fontWeight: 700, color: '#8a90a8' }}>{step.order}</td>
                   <td style={{ fontWeight: 700, color: '#2B47E5' }}>{step.num}</td>
                   <td style={{ fontWeight: 600 }}>{step.title}</td>
@@ -99,7 +99,7 @@ export default function AdminProcessPage() {
                   <td>
                     <div style={{ display: 'flex', gap: '.5rem' }}>
                       <button className="admin-btn admin-btn-secondary" onClick={() => openModal(step)}>Edit</button>
-                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(step.id)}>Delete</button>
+                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(step.id || String(step.order))}>Delete</button>
                     </div>
                   </td>
                 </tr>

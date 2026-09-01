@@ -88,8 +88,8 @@ export default function AdminBlogPage() {
               </tr>
             </thead>
             <tbody>
-              {posts.map(post => (
-                <tr key={post.id}>
+              {posts.map((post, idx) => (
+                <tr key={post.id || post.slug || post.title || idx}>
                   <td><img src={post.image} className="thumb" alt={post.title} /></td>
                   <td style={{ fontWeight: 600, maxWidth: '220px' }}>{post.title}</td>
                   <td><span className="admin-badge blue">{post.category}</span></td>
@@ -103,7 +103,7 @@ export default function AdminBlogPage() {
                   <td>
                     <div style={{ display: 'flex', gap: '.5rem' }}>
                       <button className="admin-btn admin-btn-secondary" onClick={() => openModal(post)}>Edit</button>
-                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(post.id)}>Delete</button>
+                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(post.id || post.slug || post.title)}>Delete</button>
                     </div>
                   </td>
                 </tr>

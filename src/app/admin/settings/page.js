@@ -48,27 +48,47 @@ export default function AdminSettingsPage() {
       </div>
 
       <form onSubmit={handleSave}>
-        {/* Phone Numbers */}
+        {/* Phone Numbers & Departments */}
         <div className="admin-card">
-          <div className="admin-card-head"><h2>Phone Numbers</h2></div>
+          <div className="admin-card-head"><h2>Phone Numbers &amp; Department Contacts</h2></div>
           <div className="admin-form-row">
             <div className="admin-form-group">
-              <label>Phone 1 (Primary)</label>
-              <input name="phone1" value={form.phone1 || ''} onChange={handleChange} placeholder="859 2002 549" />
+              <label>Phone 1 Number</label>
+              <input name="phone1" value={form.phone1 || ''} onChange={handleChange} placeholder="859 2042 002" />
             </div>
             <div className="admin-form-group">
-              <label>Phone 2</label>
-              <input name="phone2" value={form.phone2 || ''} onChange={handleChange} placeholder="859 2002 584" />
+              <label>Phone 1 Department / Title</label>
+              <input name="phone1Label" value={form.phone1Label || ''} onChange={handleChange} placeholder="Managing Director" />
             </div>
           </div>
           <div className="admin-form-row">
             <div className="admin-form-group">
-              <label>Phone 3</label>
+              <label>Phone 2 Number</label>
+              <input name="phone2" value={form.phone2 || ''} onChange={handleChange} placeholder="859 2002 549" />
+            </div>
+            <div className="admin-form-group">
+              <label>Phone 2 Department / Title</label>
+              <input name="phone2Label" value={form.phone2Label || ''} onChange={handleChange} placeholder="Holidays" />
+            </div>
+          </div>
+          <div className="admin-form-row">
+            <div className="admin-form-group">
+              <label>Phone 3 Number</label>
               <input name="phone3" value={form.phone3 || ''} onChange={handleChange} placeholder="859 2002 529" />
             </div>
             <div className="admin-form-group">
-              <label>Phone 4</label>
-              <input name="phone4" value={form.phone4 || ''} onChange={handleChange} placeholder="859 2042 002" />
+              <label>Phone 3 Department / Title</label>
+              <input name="phone3Label" value={form.phone3Label || ''} onChange={handleChange} placeholder="Reservation" />
+            </div>
+          </div>
+          <div className="admin-form-row">
+            <div className="admin-form-group">
+              <label>Phone 4 Number</label>
+              <input name="phone4" value={form.phone4 || ''} onChange={handleChange} placeholder="859 2002 584" />
+            </div>
+            <div className="admin-form-group">
+              <label>Phone 4 Department / Title</label>
+              <input name="phone4Label" value={form.phone4Label || ''} onChange={handleChange} placeholder="HR & Job Consulting" />
             </div>
           </div>
         </div>
@@ -82,11 +102,11 @@ export default function AdminSettingsPage() {
           </div>
           <div className="admin-form-group">
             <label>Office Address</label>
-            <input name="address" value={form.address || ''} onChange={handleChange} placeholder="Kerala, India" />
+            <input name="address" value={form.address || ''} onChange={handleChange} placeholder="PP 19/575, Odungakkad, Puduppadi, Thamarassery, Kozhikode, 673586, Kerala, India" />
           </div>
           <div className="admin-form-group">
             <label>Location / City</label>
-            <input name="location" value={form.location || ''} onChange={handleChange} placeholder="Malappuram, Kerala" />
+            <input name="location" value={form.location || ''} onChange={handleChange} placeholder="Thamarassery, Kozhikode, Kerala" />
           </div>
           <div className="admin-form-group">
             <label>Google Maps Embed URL</label>

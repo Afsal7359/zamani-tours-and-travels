@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { getSiteSettings } from '@/lib/firestore';
+import { getSiteSettings, getPackageRequests } from '@/lib/firestore';
 
 const navItems = [
   {
@@ -28,6 +28,9 @@ const navItems = [
       )},
       { href: '/admin/packages', label: 'Tour Packages', icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      )},
+      { href: '/admin/package-requests', label: 'Package Requests', isRequestLink: true, icon: (
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
       )},
       { href: '/admin/process', label: 'Process Steps', icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -61,11 +64,20 @@ const navItems = [
 export default function AdminSidebar({ user }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [logoUrl, setLogoUrl] = useState('/images/zamaniLogo.svg');
+  const [logoUrl, setLogoUrl] = useState('/images/zamani-logo-white.png');
+  const [pendingReqCount, setPendingReqCount] = useState(0);
 
   useEffect(() => {
-    getSiteSettings().then(s => { if (s?.logoUrl) setLogoUrl(s.logoUrl); }).catch(() => {});
-  }, []);
+    getSiteSettings().then(s => {
+      if (s?.logoUrl && s.logoUrl !== '/images/zamaniLogo.svg' && s.logoUrl !== '/images/zamaniLogo.png') {
+        setLogoUrl(s.logoUrl);
+      }
+    }).catch(() => {});
+    getPackageRequests().then(reqs => {
+      const count = reqs.filter(r => (r.status || 'pending') === 'pending').length;
+      setPendingReqCount(count);
+    }).catch(() => {});
+  }, [pathname]);
 
   async function handleLogout() {
     await signOut(getFirebaseAuth());
@@ -80,11 +92,14 @@ export default function AdminSidebar({ user }) {
   return (
     <aside className="admin-sidebar">
       <div className="logo">
-        <img
-          src={logoUrl}
-          alt="Zamani"
-          onError={e => { e.currentTarget.src = '/images/zamaniLogo.svg'; }}
-        />
+        <Link href="/admin" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', textDecoration: 'none' }}>
+          <img
+            src={logoUrl}
+            alt="Zamani Tours & Travels"
+            style={{ height: '56px', width: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+            onError={e => { e.currentTarget.src = '/images/zamani-logo-white.png'; }}
+          />
+        </Link>
       </div>
 
       <nav className="admin-nav">
@@ -96,9 +111,26 @@ export default function AdminSidebar({ user }) {
                 key={link.href}
                 href={link.href}
                 className={`admin-nav-link${isActive(link.href) ? ' active' : ''}`}
+                style={{ position: 'relative' }}
               >
                 {link.icon}
-                {link.label}
+                <span>{link.label}</span>
+                {link.isRequestLink && pendingReqCount > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '10px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {pendingReqCount}
+                  </span>
+                )}
               </Link>
             ))}
           </div>

@@ -117,11 +117,9 @@ export default function ServicesPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
-
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="services" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

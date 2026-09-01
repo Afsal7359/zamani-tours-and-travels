@@ -2,37 +2,39 @@ import Link from 'next/link';
 
 export default function Footer({ settings = {} }) {
   const {
-    phone1 = '859 2002 549',
-    phone2 = '859 2002 584',
+    phone1 = '859 2042 002',
+    phone1Label = 'Managing Director',
+    phone2 = '859 2002 549',
+    phone2Label = 'Holidays',
     phone3 = '859 2002 529',
-    phone4 = '859 2042 002',
+    phone3Label = 'Reservation',
+    phone4 = '859 2002 584',
+    phone4Label = 'HR & Job Consulting',
     email = 'info@zamanitours.com',
-    address = 'Kerala, India',
+    address = 'PP 19/575, Odungakkad, Puduppadi, Thamarassery, Kozhikode, 673586, Kerala, India',
     instagram = '#',
     facebook = '#',
-    whatsapp = 'https://wa.me/918592002549',
+    whatsapp = 'https://wa.me/918592042002',
     linkedin = '#',
-    logoUrl = '/images/zamaniLogo.svg',
+    logoUrl = '/images/zamani-logo-white.png',
     brandName = 'Zamani',
     brandSubtitle = 'Tours & Travels',
     showBrandText = true,
   } = settings;
+
+  const displayLogo = logoUrl && logoUrl !== '/images/zamaniLogo.svg' && logoUrl !== '/images/zamaniLogo.png'
+    ? logoUrl
+    : '/images/zamani-logo-white.png';
 
   return (
     <footer>
       <div className="container">
         <div className="foot-grid">
           <div className="foot-brand">
-            <Link href="/" className="brand">
+            <Link href="/" className="brand" aria-label="Zamani Tours & Travels">
               <div className="brand-mark">
-                <img src={logoUrl} alt={brandName} onError={e => { e.currentTarget.src = '/images/zamaniLogo.svg'; }} />
+                <img src={displayLogo} alt={brandName} onError={e => { e.currentTarget.src = '/images/zamani-logo-white.png'; }} />
               </div>
-              {showBrandText && (
-                <div className="brand-text">
-                  <strong>{brandName}</strong>
-                  <span>{brandSubtitle}</span>
-                </div>
-              )}
             </Link>
             <p>
               Your trusted single desk for flights, visas, Umrah, forex, and
@@ -90,11 +92,31 @@ export default function Footer({ settings = {} }) {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 8.82a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.29 6.29l1.28-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/>
               </svg>
-              <span>
-                <a href={`tel:${phone1.replace(/\s/g, '')}`}>{phone1}</a><br />
-                <a href={`tel:${phone2.replace(/\s/g, '')}`}>{phone2}</a><br />
-                <a href={`tel:${phone3.replace(/\s/g, '')}`}>{phone3}</a><br />
-                <a href={`tel:${phone4.replace(/\s/g, '')}`}>{phone4}</a>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {phone1 && (
+                  <span>
+                    <a href={`tel:${phone1.replace(/\s/g, '')}`}>{phone1}</a>
+                    <small style={{ display: 'block', fontSize: '0.72rem', color: '#93c5fd', opacity: 0.85 }}>{phone1Label || 'Managing Director'}</small>
+                  </span>
+                )}
+                {phone2 && (
+                  <span>
+                    <a href={`tel:${phone2.replace(/\s/g, '')}`}>{phone2}</a>
+                    <small style={{ display: 'block', fontSize: '0.72rem', color: '#86efac', opacity: 0.85 }}>{phone2Label || 'Holidays'}</small>
+                  </span>
+                )}
+                {phone3 && (
+                  <span>
+                    <a href={`tel:${phone3.replace(/\s/g, '')}`}>{phone3}</a>
+                    <small style={{ display: 'block', fontSize: '0.72rem', color: '#c4b5fd', opacity: 0.85 }}>{phone3Label || 'Reservation'}</small>
+                  </span>
+                )}
+                {phone4 && (
+                  <span>
+                    <a href={`tel:${phone4.replace(/\s/g, '')}`}>{phone4}</a>
+                    <small style={{ display: 'block', fontSize: '0.72rem', color: '#fde047', opacity: 0.85 }}>{phone4Label || 'HR & Job Consulting'}</small>
+                  </span>
+                )}
               </span>
             </div>
             <div className="contact-item">

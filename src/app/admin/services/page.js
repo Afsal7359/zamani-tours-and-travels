@@ -154,8 +154,8 @@ export default function AdminServicesPage() {
               </tr>
             </thead>
             <tbody>
-              {services.map(svc => (
-                <tr key={svc.id}>
+              {services.map((svc, i) => (
+                <tr key={svc.id || svc.slug || svc.num || i}>
                   <td>
                     <img src={svc.image} className="thumb" alt={svc.title} />
                   </td>
@@ -163,8 +163,8 @@ export default function AdminServicesPage() {
                   <td style={{ fontWeight: 600 }}>{svc.title}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
-                      {(svc.tags || []).slice(0, 2).map((tag, i) => (
-                        <span className="admin-tag" key={i}>{tag}</span>
+                      {(svc.tags || []).slice(0, 2).map((tag, idx) => (
+                        <span className="admin-tag" key={idx}>{tag}</span>
                       ))}
                     </div>
                   </td>
@@ -172,7 +172,7 @@ export default function AdminServicesPage() {
                   <td>
                     <div style={{ display: 'flex', gap: '.5rem' }}>
                       <button className="admin-btn admin-btn-secondary" onClick={() => openModal(svc)}>Edit</button>
-                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(svc.id)}>Delete</button>
+                      <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(svc.id || svc.slug || String(svc.order))}>Delete</button>
                     </div>
                   </td>
                 </tr>

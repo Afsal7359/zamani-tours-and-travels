@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 360" width="300" height="360">
+  <defs>
+    <linearGradient id="zamaniCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#193EEB"/>
+      <stop offset="50%" stop-color="#0F2DB3"/>
+      <stop offset="100%" stop-color="#081A73"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="360" rx="36" fill="url(#zamaniCardGrad)"/>
+  <!-- Emblem -->
+  <g fill="#FFFFFF" transform="translate(80, 80) scale(1)">
+    <path d="M 60 12 L 136 12 C 108 36 68 52 32 60 C 78 50 118 30 136 12 Z" />
+    <path d="M 4 74 C 44 64 84 48 106 30 C 76 54 34 70 4 74 L 80 74 C 54 74 24 74 4 74 Z" />
+  </g>
+  <!-- Text -->
+  <text x="150" y="240" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="52" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">Zamani</text>
+</svg>

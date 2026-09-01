@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60" width="100" height="60">
+  <!-- Top dynamic wing (White) -->
+  <path d="M 32 6 L 96 6 C 76 22 46 32 18 36 C 46 30 74 18 90 8 L 32 6 Z" fill="#FFFFFF"/>
+  <!-- Bottom dynamic wing (White) -->
+  <path d="M 4 48 C 28 42 56 30 72 18 C 54 33 28 42 6 46 L 60 46 C 38 46 18 46 4 48 Z" fill="#FFFFFF"/>
+</svg>

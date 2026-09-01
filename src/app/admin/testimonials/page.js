@@ -68,8 +68,8 @@ export default function AdminTestimonialsPage() {
           <div className="admin-empty">No testimonials yet.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {testimonials.map(t => (
-              <div key={t.id} style={{ background: '#F7F3EC', borderRadius: '14px', padding: '1.4rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+            {testimonials.map((t, idx) => (
+              <div key={t.id || t.author || idx} style={{ background: '#F7F3EC', borderRadius: '14px', padding: '1.4rem', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: '.2rem', marginBottom: '.6rem', color: '#C9A961' }}>
                     {Array.from({ length: t.stars || 5 }).map((_, i) => <span key={i}>★</span>)}
@@ -89,7 +89,7 @@ export default function AdminTestimonialsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '.5rem', flexShrink: 0 }}>
                   <button className="admin-btn admin-btn-secondary" onClick={() => openModal(t)}>Edit</button>
-                  <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(t.id)}>Delete</button>
+                  <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(t.id || t.author || String(idx))}>Delete</button>
                 </div>
               </div>
             ))}

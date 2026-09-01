@@ -7,13 +7,15 @@ import Footer from '@/components/site/Footer';
 import { getPackageBySlug, getPackage, getSiteSettings } from '@/lib/firestore';
 import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
+import DetailGallerySlider from '@/components/site/DetailGallerySlider';
+import PartnerPackageModal from '@/components/site/PartnerPackageModal';
 
 export default function PackageDetailPage() {
   const { id } = useParams();
   const [pkg, setPkg] = useState(null);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
-  const [activeImg, setActiveImg] = useState(0);
+  const [partnerModalOpen, setPartnerModalOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -47,7 +49,7 @@ export default function PackageDetailPage() {
 
   const imagesReady = useImagesLoaded(!loading);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen isReady={false} />;
 
   if (!pkg) {
     return (
@@ -72,7 +74,7 @@ export default function PackageDetailPage() {
 
   return (
     <>
-      {!imagesReady && <LoadingScreen />}
+      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="packages" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -160,25 +162,7 @@ export default function PackageDetailPage() {
               )}
 
               {/* Image Gallery */}
-              {allImages.length > 1 && (
-                <div className="svc-detail-gallery reveal">
-                  <h3>Gallery</h3>
-                  <div className="svc-gallery-main">
-                    <img src={allImages[activeImg]} alt={pkg.title} />
-                  </div>
-                  <div className="svc-gallery-thumbs">
-                    {allImages.map((img, i) => (
-                      <button
-                        key={i}
-                        className={`svc-gallery-thumb${activeImg === i ? ' active' : ''}`}
-                        onClick={() => setActiveImg(i)}
-                      >
-                        <img src={img} alt={`${pkg.title} ${i + 1}`} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <DetailGallerySlider images={allImages} title={pkg.title} />
 
               {/* Itinerary */}
               {itinerary.length > 0 && (
@@ -299,6 +283,46 @@ export default function PackageDetailPage() {
                 </div>
               </div>
 
+              {/* ─── Partner Box ────────────────────────────────────── */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #0A1235, #17245a)',
+                  borderRadius: '16px',
+                  padding: '1.4rem',
+                  color: '#fff',
+                  marginTop: '1.5rem',
+                  border: '1px solid rgba(246, 192, 66, 0.25)',
+                  boxShadow: '0 10px 25px -5px rgba(10, 18, 53, 0.3)',
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F6C042', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.3rem' }}>
+                  Resorts & Tour Operators
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 800, lineHeight: 1.3, marginBottom: '0.5rem' }}>
+                  List Your Property or Package
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.4, margin: '0 0 1rem 0' }}>
+                  Submit your custom itineraries, room rates, and package details to feature on Zamani.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPartnerModalOpen(true)}
+                  style={{
+                    width: '100%',
+                    background: '#F6C042',
+                    color: '#0A1235',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0.65rem 1rem',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ➕ Submit Package Request
+                </button>
+              </div>
+
               <div className="svc-back-link">
                 <Link href="/packages">
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -311,6 +335,11 @@ export default function PackageDetailPage() {
           </div>
         </div>
       </section>
+
+      <PartnerPackageModal
+        isOpen={partnerModalOpen}
+        onClose={() => setPartnerModalOpen(false)}
+      />
 
       {/* ─── CTA ──────────────────────────────────────────────────────── */}
       <section className="cta">
@@ -328,7 +357,7 @@ export default function PackageDetailPage() {
             <div className="cta-right reveal">
               <div className="phone-block">
                 <span>Call us directly</span>
-                <a href={`tel:${(settings.phone1 || '8592002549').replace(/\s/g, '')}`}>{settings.phone1 || '859 2002 549'}</a>
+                <a href={`tel:${(settings.phone1 || '8592042002').replace(/\s/g, '')}`}>{settings.phone1 || '859 2042 002'}</a>
               </div>
             </div>
           </div>
