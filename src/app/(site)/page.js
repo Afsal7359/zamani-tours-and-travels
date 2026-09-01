@@ -32,72 +32,69 @@ function getSlideConnectionClass(list, i) {
   return '';
 }
 
+function getOptimizedVideoUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  if (url.includes('/video/upload/') && !url.includes('/q_auto')) {
+    return url.replace('/video/upload/', '/video/upload/q_auto:eco,vc_auto,w_500/');
+  }
+  return url;
+}
+
 function getVideoPoster(url) {
   if (!url || typeof url !== 'string') return '';
   if (url.includes('/video/upload/')) {
-    return url.replace('/video/upload/', '/video/upload/so_0,f_jpg,q_auto,w_600/').replace(/\.[^/.]+$/, '.jpg');
+    return url.replace('/video/upload/', '/video/upload/so_0,f_jpg,q_auto,w_500/').replace(/\.[^/.]+$/, '.jpg');
   }
   return url.replace(/\.[^/.]+$/, '.jpg');
 }
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
-  const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef(null);
   const poster = getVideoPoster(item.src);
+  const videoSrc = getOptimizedVideoUrl(item.src);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.muted = true;
+    vid.defaultMuted = true;
+    const playPromise = vid.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        vid.muted = true;
+        vid.play().catch(() => {});
+      });
     }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-    }
-  };
+  }, [videoSrc]);
 
   return (
     <div
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{ position: 'relative', overflow: 'hidden' }}
+      style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
     >
-      {poster && (
-        <img
-          src={poster}
-          alt={`Video thumbnail ${(index % totalLength) + 1}`}
-          className="gallery-video-poster"
-          loading="lazy"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 1,
-            opacity: isHovered ? 0 : 1,
-            transition: 'opacity 0.35s ease',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
       <video
         ref={videoRef}
-        src={item.src}
+        src={videoSrc}
+        poster={poster || undefined}
         muted
+        autoPlay
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
+        onLoadedData={e => {
+          e.currentTarget.muted = true;
+          e.currentTarget.play().catch(() => {});
+        }}
+        onCanPlay={e => {
+          e.currentTarget.muted = true;
+          e.currentTarget.play().catch(() => {});
+        }}
         className="gallery-video-element"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
       />
-      <div className="gallery-video-overlay" style={{ zIndex: 2 }}>
+      <div className="gallery-video-overlay">
         <div className="gallery-video-play-btn">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
