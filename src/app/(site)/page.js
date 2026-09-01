@@ -32,6 +32,85 @@ function getSlideConnectionClass(list, i) {
   return '';
 }
 
+function getVideoPoster(url) {
+  if (!url || typeof url !== 'string') return '';
+  if (url.includes('/video/upload/')) {
+    return url.replace('/video/upload/', '/video/upload/so_0,f_jpg,q_auto,w_600/').replace(/\.[^/.]+$/, '.jpg');
+  }
+  return url.replace(/\.[^/.]+$/, '.jpg');
+}
+
+function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef(null);
+  const poster = getVideoPoster(item.src);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  };
+
+  return (
+    <div
+      className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+      aria-hidden={index >= totalLength}
+      onClick={onSelect}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{ position: 'relative', overflow: 'hidden' }}
+    >
+      {poster && (
+        <img
+          src={poster}
+          alt={`Video thumbnail ${(index % totalLength) + 1}`}
+          className="gallery-video-poster"
+          loading="lazy"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            opacity: isHovered ? 0 : 1,
+            transition: 'opacity 0.35s ease',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <video
+        ref={videoRef}
+        src={item.src}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="gallery-video-element"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+      />
+      <div className="gallery-video-overlay" style={{ zIndex: 2 }}>
+        <div className="gallery-video-play-btn">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+        <span className="gallery-video-tag">
+          {item.span === 3 ? 'Panorama Reel' : item.span === 2 ? 'Wide Reel' : 'Watch Reel'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function normalizeGalleryList(list = []) {
   if (!Array.isArray(list)) return [];
   return list
@@ -381,33 +460,14 @@ export default function HomePage() {
                 {marqueeVideos.map((item, i) => {
                   const conn = getSlideConnectionClass(marqueeVideos, i);
                   return (
-                    <div
-                      className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
+                    <VideoMarqueeCard
                       key={`gv-${i}`}
-                      aria-hidden={i >= videoStrip.length}
-                      onClick={() => setSelectedVideoIndex(i % videoStrip.length)}
-                    >
-                      <video
-                        src={item.src}
-                        muted
-                        loop
-                        autoPlay
-                        playsInline
-                        preload="metadata"
-                        onLoadedData={e => e.currentTarget.play().catch(() => {})}
-                        className="gallery-video-element"
-                      />
-                      <div className="gallery-video-overlay">
-                        <div className="gallery-video-play-btn">
-                          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                        <span className="gallery-video-tag">
-                          {item.span === 3 ? 'Panorama Reel' : item.span === 2 ? 'Wide Reel' : 'Watch Reel'}
-                        </span>
-                      </div>
-                    </div>
+                      item={item}
+                      index={i}
+                      totalLength={videoStrip.length}
+                      conn={conn}
+                      onSelect={() => setSelectedVideoIndex(i % videoStrip.length)}
+                    />
                   );
                 })}
               </div>

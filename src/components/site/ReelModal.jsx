@@ -9,7 +9,14 @@ import {
 } from '@/lib/firestore';
 
 export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  // Normalize videos array to string URLs
+  const normalizedVideos = (videos || [])
+    .map(v => (typeof v === 'string' ? v : (v?.src || v?.url || '')))
+    .filter(Boolean);
+
+  const [currentIndex, setCurrentIndex] = useState(
+    initialIndex >= 0 && initialIndex < normalizedVideos.length ? initialIndex : 0
+  );
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showComments, setShowComments] = useState(false);
@@ -29,7 +36,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   const isScrolling = useRef(false);
   const containerRef = useRef(null);
 
-  const activeVideoUrl = videos[currentIndex] || '';
+  const activeVideoUrl = normalizedVideos[currentIndex] || '';
 
   // Load saved user name from localStorage if available
   useEffect(() => {
@@ -94,26 +101,26 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   }, [currentIndex, isMuted]);
 
   const goToIndex = useCallback((nextIdx) => {
-    if (nextIdx < 0 || nextIdx >= videos.length) return;
+    if (nextIdx < 0 || nextIdx >= normalizedVideos.length) return;
     setCurrentIndex(nextIdx);
     setProgress(0);
-  }, [videos.length]);
+  }, [normalizedVideos.length]);
 
   const goNext = useCallback(() => {
-    if (currentIndex < videos.length - 1) {
+    if (currentIndex < normalizedVideos.length - 1) {
       goToIndex(currentIndex + 1);
     } else {
       goToIndex(0); // loop back to first
     }
-  }, [currentIndex, videos.length, goToIndex]);
+  }, [currentIndex, normalizedVideos.length, goToIndex]);
 
   const goPrev = useCallback(() => {
     if (currentIndex > 0) {
       goToIndex(currentIndex - 1);
     } else {
-      goToIndex(videos.length - 1); // loop to last
+      goToIndex(normalizedVideos.length - 1); // loop to last
     }
-  }, [currentIndex, videos.length, goToIndex]);
+  }, [currentIndex, normalizedVideos.length, goToIndex]);
 
   // Mouse wheel scroll navigation (debounced)
   useEffect(() => {
@@ -307,7 +314,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           <div className="reel-avatar">Z</div>
           <div>
             <h4>Zamani Tours &amp; Travels</h4>
-            <span>Reel {currentIndex + 1} of {videos.length}</span>
+            <span>Reel {currentIndex + 1} of {normalizedVideos.length}</span>
           </div>
         </div>
         <div className="reel-top-actions">
@@ -376,7 +383,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             className="reel-slider-track"
             style={{ transform: `translateY(-${currentIndex * 100}%)` }}
           >
-            {videos.map((src, idx) => (
+            {normalizedVideos.map((src, idx) => (
               <div
                 className="reel-slide-item"
                 key={`${src}-${idx}`}

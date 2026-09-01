@@ -455,16 +455,17 @@ export async function deleteContactSubmission(id) {
 // ─── Video Reels Interactions (Likes & Real-time Comments) ───────────────────
 
 export function getCleanVideoId(videoUrl) {
-  if (!videoUrl) return 'default_video';
+  const url = typeof videoUrl === 'string' ? videoUrl : (videoUrl?.src || videoUrl?.url || '');
+  if (!url) return 'default_media';
   // Generate a deterministic alphanumeric ID from URL
   let hash = 0;
-  for (let i = 0; i < videoUrl.length; i++) {
-    const char = videoUrl.charCodeAt(i);
+  for (let i = 0; i < url.length; i++) {
+    const char = url.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32bit integer
   }
-  const cleanName = videoUrl.split('/').pop().split('?')[0].replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
-  return `${cleanName}_${Math.abs(hash)}`;
+  const cleanName = url.split('/').pop().split('?')[0].replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+  return `${cleanName || 'media'}_${Math.abs(hash)}`;
 }
 
 export function subscribeToVideoComments(videoUrl, callback) {
