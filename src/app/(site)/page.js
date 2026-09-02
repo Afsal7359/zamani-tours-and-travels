@@ -50,51 +50,80 @@ function getVideoPoster(url) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
   const poster = getVideoPoster(item.src);
   const videoSrc = getOptimizedVideoUrl(item.src);
 
-  useEffect(() => {
+  const handleMouseEnter = () => {
+    setIsHovered(true);
     const vid = videoRef.current;
-    if (!vid) return;
-    vid.muted = true;
-    vid.defaultMuted = true;
-    const playPromise = vid.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        vid.muted = true;
-        vid.play().catch(() => {});
-      });
+    if (vid) {
+      vid.muted = true;
+      const playPromise = vid.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
     }
-  }, [videoSrc]);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    const vid = videoRef.current;
+    if (vid) {
+      vid.pause();
+    }
+  };
 
   return (
     <div
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
     >
+      {/* Poster Image for instant, lightweight rendering */}
+      {poster && (
+        <img
+          src={poster}
+          alt={`Video reel ${(index % totalLength) + 1}`}
+          loading="lazy"
+          decoding="async"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: isHovered ? 0 : 1,
+            transition: 'opacity 0.35s ease',
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* Video Element plays seamlessly on hover */}
       <video
         ref={videoRef}
         src={videoSrc}
-        poster={poster || undefined}
         muted
-        autoPlay
         loop
         playsInline
-        preload="auto"
-        onLoadedData={e => {
-          e.currentTarget.muted = true;
-          e.currentTarget.play().catch(() => {});
-        }}
-        onCanPlay={e => {
-          e.currentTarget.muted = true;
-          e.currentTarget.play().catch(() => {});
-        }}
+        preload="metadata"
+        disablePictureInPicture
+        disableRemotePlayback
         className="gallery-video-element"
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          position: 'relative',
+          zIndex: 0,
+        }}
       />
-      <div className="gallery-video-overlay">
+
+      <div className="gallery-video-overlay" style={{ zIndex: 2 }}>
         <div className="gallery-video-play-btn">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
@@ -125,7 +154,7 @@ function normalizeGalleryList(list = []) {
     .filter(item => item && Boolean(item.src));
 }
 
-function createMarqueeItems(items, minCount = 12) {
+function createMarqueeItems(items, minCount = 8) {
   if (!items || !items.length) return [];
   let list = [...items];
   while (list.length < minCount) {
@@ -194,22 +223,6 @@ export default function HomePage() {
     return () => io.disconnect();
   }, [home, services, packages, testimonials, loading]);
 
-  useEffect(() => {
-    if (loading || !packages.length) return;
-    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches) return;
-    const track = pkgTrackRef.current;
-    if (!track) return;
-    const id = setInterval(() => {
-      const max = track.scrollWidth - track.clientWidth;
-      if (track.scrollLeft >= max - 4) {
-        track.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        track.scrollBy({ left: track.clientWidth * 0.82, behavior: 'smooth' });
-      }
-    }, 3200);
-    return () => clearInterval(id);
-  }, [packages, loading]);
-
   const imagesReady = useImagesLoaded(!loading);
 
   const marqueeItems = home?.marqueeItems || [];
@@ -218,9 +231,9 @@ export default function HomePage() {
   const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos);
   const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images);
 
-  const marqueeGallery = createMarqueeItems(galleryStrip);
-  const marqueeVideos = createMarqueeItems(videoStrip);
-  const marqueeFeedbacks = createMarqueeItems(feedbackStrip);
+  const marqueeGallery = createMarqueeItems(galleryStrip, 8);
+  const marqueeVideos = createMarqueeItems(videoStrip, 6);
+  const marqueeFeedbacks = createMarqueeItems(feedbackStrip, 8);
 
   return (
     <>

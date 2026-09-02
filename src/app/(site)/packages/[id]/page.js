@@ -178,6 +178,11 @@ export default function PackageDetailPage() {
                           <span className="pkg-itin-day">{step.day || `Day ${i + 1}`}</span>
                           <h4>{step.title}</h4>
                           {step.description && <p>{step.description}</p>}
+                          {step.image && (
+                            <div className="pkg-itin-photo">
+                              <img src={step.image} alt={step.title || `Day ${i + 1}`} loading="lazy" decoding="async" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

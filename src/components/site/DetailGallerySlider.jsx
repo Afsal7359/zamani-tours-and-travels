@@ -115,10 +115,11 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
       >
         <div
           className="svc-gallery-track"
-          style={{ transform: `translateX(-${activeIdx * 100}%)` }}
+          style={{ transform: `translate3d(-${activeIdx * 100}%, 0, 0)` }}
         >
           {cleanMedia.map((mediaUrl, i) => {
             const isVid = isVideoUrl(mediaUrl);
+            const isActive = activeIdx === i;
             return (
               <div
                 className="svc-gallery-slide"
@@ -129,11 +130,21 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                 {isVid ? (
                   <>
                     <video
+                      ref={(el) => {
+                        if (el) {
+                          if (isActive) {
+                            const p = el.play();
+                            if (p !== undefined) p.catch(() => {});
+                          } else {
+                            el.pause();
+                          }
+                        }
+                      }}
                       src={mediaUrl}
                       muted
                       loop
-                      autoPlay
                       playsInline
+                      preload={isActive ? 'auto' : 'metadata'}
                       className="svc-gallery-video-element"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
@@ -148,7 +159,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                   </>
                 ) : (
                   <>
-                    <img src={mediaUrl} alt={`${title} ${i + 1}`} loading="lazy" />
+                    <img src={mediaUrl} alt={`${title} ${i + 1}`} loading="lazy" decoding="async" />
                     <div className="svc-gallery-photo-overlay">
                       <span className="svc-gallery-fullscreen-tag">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}>

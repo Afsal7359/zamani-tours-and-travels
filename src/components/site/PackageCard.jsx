@@ -9,16 +9,6 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  // Auto-slide every 3.5-4.5s (staggered slightly by index so cards don't rotate simultaneously)
-  useEffect(() => {
-    if (images.length <= 1 || isHovered) return;
-    const intervalTime = 3600 + (index % 4) * 400;
-    const timer = setInterval(() => {
-      setCurrentIdx(prev => (prev + 1) % images.length);
-    }, intervalTime);
-    return () => clearInterval(timer);
-  }, [images.length, isHovered, index]);
-
   const handlePrev = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -47,8 +37,7 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
 
   const handleTouchEnd = (e) => {
     const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 40) {
-      e.preventDefault();
+    if (Math.abs(diff) > 35) {
       if (diff > 0) {
         // swipe left -> next
         setCurrentIdx(prev => (prev + 1) % images.length);
@@ -75,7 +64,7 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
         {images.length > 0 ? (
           <div
             className="pkg-slider-track"
-            style={{ transform: `translateX(-${currentIdx * 100}%)` }}
+            style={{ transform: `translate3d(-${currentIdx * 100}%, 0, 0)` }}
           >
             {images.map((src, idx) => (
               <div className="pkg-slider-slide" key={idx}>
