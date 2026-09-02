@@ -53,8 +53,8 @@ export default function useImagesLoaded(active) {
       }
     });
 
-    // Never hold the loader for more than 8s, even on slow connections.
-    const timer = setTimeout(finish, 8000);
+    // Never hold the loader for more than 1.2s
+    const timer = setTimeout(finish, 1200);
 
     return () => {
       clearTimeout(timer);

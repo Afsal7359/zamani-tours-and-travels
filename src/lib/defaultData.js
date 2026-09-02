@@ -477,11 +477,11 @@ export const defaultFeedbackGallery = {
 // Video gallery row for journey reels & video highlights
 export const defaultVideoGallery = {
   videos: [
-    'https://assets.mixkit.co/videos/preview/mixkit-traveling-over-the-clouds-in-an-airplane-42790-large.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-beach-resort-and-the-ocean-43187-large.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-large.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-palm-tree-on-a-tropical-beach-43185-large.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-top-view-of-the-sea-coast-with-turquoise-water-43360-large.mp4',
+    'https://res.cloudinary.com/demo/video/upload/f_auto,q_auto/dog.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-beach-resort-and-the-ocean-43187-small.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-small.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-palm-tree-on-a-tropical-beach-43185-small.mp4',
+    'https://assets.mixkit.co/videos/preview/mixkit-top-view-of-the-sea-coast-with-turquoise-water-43360-small.mp4',
   ],
 };
 

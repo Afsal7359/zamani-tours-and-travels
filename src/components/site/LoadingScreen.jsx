@@ -7,6 +7,14 @@ export default function LoadingScreen({ isReady = true }) {
   const [removed, setRemoved] = useState(false);
   const videoRef = useRef(null);
 
+  const dismiss = () => {
+    if (isExiting || removed) return;
+    setIsExiting(true);
+    setTimeout(() => {
+      setRemoved(true);
+    }, 400);
+  };
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -16,8 +24,7 @@ export default function LoadingScreen({ isReady = true }) {
     };
 
     const onTimeUpdate = () => {
-      // If video is within 0.1s of end or reached duration
-      if (video.duration && video.currentTime >= video.duration - 0.1) {
+      if (video.duration && video.currentTime >= video.duration - 0.15) {
         setVideoFinished(true);
       }
     };
@@ -25,10 +32,10 @@ export default function LoadingScreen({ isReady = true }) {
     video.addEventListener('ended', onEnded);
     video.addEventListener('timeupdate', onTimeUpdate);
 
-    // Fallback safety timer: if video fails to play or load, don't trap the user forever
+    // Snappy fallback safety timer: max 1.5s
     const maxTimer = setTimeout(() => {
       setVideoFinished(true);
-    }, 4500);
+    }, 1500);
 
     return () => {
       video.removeEventListener('ended', onEnded);
@@ -40,11 +47,7 @@ export default function LoadingScreen({ isReady = true }) {
   // When both the animation has completed AND the page is ready, initiate smooth transition
   useEffect(() => {
     if (videoFinished && isReady && !isExiting) {
-      setIsExiting(true);
-      const exitTimer = setTimeout(() => {
-        setRemoved(true);
-      }, 850);
-      return () => clearTimeout(exitTimer);
+      dismiss();
     }
   }, [videoFinished, isReady, isExiting]);
 
@@ -54,6 +57,8 @@ export default function LoadingScreen({ isReady = true }) {
     <div
       className={`page-loader ${isExiting ? 'page-loader-exit' : ''}`}
       aria-hidden={isExiting}
+      onClick={dismiss}
+      style={{ cursor: 'pointer' }}
     >
       <video
         ref={videoRef}

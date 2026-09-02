@@ -52,44 +52,53 @@ function getVideoPoster(url) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
+  const cardRef = useRef(null);
   const poster = getVideoPoster(item.src);
   const videoSrc = getOptimizedVideoUrl(item.src);
 
   useEffect(() => {
+    const el = cardRef.current;
     const vid = videoRef.current;
     if (!vid) return;
+
     vid.muted = true;
     vid.defaultMuted = true;
     vid.playsInline = true;
 
-    const tryAutoplay = () => {
+    const playSafe = () => {
       if (vid.paused) {
         const p = vid.play();
         if (p !== undefined) {
-          p.catch(() => {
-            // If browser autoplay policy held it back, retry muted immediately
-            vid.muted = true;
-            vid.defaultMuted = true;
-            vid.play().catch(() => {});
-          });
+          p.catch(() => {});
         }
       }
     };
 
-    tryAutoplay();
-    vid.addEventListener('loadedmetadata', tryAutoplay);
-    vid.addEventListener('canplay', tryAutoplay);
-    vid.addEventListener('loadeddata', tryAutoplay);
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      playSafe();
+      return;
+    }
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          playSafe();
+        } else {
+          vid.pause();
+        }
+      },
+      { rootMargin: '120px 0px 120px 0px', threshold: 0.05 }
+    );
+
+    observer.observe(el);
     return () => {
-      vid.removeEventListener('loadedmetadata', tryAutoplay);
-      vid.removeEventListener('canplay', tryAutoplay);
-      vid.removeEventListener('loadeddata', tryAutoplay);
+      observer.disconnect();
     };
   }, [videoSrc]);
 
   return (
     <div
+      ref={cardRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
@@ -104,9 +113,13 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         loop
         autoPlay
         playsInline
-        preload="auto"
+        preload="metadata"
         disablePictureInPicture
         disableRemotePlayback
+        onError={(e) => {
+          // Prevent console noise and allow retry
+          console.warn('Video preview stream notice:', e.target.src);
+        }}
         className="gallery-video-element"
         style={{
           width: '100%',
