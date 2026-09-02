@@ -34,91 +34,67 @@ function getSlideConnectionClass(list, i) {
 
 function getOptimizedVideoUrl(url) {
   if (!url || typeof url !== 'string') return '';
-  if (url.includes('/video/upload/') && !url.includes('/q_auto')) {
-    return url.replace('/video/upload/', '/video/upload/q_auto:eco,vc_auto,w_500/');
+  // Only apply lightweight safe format optimization to Cloudinary URLs without forcing delayed transcoding
+  if (url.includes('res.cloudinary.com') && url.includes('/video/upload/') && !url.includes('/f_auto') && !url.includes('/q_auto')) {
+    return url.replace('/video/upload/', '/video/upload/f_auto,q_auto/');
   }
   return url;
 }
 
 function getVideoPoster(url) {
   if (!url || typeof url !== 'string') return '';
-  if (url.includes('/video/upload/')) {
-    return url.replace('/video/upload/', '/video/upload/so_0,f_jpg,q_auto,w_500/').replace(/\.[^/.]+$/, '.jpg');
+  // Only Cloudinary generates on-the-fly video snapshot posters reliably
+  if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
+    return url.replace('/video/upload/', '/video/upload/so_0,f_jpg,q_auto,w_400/').replace(/\.[^/.]+$/, '.jpg');
   }
-  return url.replace(/\.[^/.]+$/, '.jpg');
+  return '';
 }
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
-  const cardRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const poster = getVideoPoster(item.src);
   const videoSrc = getOptimizedVideoUrl(item.src);
 
   useEffect(() => {
-    const el = cardRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      const vid = videoRef.current;
-      if (vid) {
-        vid.muted = true;
-        vid.play().catch(() => {});
-      }
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const vid = videoRef.current;
-        if (!vid) return;
-        if (entry.isIntersecting) {
-          vid.muted = true;
-          vid.defaultMuted = true;
-          const p = vid.play();
-          if (p !== undefined) {
-            p.then(() => setIsPlaying(true)).catch(() => {
-              vid.muted = true;
-              vid.play().then(() => setIsPlaying(true)).catch(() => {});
-            });
-          }
-        } else {
-          vid.pause();
-          setIsPlaying(false);
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.muted = true;
+    vid.defaultMuted = true;
+    vid.playsInline = true;
+
+    const tryAutoplay = () => {
+      if (vid.paused) {
+        const p = vid.play();
+        if (p !== undefined) {
+          p.catch(() => {
+            // If browser autoplay policy held it back, retry muted immediately
+            vid.muted = true;
+            vid.defaultMuted = true;
+            vid.play().catch(() => {});
+          });
         }
-      },
-      { rootMargin: '100px 0px 100px 0px', threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+      }
+    };
+
+    tryAutoplay();
+    vid.addEventListener('loadedmetadata', tryAutoplay);
+    vid.addEventListener('canplay', tryAutoplay);
+    vid.addEventListener('loadeddata', tryAutoplay);
+
+    return () => {
+      vid.removeEventListener('loadedmetadata', tryAutoplay);
+      vid.removeEventListener('canplay', tryAutoplay);
+      vid.removeEventListener('loadeddata', tryAutoplay);
+    };
   }, [videoSrc]);
 
   return (
     <div
-      ref={cardRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
     >
-      {/* Poster Image for instant, glitch-free initial render */}
-      {poster && (
-        <img
-          src={poster}
-          alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="lazy"
-          decoding="async"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: isPlaying ? 0 : 1,
-            transition: 'opacity 0.4s ease',
-            zIndex: 1,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
       {/* Video Element with hardware-accelerated autoplay */}
       <video
         ref={videoRef}
@@ -131,12 +107,12 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         preload="auto"
         disablePictureInPicture
         disableRemotePlayback
-        onPlaying={() => setIsPlaying(true)}
         className="gallery-video-element"
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'cover',
+          display: 'block',
           position: 'relative',
           zIndex: 0,
         }}
