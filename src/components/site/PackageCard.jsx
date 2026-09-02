@@ -3,11 +3,23 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 export default function PackageCard({ pkg, index = 0, className = '' }) {
-  const images = [pkg.image, ...(pkg.images || [])].filter(Boolean);
+  const itineraryImages = Array.isArray(pkg.itinerary)
+    ? pkg.itinerary.map(item => item?.image).filter(Boolean)
+    : [];
+  const images = Array.from(new Set([pkg.image, ...(pkg.images || []), ...itineraryImages])).filter(Boolean);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Auto-slide every 5 seconds when card has multiple photos and user is not hovering
+  useEffect(() => {
+    if (images.length <= 1 || isHovered) return;
+    const interval = setInterval(() => {
+      setCurrentIdx(prev => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [images.length, isHovered]);
 
   const handlePrev = (e) => {
     e.preventDefault();
@@ -35,7 +47,7 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
     touchEndX.current = e.touches[0].clientX;
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     const diff = touchStartX.current - touchEndX.current;
     if (Math.abs(diff) > 35) {
       if (diff > 0) {
@@ -68,7 +80,7 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
           >
             {images.map((src, idx) => (
               <div className="pkg-slider-slide" key={idx}>
-                <img src={src} alt={`${pkg.title} - ${idx + 1}`} loading="lazy" />
+                <img src={src} alt={`${pkg.title} - ${idx + 1}`} loading="lazy" decoding="async" />
               </div>
             ))}
           </div>

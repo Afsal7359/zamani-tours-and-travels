@@ -2729,14 +2729,21 @@ footer {
   display: flex;
   height: 100%;
   width: 100%;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .svc-gallery-slide {
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
   position: relative;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .svc-gallery-slide img {
   width: 100%;
@@ -4375,8 +4382,11 @@ footer {
   display: flex;
   height: 100%;
   width: 100%;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .pkg-slider-slide {
   flex: 0 0 100%;
@@ -4384,12 +4394,21 @@ footer {
   height: 100%;
   position: relative;
   overflow: hidden;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .pkg-slider-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform .6s var(--ease);
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .pkg-img-placeholder {
   width: 100%;

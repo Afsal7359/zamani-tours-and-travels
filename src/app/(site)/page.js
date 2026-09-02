@@ -50,40 +50,55 @@ function getVideoPoster(url) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const poster = getVideoPoster(item.src);
   const videoSrc = getOptimizedVideoUrl(item.src);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    const vid = videoRef.current;
-    if (vid) {
-      vid.muted = true;
-      const playPromise = vid.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {});
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      const vid = videoRef.current;
+      if (vid) {
+        vid.muted = true;
+        vid.play().catch(() => {});
       }
+      return;
     }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    const vid = videoRef.current;
-    if (vid) {
-      vid.pause();
-    }
-  };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const vid = videoRef.current;
+        if (!vid) return;
+        if (entry.isIntersecting) {
+          vid.muted = true;
+          vid.defaultMuted = true;
+          const p = vid.play();
+          if (p !== undefined) {
+            p.then(() => setIsPlaying(true)).catch(() => {
+              vid.muted = true;
+              vid.play().then(() => setIsPlaying(true)).catch(() => {});
+            });
+          }
+        } else {
+          vid.pause();
+          setIsPlaying(false);
+        }
+      },
+      { rootMargin: '100px 0px 100px 0px', threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [videoSrc]);
 
   return (
     <div
+      ref={cardRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
     >
-      {/* Poster Image for instant, lightweight rendering */}
+      {/* Poster Image for instant, glitch-free initial render */}
       {poster && (
         <img
           src={poster}
@@ -96,23 +111,27 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            opacity: isHovered ? 0 : 1,
-            transition: 'opacity 0.35s ease',
+            opacity: isPlaying ? 0 : 1,
+            transition: 'opacity 0.4s ease',
             zIndex: 1,
+            pointerEvents: 'none',
           }}
         />
       )}
 
-      {/* Video Element plays seamlessly on hover */}
+      {/* Video Element with hardware-accelerated autoplay */}
       <video
         ref={videoRef}
         src={videoSrc}
+        poster={poster || undefined}
         muted
         loop
+        autoPlay
         playsInline
-        preload="metadata"
+        preload="auto"
         disablePictureInPicture
         disableRemotePlayback
+        onPlaying={() => setIsPlaying(true)}
         className="gallery-video-element"
         style={{
           width: '100%',
