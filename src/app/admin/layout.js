@@ -14,7 +14,15 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (currentUser) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setLoading(false);
+      if (pathname !== '/admin/login') {
+        router.push('/admin/login');
+      }
+      return;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       if (!currentUser && pathname !== '/admin/login') {
@@ -26,11 +34,9 @@ export default function AdminLayout({ children }) {
 
   if (loading) {
     return (
-      <html lang="en">
-        <body style={{ background: '#050B26', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#fff', fontFamily: 'system-ui, sans-serif' }}>Loading...</div>
-        </body>
-      </html>
+      <div style={{ background: '#050B26', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#fff', fontFamily: 'system-ui, sans-serif' }}>Loading...</div>
+      </div>
     );
   }
 

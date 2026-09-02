@@ -59,7 +59,7 @@ export default function BlogPage() {
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
       <section className="page-hero">
         <div className="page-hero-bg">
-          <img src={settings?.bannerBlog} alt="Travel Blog" />
+          {settings?.bannerBlog && <img src={settings.bannerBlog} alt="Travel Blog" />}
         </div>
         <div className="page-hero-content container">
           <span className="eyebrow light">Travel Blog</span>

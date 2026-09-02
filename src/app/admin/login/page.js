@@ -15,7 +15,9 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (user) router.push('/admin');
     });
     return () => unsub();
@@ -26,8 +28,10 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
     try {
+      const auth = getFirebaseAuth();
+      if (!auth) throw new Error('Firebase Authentication is not initialized');
       const cleanEmail = email.trim();
-      await signInWithEmailAndPassword(getFirebaseAuth(), cleanEmail, password);
+      await signInWithEmailAndPassword(auth, cleanEmail, password);
       router.push('/admin');
     } catch (err) {
       console.error('Login error:', err);

@@ -58,7 +58,7 @@ export default function ProcessPage() {
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}
       <section className="page-hero">
         <div className="page-hero-bg">
-          <img src={settings?.bannerProcess} alt="Our process" />
+          {settings?.bannerProcess && <img src={settings.bannerProcess} alt="Our process" />}
         </div>
         <div className="page-hero-content container">
           <span className="eyebrow light">How It Works</span>
