@@ -35,67 +35,30 @@ function getSlideConnectionClass(list, i) {
 }
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef(null);
-  const containerRef = useRef(null);
-  const [isInView, setIsInView] = useState(false);
 
   const rawSrc = item?.src || '';
   const videoSrc = getOptimizedVideoUrl(rawSrc);
   const posterUrl = getVideoPosterUrl(rawSrc);
 
-  // IntersectionObserver: only in-view cards play active video stream
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setIsInView(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { rootMargin: '200px 0px 200px 0px', threshold: 0.01 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // Handle play/pause smoothly based on viewport visibility
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-
-    if (isInView) {
-      vid.muted = true;
-      vid.defaultMuted = true;
-      vid.playsInline = true;
-      const p = vid.play();
-      if (p !== undefined) {
-        p.catch(() => {});
-      }
-    } else {
-      vid.pause();
-    }
-  }, [isInView, videoSrc]);
-
   return (
     <div
-      ref={containerRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
-      onMouseEnter={() => {
-        const vid = videoRef.current;
-        if (vid && vid.paused) {
-          vid.play().catch(() => {});
-        }
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setVideoLoaded(false);
       }}
       role="button"
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* 1. Instant Poster / Fallback Image Layer (Never Blank) */}
-      {posterUrl && (
+      {/* 1. Instant HD Poster Layer (Never Blank, 0 GPU decoder overhead) */}
+      {posterUrl ? (
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
@@ -111,34 +74,54 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             display: 'block',
           }}
         />
+      ) : (
+        /* Fallback video frame preview for non-Cloudinary videos */
+        <video
+          src={videoSrc || undefined}
+          muted
+          playsInline
+          preload="metadata"
+          className="gallery-video-poster-img"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+            pointerEvents: 'none',
+          }}
+        />
       )}
 
-      {/* 2. Video Player Element */}
-      <video
-        ref={videoRef}
-        src={videoSrc || undefined}
-        poster={posterUrl || undefined}
-        muted
-        loop
-        playsInline
-        webkit-playsinline="true"
-        x5-playsinline="true"
-        preload="metadata"
-        disablePictureInPicture
-        disableRemotePlayback
-        className="gallery-video-element"
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          display: 'block',
-          background: posterUrl ? 'transparent' : '#050b26',
-        }}
-      />
+      {/* 2. On-Hover Live Video Preview (Instant playback on hover without lagging marquee) */}
+      {isHovered && videoSrc && (
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+          webkit-playsinline="true"
+          x5-playsinline="true"
+          preload="auto"
+          onCanPlay={() => setVideoLoaded(true)}
+          className="gallery-video-element"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            opacity: videoLoaded ? 1 : 0,
+            transition: 'opacity 0.25s ease',
+          }}
+        />
+      )}
 
-      {/* 3. Overlay with Play Button & Tag */}
+      {/* 3. Floating Overlay with Play Button & Tag */}
       <div className="gallery-video-overlay" style={{ zIndex: 3 }}>
         <div className="gallery-video-play-btn">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
