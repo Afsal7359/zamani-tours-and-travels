@@ -455,17 +455,33 @@ export async function deleteContactSubmission(id) {
 // ─── Video Reels Interactions (Likes & Real-time Comments) ───────────────────
 
 export function getCleanVideoId(videoUrl) {
-  const url = typeof videoUrl === 'string' ? videoUrl : (videoUrl?.src || videoUrl?.url || '');
+  let url = typeof videoUrl === 'string' ? videoUrl : (videoUrl?.src || videoUrl?.url || '');
   if (!url) return 'default_media';
-  // Generate a deterministic alphanumeric ID from URL
+
+  // 1. Remove query parameters and hashes
+  url = url.split('?')[0].split('#')[0].trim();
+
+  // 2. Canonicalize Cloudinary URLs: strip out transformation segments (/video/upload/.../ or /upload/.../)
+  if (url.includes('cloudinary.com')) {
+    const uploadMatch = url.match(/\/(?:video\/)?upload\/(?:[a-zA-Z0-9_,]+\/)*(.*)/);
+    if (uploadMatch && uploadMatch[1]) {
+      url = uploadMatch[1];
+    }
+  }
+
+  // 3. Remove file extensions (.mp4, .jpg, .jpeg, .png, .webp, .mov, etc.)
+  url = url.replace(/\.[a-zA-Z0-9]+$/, '');
+
+  // 4. Generate deterministic alphanumeric ID
   let hash = 0;
   for (let i = 0; i < url.length; i++) {
     const char = url.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
-  const cleanName = url.split('/').pop().split('?')[0].replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
-  return `${cleanName || 'media'}_${Math.abs(hash)}`;
+
+  const cleanName = url.split('/').pop().replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30);
+  return `reel_${cleanName || 'media'}_${Math.abs(hash)}`;
 }
 
 export function subscribeToVideoComments(videoUrl, callback) {
@@ -475,57 +491,40 @@ export function subscribeToVideoComments(videoUrl, callback) {
     return () => {};
   }
   const vid = getCleanVideoId(videoUrl);
-  let unsubFallback = null;
 
   try {
     const q = query(
       collection(db, 'video_comments'),
-      where('videoId', '==', vid),
-      orderBy('createdAt', 'desc')
+      where('videoId', '==', vid)
     );
-    const unsub = onSnapshot(
+
+    return onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map(d => ({
-          id: d.id,
-          ...d.data(),
-          createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(),
-        }));
+        const list = snap.docs.map(d => {
+          const data = d.data();
+          let createdAt = new Date();
+          if (data.createdAt?.toDate) {
+            createdAt = data.createdAt.toDate();
+          } else if (data.timestamp) {
+            createdAt = new Date(data.timestamp);
+          }
+          return {
+            id: d.id,
+            ...data,
+            createdAt,
+          };
+        });
+
+        // Client-side sort: newest comments first (eliminates composite index requirements)
+        list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         callback(list);
       },
       (err) => {
         console.warn('Comments subscription warning:', err?.message || err);
-        try {
-          // Fallback query without orderBy if composite index is pending
-          const fallbackQ = query(
-            collection(db, 'video_comments'),
-            where('videoId', '==', vid)
-          );
-          unsubFallback = onSnapshot(
-            fallbackQ,
-            (fallbackSnap) => {
-              const list = fallbackSnap.docs.map(d => ({
-                id: d.id,
-                ...d.data(),
-                createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(),
-              })).sort((a, b) => b.createdAt - a.createdAt);
-              callback(list);
-            },
-            (fallbackErr) => {
-              console.warn('Comments fallback warning:', fallbackErr?.message || fallbackErr);
-              callback([]);
-            }
-          );
-        } catch (e) {
-          callback([]);
-        }
+        callback([]);
       }
     );
-
-    return () => {
-      if (unsub) unsub();
-      if (unsubFallback) unsubFallback();
-    };
   } catch (e) {
     console.warn('Could not setup comments listener:', e);
     callback([]);
@@ -542,6 +541,7 @@ export async function addVideoComment(videoUrl, { name, text }) {
     name: name?.trim() || 'Travel Enthusiast',
     text: text?.trim() || '',
     createdAt: serverTimestamp(),
+    timestamp: Date.now(),
   });
   return docRef.id;
 }
@@ -559,7 +559,8 @@ export function subscribeToVideoLikes(videoUrl, callback) {
       docRef,
       (snap) => {
         if (snap.exists()) {
-          callback(snap.data()?.likes || 0);
+          const count = snap.data()?.likes || 0;
+          callback(Math.max(0, count));
         } else {
           callback(0);
         }
@@ -581,7 +582,15 @@ export async function updateVideoLikes(videoUrl, delta) {
   if (!db) return;
   const vid = getCleanVideoId(videoUrl);
   const docRef = doc(db, 'video_likes', vid);
-  await setDoc(docRef, { likes: increment(delta) }, { merge: true });
+  await setDoc(
+    docRef,
+    {
+      videoId: vid,
+      likes: increment(delta),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
 
 // ─── Package Requests / Partner Submissions ───────────────────────────────────
