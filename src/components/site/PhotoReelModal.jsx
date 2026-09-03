@@ -265,7 +265,13 @@ export default function PhotoReelModal({
       {/* Top Bar */}
       <div className="reel-top-bar">
         <div className="reel-brand-info">
-          <div className="reel-avatar">Z</div>
+          <div className="reel-avatar">
+            <img
+              src="/images/zamani-logo-white.png"
+              alt="Zamani Tours & Travels"
+              onError={e => { e.currentTarget.src = '/images/zamaniLogo.png'; }}
+            />
+          </div>
           <div>
             <h4>Zamani Tours &amp; Travels</h4>
             <span>{categoryTitle} • {currentIndex + 1} of {normalizedPhotos.length}</span>

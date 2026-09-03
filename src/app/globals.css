@@ -1702,17 +1702,25 @@ footer {
 }
 
 .reel-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #d4af37, #1d4ed8);
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reel-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .reel-brand-info h4 {
