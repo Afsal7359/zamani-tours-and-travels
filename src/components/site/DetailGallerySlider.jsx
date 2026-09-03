@@ -136,7 +136,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                           }
                         }
                       }}
-                      src={mediaUrl ? `${getOptimizedVideoUrl(mediaUrl)}#t=0.001` : ''}
+                      src={mediaUrl ? getOptimizedVideoUrl(mediaUrl) : ''}
                       poster={getVideoPosterUrl(mediaUrl) || undefined}
                       muted
                       loop

@@ -37,48 +37,46 @@ function getSlideConnectionClass(list, i) {
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [isInView, setIsInView] = useState(false);
 
   const rawSrc = item?.src || '';
   const videoSrc = getOptimizedVideoUrl(rawSrc);
   const posterUrl = getVideoPosterUrl(rawSrc);
 
-  // IntersectionObserver: Only active visible cards decode video, preventing GPU decoders overload
+  // IntersectionObserver: only in-view cards play active video stream
   useEffect(() => {
     const el = containerRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') {
-      setIsVisible(true);
+      setIsInView(true);
       return;
     }
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsVisible(entry.isIntersecting);
+        setIsInView(entry.isIntersecting);
       },
-      { rootMargin: '120px 0px 120px 0px', threshold: 0.05 }
+      { rootMargin: '200px 0px 200px 0px', threshold: 0.01 }
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  // Control playback based on visibility
+  // Handle play/pause smoothly based on viewport visibility
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    if (isVisible) {
+    if (isInView) {
       vid.muted = true;
       vid.defaultMuted = true;
       vid.playsInline = true;
       const p = vid.play();
       if (p !== undefined) {
-        p.then(() => setIsLoaded(true)).catch(() => {});
+        p.catch(() => {});
       }
     } else {
       vid.pause();
     }
-  }, [isVisible, videoSrc]);
+  }, [isInView, videoSrc]);
 
   return (
     <div
@@ -94,9 +92,9 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
       }}
       role="button"
       tabIndex={0}
-      style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
+      style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* Background Poster Image - Guarantees ZERO black frames on load */}
+      {/* 1. Instant Poster / Fallback Image Layer (Never Blank) */}
       {posterUrl && (
         <img
           src={posterUrl}
@@ -110,15 +108,15 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             height: '100%',
             objectFit: 'cover',
             zIndex: 0,
-            opacity: isLoaded ? 0 : 1,
-            transition: 'opacity 0.4s ease',
+            display: 'block',
           }}
         />
       )}
 
+      {/* 2. Video Player Element */}
       <video
         ref={videoRef}
-        src={videoSrc ? `${videoSrc}#t=0.001` : ''}
+        src={videoSrc || undefined}
         poster={posterUrl || undefined}
         muted
         loop
@@ -126,24 +124,21 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         webkit-playsinline="true"
         x5-playsinline="true"
         preload="metadata"
-        onLoadedData={() => setIsLoaded(true)}
-        onCanPlay={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
         disablePictureInPicture
         disableRemotePlayback
         className="gallery-video-element"
         style={{
+          position: 'relative',
+          zIndex: 1,
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          display: hasError ? 'none' : 'block',
-          position: 'relative',
-          zIndex: 1,
-          opacity: isLoaded || !posterUrl ? 1 : 0.8,
-          transition: 'opacity 0.3s ease',
+          display: 'block',
+          background: posterUrl ? 'transparent' : '#050b26',
         }}
       />
 
+      {/* 3. Overlay with Play Button & Tag */}
       <div className="gallery-video-overlay" style={{ zIndex: 3 }}>
         <div className="gallery-video-play-btn">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">

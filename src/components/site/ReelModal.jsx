@@ -399,7 +399,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
               >
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
-                  src={src ? `${getOptimizedVideoUrl(src)}#t=0.001` : ''}
+                  src={src ? getOptimizedVideoUrl(src) : ''}
                   poster={getVideoPosterUrl(src) || undefined}
                   loop
                   playsInline

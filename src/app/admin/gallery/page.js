@@ -404,7 +404,7 @@ export default function AdminGalleryPage() {
 
                   {activeTab === 'videos' ? (
                     <video
-                      src={item.src ? `${item.src}#t=0.001` : ''}
+                      src={item.src || ''}
                       poster={getVideoPosterUrl(item.src) || undefined}
                       muted
                       loop
