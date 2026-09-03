@@ -2,11 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
-
-function isVideoUrl(url = '') {
-  if (!url || typeof url !== 'string') return false;
-  return /\.(mp4|webm|mov|ogg)($|\?)/i.test(url) || url.includes('/video/upload/');
-}
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
 
 export default function DetailGallerySlider({ images = [], title = 'Gallery' }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -140,13 +136,14 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                           }
                         }
                       }}
-                      src={mediaUrl}
+                      src={mediaUrl ? `${getOptimizedVideoUrl(mediaUrl)}#t=0.001` : ''}
+                      poster={getVideoPosterUrl(mediaUrl) || undefined}
                       muted
                       loop
                       playsInline
                       preload={isActive ? 'auto' : 'metadata'}
                       className="svc-gallery-video-element"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#050b26' }}
                     />
                     <div className="svc-gallery-video-overlay">
                       <div className="svc-gallery-play-btn">

@@ -1471,10 +1471,9 @@ footer {
 }
 .gallery-marquee {
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   margin-bottom: 1.5rem;
-  contain: paint;
 }
 .gallery-marquee:last-child {
   margin-bottom: 0;
@@ -1487,7 +1486,6 @@ footer {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  perspective: 1000px;
 }
 .gallery-marquee-reverse .gallery-marquee-track {
   animation: marquee-scroll-rev 50s linear infinite;
@@ -1513,7 +1511,6 @@ footer {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  contain: layout paint style;
 }
 .gallery-slide-span-2 {
   width: calc(clamp(190px, 22vw, 260px) * 2 + 1.2rem);
@@ -1548,8 +1545,8 @@ footer {
   backface-visibility: hidden;
 }
 .gallery-slide:hover {
-  transform: translate3d(0, -4px, 0);
-  box-shadow: 0 12px 30px rgba(10, 18, 53, 0.14);
+  transform: translate3d(0, -5px, 0);
+  box-shadow: 0 14px 32px rgba(10, 18, 53, 0.16);
 }
 .gallery-slide:hover img { transform: scale(1.05); }
 
@@ -1572,32 +1569,52 @@ footer {
   cursor: pointer;
   background: #050b26;
   transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease);
+}
+.gallery-video-slide:hover {
+  transform: translate3d(0, -6px, 0);
+  box-shadow: 0 16px 36px rgba(5, 11, 38, 0.28);
 }
 .gallery-video-element {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform .4s var(--ease);
-  transform: translate3d(0, 0, 0);
+  position: relative;
+  z-index: 1;
+  background-color: #050b26;
+  transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .gallery-video-slide:hover .gallery-video-element {
-  transform: scale(1.05);
+  /* Keep video layer steady to prevent GPU decoder freezing/stutter */
+  transform: none;
+}
+.gallery-video-poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  background: #050b26;
 }
 .gallery-video-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(5,11,38,0) 40%, rgba(5,11,38,0.75) 100%);
+  background: linear-gradient(180deg, rgba(5,11,38,0) 35%, rgba(5,11,38,0.75) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   padding: 1.2rem 1rem;
-  transition: all .3s ease;
+  transition: background .3s ease;
 }
 .gallery-video-slide:hover .gallery-video-overlay {
-  background: linear-gradient(180deg, rgba(5,11,38,0.1) 20%, rgba(5,11,38,0.85) 100%);
+  background: linear-gradient(180deg, rgba(5,11,38,0.15) 20%, rgba(5,11,38,0.85) 100%);
 }
 .gallery-video-play-btn {
   position: absolute;

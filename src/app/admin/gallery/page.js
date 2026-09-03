@@ -11,6 +11,7 @@ import {
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
 import { uploadToCloudinary } from '@/lib/upload';
+import { getVideoPosterUrl } from '@/lib/videoUtils';
 
 function normalizeItems(list = []) {
   if (!Array.isArray(list)) return [];
@@ -403,10 +404,12 @@ export default function AdminGalleryPage() {
 
                   {activeTab === 'videos' ? (
                     <video
-                      src={item.src}
+                      src={item.src ? `${item.src}#t=0.001` : ''}
+                      poster={getVideoPosterUrl(item.src) || undefined}
                       muted
                       loop
                       playsInline
+                      preload="metadata"
                       onMouseEnter={e => e.currentTarget.play().catch(() => {})}
                       onMouseLeave={e => e.currentTarget.pause()}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#050b26' }}

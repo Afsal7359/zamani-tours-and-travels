@@ -21,6 +21,8 @@ import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+
 function getSlideConnectionClass(list, i) {
   if (!list || list.length <= 1) return '';
   const item = list[i];
@@ -32,59 +34,101 @@ function getSlideConnectionClass(list, i) {
   return '';
 }
 
-function getOptimizedVideoUrl(url) {
-  if (!url || typeof url !== 'string') return '';
-  return url;
-}
-
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
-  const videoSrc = getOptimizedVideoUrl(item?.src || '');
+  const containerRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
+  const rawSrc = item?.src || '';
+  const videoSrc = getOptimizedVideoUrl(rawSrc);
+  const posterUrl = getVideoPosterUrl(rawSrc);
+
+  // IntersectionObserver: Only active visible cards decode video, preventing GPU decoders overload
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { rootMargin: '120px 0px 120px 0px', threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Control playback based on visibility
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
 
-    vid.muted = true;
-    vid.defaultMuted = true;
-    vid.playsInline = true;
-
-    const tryPlay = () => {
+    if (isVisible) {
+      vid.muted = true;
+      vid.defaultMuted = true;
+      vid.playsInline = true;
       const p = vid.play();
       if (p !== undefined) {
-        p.catch(() => {});
+        p.then(() => setIsLoaded(true)).catch(() => {});
       }
-    };
-
-    tryPlay();
-    vid.addEventListener('canplay', tryPlay);
-    vid.addEventListener('loadeddata', tryPlay);
-    vid.addEventListener('loadedmetadata', tryPlay);
-
-    return () => {
-      vid.removeEventListener('canplay', tryPlay);
-      vid.removeEventListener('loadeddata', tryPlay);
-      vid.removeEventListener('loadedmetadata', tryPlay);
-    };
-  }, [videoSrc]);
+    } else {
+      vid.pause();
+    }
+  }, [isVisible, videoSrc]);
 
   return (
     <div
+      ref={containerRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
+      onMouseEnter={() => {
+        const vid = videoRef.current;
+        if (vid && vid.paused) {
+          vid.play().catch(() => {});
+        }
+      }}
+      role="button"
+      tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer' }}
     >
+      {/* Background Poster Image - Guarantees ZERO black frames on load */}
+      {posterUrl && (
+        <img
+          src={posterUrl}
+          alt={`Video reel ${(index % totalLength) + 1}`}
+          loading="lazy"
+          className="gallery-video-poster-img"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+            opacity: isLoaded ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+          }}
+        />
+      )}
+
       <video
         ref={videoRef}
-        src={videoSrc}
+        src={videoSrc ? `${videoSrc}#t=0.001` : ''}
+        poster={posterUrl || undefined}
         muted
         loop
-        autoPlay
         playsInline
         webkit-playsinline="true"
         x5-playsinline="true"
-        preload="auto"
+        preload="metadata"
+        onLoadedData={() => setIsLoaded(true)}
+        onCanPlay={() => setIsLoaded(true)}
+        onError={() => setHasError(true)}
         disablePictureInPicture
         disableRemotePlayback
         className="gallery-video-element"
@@ -92,13 +136,15 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          display: 'block',
+          display: hasError ? 'none' : 'block',
           position: 'relative',
-          zIndex: 0,
+          zIndex: 1,
+          opacity: isLoaded || !posterUrl ? 1 : 0.8,
+          transition: 'opacity 0.3s ease',
         }}
       />
 
-      <div className="gallery-video-overlay" style={{ zIndex: 2 }}>
+      <div className="gallery-video-overlay" style={{ zIndex: 3 }}>
         <div className="gallery-video-play-btn">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
