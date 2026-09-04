@@ -22,6 +22,7 @@ import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 
 import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 function getSlideConnectionClass(list, i) {
   if (!list || list.length <= 1) return '';
@@ -41,7 +42,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const videoRef = useRef(null);
 
   const rawSrc = item?.src || '';
-  const videoSrc = getOptimizedVideoUrl(rawSrc, 'preview');
+  const videoSrc = getAdaptiveVideoUrl(rawSrc, 'preview');
   const posterUrl = getVideoPosterUrl(rawSrc);
 
   // Monitor visibility: only decode and play video when inside or near visible viewport (+250px)

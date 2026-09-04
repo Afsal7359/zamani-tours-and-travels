@@ -8,6 +8,7 @@ import {
   getCleanVideoId,
 } from '@/lib/firestore';
 import { getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   // Normalize videos array to string URLs
@@ -399,7 +400,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
               >
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
-                  src={src ? getOptimizedVideoUrl(src, 'reel') : ''}
+                  src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
                   poster={getVideoPosterUrl(src) || undefined}
                   loop
                   playsInline

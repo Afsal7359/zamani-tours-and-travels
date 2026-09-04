@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function DetailGallerySlider({ images = [], title = 'Gallery' }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -136,7 +137,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                           }
                         }
                       }}
-                      src={mediaUrl ? getOptimizedVideoUrl(mediaUrl, 'reel') : ''}
+                      src={mediaUrl ? getAdaptiveVideoUrl(mediaUrl, 'reel') : ''}
                       poster={getVideoPosterUrl(mediaUrl) || undefined}
                       autoPlay={isActive}
                       muted
