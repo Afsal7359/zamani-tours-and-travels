@@ -288,7 +288,7 @@ export default function ContactPage() {
               <p>Send us a message on WhatsApp and get a response within minutes during office hours.</p>
             </div>
             <a
-              href={settings.whatsapp || 'https://wa.me/918592002549'}
+              href={settings.whatsapp || 'https://wa.me/918592042002'}
               className="wa-btn"
               target="_blank"
               rel="noopener noreferrer"

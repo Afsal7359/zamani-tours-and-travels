@@ -399,10 +399,12 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
               >
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
-                  src={src ? getOptimizedVideoUrl(src) : ''}
+                  src={src ? getOptimizedVideoUrl(src, 'reel') : ''}
                   poster={getVideoPosterUrl(src) || undefined}
                   loop
                   playsInline
+                  webkit-playsinline="true"
+                  x5-playsinline="true"
                   preload={Math.abs(currentIndex - idx) <= 1 ? 'auto' : 'none'}
                   onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
                   className="reel-video-element"

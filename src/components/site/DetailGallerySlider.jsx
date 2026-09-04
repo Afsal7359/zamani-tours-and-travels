@@ -136,11 +136,14 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                           }
                         }
                       }}
-                      src={mediaUrl ? getOptimizedVideoUrl(mediaUrl) : ''}
+                      src={mediaUrl ? getOptimizedVideoUrl(mediaUrl, 'reel') : ''}
                       poster={getVideoPosterUrl(mediaUrl) || undefined}
+                      autoPlay={isActive}
                       muted
                       loop
                       playsInline
+                      webkit-playsinline="true"
+                      x5-playsinline="true"
                       preload={isActive ? 'auto' : 'metadata'}
                       className="svc-gallery-video-element"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#050b26' }}

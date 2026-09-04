@@ -304,8 +304,11 @@ export async function getSiteSettings() {
     const snap = await getDoc(doc(db, 'site_data', 'settings'));
     if (!snap.exists()) return defaultSiteSettings;
     const data = snap.data();
-    if (data?.whatsapp && data.whatsapp.includes('8592002549')) {
+    if (data?.whatsapp && (data.whatsapp.includes('8592002549') || data.whatsapp === '#')) {
       data.whatsapp = 'https://wa.me/918592042002';
+    }
+    if (!data?.instagram || data.instagram === '#' || data.instagram === '') {
+      data.instagram = 'https://www.instagram.com/zamani.in__?utm_source=ig_web_button_share_sheet&igsi=ZDNlZDc0MzIxNw==';
     }
     return { ...defaultSiteSettings, ...data };
   } catch (e) {

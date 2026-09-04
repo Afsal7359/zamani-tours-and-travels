@@ -400,7 +400,7 @@ export const defaultSiteSettings = {
   email: 'info@zamanitours.com',
   address: 'PP 19/575, Odungakkad, Puduppadi, Thamarassery, Kozhikode, 673586, Kerala, India',
   location: 'Thamarassery, Kozhikode, Kerala',
-  instagram: '#',
+  instagram: 'https://www.instagram.com/zamani.in__?utm_source=ig_web_button_share_sheet&igsi=ZDNlZDc0MzIxNw==',
   facebook: '#',
   whatsapp: 'https://wa.me/918592042002',
   linkedin: '#',

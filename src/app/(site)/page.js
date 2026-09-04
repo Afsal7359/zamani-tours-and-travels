@@ -35,34 +35,42 @@ function getSlideConnectionClass(list, i) {
 }
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
-  const [isHovered, setIsHovered] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef(null);
 
   const rawSrc = item?.src || '';
-  const videoSrc = getOptimizedVideoUrl(rawSrc);
+  const videoSrc = getOptimizedVideoUrl(rawSrc, 'preview');
   const posterUrl = getVideoPosterUrl(rawSrc);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.muted = true;
+    vid.defaultMuted = true;
+    const playPromise = vid.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => setVideoLoaded(true))
+        .catch(() => {});
+    }
+  }, [videoSrc]);
 
   return (
     <div
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setVideoLoaded(false);
-      }}
       role="button"
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* 1. Instant HD Poster Layer (Never Blank, 0 GPU decoder overhead) */}
+      {/* 1. Instant HD Poster Layer (Never Blank at screen edges) */}
       {posterUrl ? (
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="lazy"
+          loading="eager"
+          decoding="async"
           className="gallery-video-poster-img"
           style={{
             position: 'absolute',
@@ -74,28 +82,10 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             display: 'block',
           }}
         />
-      ) : (
-        /* Fallback video frame preview for non-Cloudinary videos */
-        <video
-          src={videoSrc || undefined}
-          muted
-          playsInline
-          preload="metadata"
-          className="gallery-video-poster-img"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
+      ) : null}
 
-      {/* 2. On-Hover Live Video Preview (Instant playback on hover without lagging marquee) */}
-      {isHovered && videoSrc && (
+      {/* 2. Fast Lightweight Autoplay Video Layer */}
+      {videoSrc && (
         <video
           ref={videoRef}
           src={videoSrc}
@@ -106,7 +96,9 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           webkit-playsinline="true"
           x5-playsinline="true"
           preload="auto"
+          onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
+          onPlaying={() => setVideoLoaded(true)}
           className="gallery-video-element"
           style={{
             position: 'absolute',
@@ -115,8 +107,9 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             height: '100%',
             objectFit: 'cover',
             zIndex: 1,
-            opacity: videoLoaded ? 1 : 0,
+            opacity: videoLoaded ? 1 : (posterUrl ? 0 : 1),
             transition: 'opacity 0.25s ease',
+            pointerEvents: 'none',
           }}
         />
       )}
@@ -443,7 +436,7 @@ export default function HomePage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <img src={item.src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="lazy" />
+                  <img src={item.src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="eager" decoding="async" />
                 </div>
               );
             })}
@@ -509,7 +502,7 @@ export default function HomePage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <img src={item.src} alt={`Customer review ${(i % feedbackStrip.length) + 1}`} loading="lazy" />
+                  <img src={item.src} alt={`Customer review ${(i % feedbackStrip.length) + 1}`} loading="eager" decoding="async" />
                 </div>
               );
             })}
