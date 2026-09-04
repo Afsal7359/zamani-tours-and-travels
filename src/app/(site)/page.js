@@ -36,13 +36,35 @@ function getSlideConnectionClass(list, i) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const containerRef = useRef(null);
   const videoRef = useRef(null);
 
   const rawSrc = item?.src || '';
   const videoSrc = getOptimizedVideoUrl(rawSrc, 'preview');
   const posterUrl = getVideoPosterUrl(rawSrc);
 
+  // Monitor visibility: only decode and play video when inside or near visible viewport (+250px)
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { rootMargin: '250px 100px 250px 100px', threshold: 0.01 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isInView) {
+      setVideoLoaded(false);
+      return;
+    }
     const vid = videoRef.current;
     if (!vid) return;
     vid.muted = true;
@@ -53,10 +75,11 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         .then(() => setVideoLoaded(true))
         .catch(() => {});
     }
-  }, [videoSrc]);
+  }, [isInView, videoSrc]);
 
   return (
     <div
+      ref={containerRef}
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
@@ -64,7 +87,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* 1. Instant HD Poster Layer (Never Blank at screen edges) */}
+      {/* 1. Instant HD Poster Layer (Never Blank at screen edges, 0 decoder cost) */}
       {posterUrl ? (
         <img
           src={posterUrl}
@@ -84,8 +107,8 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         />
       ) : null}
 
-      {/* 2. Fast Lightweight Autoplay Video Layer */}
-      {videoSrc && (
+      {/* 2. Viewport-Aware Fast Lightweight Autoplay Video Layer (Only decodes when visible) */}
+      {isInView && videoSrc && (
         <video
           ref={videoRef}
           src={videoSrc}
@@ -107,7 +130,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             height: '100%',
             objectFit: 'cover',
             zIndex: 1,
-            opacity: videoLoaded ? 1 : (posterUrl ? 0 : 1),
+            opacity: videoLoaded ? 1 : 0,
             transition: 'opacity 0.25s ease',
             pointerEvents: 'none',
           }}
@@ -205,11 +228,15 @@ export default function HomePage() {
     if (loading) return;
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+    }, { threshold: 0.01, rootMargin: '0px 0px 80px 0px' });
+
     document.querySelectorAll('.reveal').forEach((el, i) => {
-      el.style.transitionDelay = (i % 4) * 80 + 'ms';
+      el.style.transitionDelay = (i % 3) * 35 + 'ms';
       io.observe(el);
     });
     return () => io.disconnect();

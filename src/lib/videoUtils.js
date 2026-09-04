@@ -1,6 +1,6 @@
 /**
  * Universal Video & Thumbnail Helper Utilities for Zamani Tours & Travels
- * Ensures fast loading, instant poster thumbnails, zero black frames, and smooth autoplay playback.
+ * Ensures fast loading, instant poster thumbnails, zero black frames, and smooth 60fps autoplay.
  */
 
 export function isVideoUrl(url) {
@@ -34,7 +34,7 @@ export function parseCloudinaryVideoUrl(url) {
   if (matchVersion) {
     cleanTail = matchVersion[1];
   } else {
-    // If no v\d+/, check if the first segment is a transformation string (e.g. f_auto,q_auto)
+    // If no v\d+/, check if the first segment is a transformation string
     const segments = tail.split('/');
     if (
       segments.length > 1 &&
@@ -56,7 +56,7 @@ export function getVideoPosterUrl(url) {
   if (parsed) {
     const { baseUrl, cleanTail } = parsed;
     const jpgTail = cleanTail.replace(/\.(mp4|webm|mov|m4v|avi|mkv|ogg)($|\?)/i, '.jpg$2');
-    return `${baseUrl}/video/upload/so_0,f_auto,q_auto:good,w_640/${jpgTail}`;
+    return `${baseUrl}/video/upload/so_0,f_auto,q_auto:good,w_600/${jpgTail}`;
   }
   return '';
 }
@@ -64,7 +64,7 @@ export function getVideoPosterUrl(url) {
 /**
  * Generates an optimized, fast-streaming video URL from Cloudinary.
  * Mode:
- *  - 'preview' / 'marquee': lightweight (w_480, compressed for instant smooth autoplay with 0 lag)
+ *  - 'preview' / 'marquee': lightweight web stream (w_400, br_500k, h264 for instant 60fps GPU decode)
  *  - 'reel' / 'hd': high quality (w_1080) for full screen reels
  */
 export function getOptimizedVideoUrl(url, mode = 'preview') {
@@ -73,7 +73,7 @@ export function getOptimizedVideoUrl(url, mode = 'preview') {
   if (parsed) {
     const { baseUrl, cleanTail } = parsed;
     if (mode === 'preview' || mode === 'marquee') {
-      return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_auto,w_480/${cleanTail}`;
+      return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_h264,w_400,br_500k/${cleanTail}`;
     }
     return `${baseUrl}/video/upload/f_auto,q_auto:good,w_1080/${cleanTail}`;
   }

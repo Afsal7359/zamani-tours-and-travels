@@ -1130,15 +1130,18 @@ footer {
 }
 .foot-bottom .foot-links a:hover { color: #fff; }
 
-/* ─── Reveal animations ──────────────────────────────────────────────────── */
+/* ─── Reveal animations (Hardware Accelerated 60fps Liquid Scroll) ────────── */
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity .65s var(--ease), transform .65s var(--ease);
+  transform: translate3d(0, 18px, 0);
+  transition: opacity .45s cubic-bezier(0.16, 1, 0.3, 1), transform .45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .reveal.in {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
 }
 
 /* ─── About Page ─────────────────────────────────────────────────────────── */
@@ -1474,6 +1477,7 @@ footer {
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   margin-bottom: 1.5rem;
+  contain: layout paint;
 }
 .gallery-marquee:last-child {
   margin-bottom: 0;
@@ -1511,6 +1515,7 @@ footer {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  contain: layout paint;
 }
 .gallery-slide-span-2 {
   width: calc(clamp(190px, 22vw, 260px) * 2 + 1.2rem);

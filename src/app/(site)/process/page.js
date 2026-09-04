@@ -40,9 +40,9 @@ export default function ProcessPage() {
       entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+    }, { threshold: 0.01, rootMargin: '0px 0px 80px 0px' });
     document.querySelectorAll('.reveal').forEach((el, i) => {
-      el.style.transitionDelay = (i % 4) * 80 + 'ms';
+      el.style.transitionDelay = (i % 3) * 35 + 'ms';
       io.observe(el);
     });
     return () => io.disconnect();
