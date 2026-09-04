@@ -97,7 +97,32 @@ export default function AdminGalleryPage() {
           newItems.push({ src: url, span: 1, connectNext: false });
         }
       }
-      setCurrentList(prev => [...prev, ...newItems]);
+
+      if (newItems.length > 0) {
+        let updatedMain = mainImages;
+        let updatedVideos = videoList;
+        let updatedFeedback = feedbackImages;
+
+        if (activeTab === 'main') {
+          updatedMain = [...mainImages, ...newItems];
+          setMainImages(updatedMain);
+        } else if (activeTab === 'videos') {
+          updatedVideos = [...videoList, ...newItems];
+          setVideoList(updatedVideos);
+        } else {
+          updatedFeedback = [...feedbackImages, ...newItems];
+          setFeedbackImages(updatedFeedback);
+        }
+
+        // Auto-save changes immediately to Firestore
+        await Promise.all([
+          saveGallery({ images: updatedMain }),
+          saveVideoGallery({ videos: updatedVideos }),
+          saveFeedbackGallery({ images: updatedFeedback }),
+        ]);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 4000);
+      }
     } catch (err) {
       console.error('Upload error:', err);
       alert(`Upload failed: ${err.message || 'Please check your file format/size and try again.'}`);
