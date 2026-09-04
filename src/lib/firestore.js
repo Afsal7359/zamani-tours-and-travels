@@ -29,16 +29,83 @@ import {
   defaultVideoGallery,
 } from './defaultData';
 
+// ─── High-Performance Client Caching Layer (0ms Instant Navigation) ───────────
+const cacheStore = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh in-memory
+
+function getCachedData(key) {
+  if (cacheStore.has(key)) {
+    const entry = cacheStore.get(key);
+    if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
+      return entry.data;
+    }
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = sessionStorage.getItem(`zamani_cache_${key}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Date.now() - parsed.timestamp < CACHE_TTL_MS) {
+          cacheStore.set(key, parsed);
+          return parsed.data;
+        }
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+function setCachedData(key, data) {
+  const entry = { data, timestamp: Date.now() };
+  cacheStore.set(key, entry);
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(`zamani_cache_${key}`, JSON.stringify(entry));
+    } catch (e) {}
+  }
+}
+
+export function clearFirestoreCache(prefix = '') {
+  if (!prefix) {
+    cacheStore.clear();
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(sessionStorage).forEach(k => {
+          if (k.startsWith('zamani_cache_')) sessionStorage.removeItem(k);
+        });
+      } catch (e) {}
+    }
+  } else {
+    for (const key of cacheStore.keys()) {
+      if (key.startsWith(prefix)) cacheStore.delete(key);
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(sessionStorage).forEach(k => {
+          if (k.startsWith(`zamani_cache_${prefix}`)) sessionStorage.removeItem(k);
+        });
+      } catch (e) {}
+    }
+  }
+}
+
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 export async function getServices() {
+  const cached = getCachedData('services');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultServices;
+    if (!db) {
+      setCachedData('services', defaultServices);
+      return defaultServices;
+    }
     const q = query(collection(db, 'services'), orderBy('order', 'asc'));
     const snap = await getDocs(q);
-    if (snap.empty) return defaultServices;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const data = snap.empty ? defaultServices : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setCachedData('services', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch services from Firestore, falling back to default data:', e);
     return defaultServices;
@@ -46,19 +113,33 @@ export async function getServices() {
 }
 
 export async function getService(id) {
+  const cacheKey = `service_${id}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (db) {
       const snap = await getDoc(doc(db, 'services', id));
-      if (snap.exists()) return { id: snap.id, ...snap.data() };
+      if (snap.exists()) {
+        const item = { id: snap.id, ...snap.data() };
+        setCachedData(cacheKey, item);
+        return item;
+      }
     }
   } catch (e) {
     console.warn('Error fetching service:', e);
   }
-  return defaultServices.find(s => s.id === id || s.slug === id || String(s.order) === id) || null;
+  const fallback = defaultServices.find(s => s.id === id || s.slug === id || String(s.order) === id) || null;
+  if (fallback) setCachedData(cacheKey, fallback);
+  return fallback;
 }
 
 export async function getServiceBySlug(slug) {
+  const cacheKey = `service_slug_${slug}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (db) {
@@ -66,18 +147,23 @@ export async function getServiceBySlug(slug) {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const d = snap.docs[0];
-        return { id: d.id, ...d.data() };
+        const item = { id: d.id, ...d.data() };
+        setCachedData(cacheKey, item);
+        return item;
       }
     }
   } catch (e) {
     console.warn('Error fetching service by slug:', e);
   }
-  return defaultServices.find(s => s.slug === slug || s.id === slug) || null;
+  const fallback = defaultServices.find(s => s.slug === slug || s.id === slug) || null;
+  if (fallback) setCachedData(cacheKey, fallback);
+  return fallback;
 }
 
 export async function saveService(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('service');
   if (id) {
     await setDoc(doc(db, 'services', id), data, { merge: true });
     return id;
@@ -90,19 +176,27 @@ export async function saveService(id, data) {
 export async function deleteService(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('service');
   await deleteDoc(doc(db, 'services', id));
 }
 
 // ─── Tour Packages ────────────────────────────────────────────────────────────
 
 export async function getPackages() {
+  const cached = getCachedData('packages');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultPackages;
+    if (!db) {
+      setCachedData('packages', defaultPackages);
+      return defaultPackages;
+    }
     const q = query(collection(db, 'packages'), orderBy('order', 'asc'));
     const snap = await getDocs(q);
-    if (snap.empty) return defaultPackages;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const data = snap.empty ? defaultPackages : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setCachedData('packages', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch packages from Firestore, falling back to default data:', e);
     return defaultPackages;
@@ -110,19 +204,33 @@ export async function getPackages() {
 }
 
 export async function getPackage(id) {
+  const cacheKey = `package_${id}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (db) {
       const snap = await getDoc(doc(db, 'packages', id));
-      if (snap.exists()) return { id: snap.id, ...snap.data() };
+      if (snap.exists()) {
+        const item = { id: snap.id, ...snap.data() };
+        setCachedData(cacheKey, item);
+        return item;
+      }
     }
   } catch (e) {
     console.warn('Error fetching package:', e);
   }
-  return defaultPackages.find(p => p.id === id || p.slug === id || String(p.order) === id) || null;
+  const fallback = defaultPackages.find(p => p.id === id || p.slug === id || String(p.order) === id) || null;
+  if (fallback) setCachedData(cacheKey, fallback);
+  return fallback;
 }
 
 export async function getPackageBySlug(slug) {
+  const cacheKey = `package_slug_${slug}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (db) {
@@ -130,18 +238,23 @@ export async function getPackageBySlug(slug) {
       const snap = await getDocs(q);
       if (!snap.empty) {
         const d = snap.docs[0];
-        return { id: d.id, ...d.data() };
+        const item = { id: d.id, ...d.data() };
+        setCachedData(cacheKey, item);
+        return item;
       }
     }
   } catch (e) {
     console.warn('Error fetching package by slug:', e);
   }
-  return defaultPackages.find(p => p.slug === slug || p.id === slug) || null;
+  const fallback = defaultPackages.find(p => p.slug === slug || p.id === slug) || null;
+  if (fallback) setCachedData(cacheKey, fallback);
+  return fallback;
 }
 
 export async function savePackage(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('package');
   if (id) {
     await setDoc(doc(db, 'packages', id), data, { merge: true });
     return id;
@@ -154,12 +267,17 @@ export async function savePackage(id, data) {
 export async function deletePackage(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('package');
   await deleteDoc(doc(db, 'packages', id));
 }
 
 // ─── Blog Posts ───────────────────────────────────────────────────────────────
 
 export async function getBlogPosts(options = {}) {
+  const cacheKey = `blog_posts_${JSON.stringify(options)}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (!db) {
@@ -167,6 +285,7 @@ export async function getBlogPosts(options = {}) {
       if (options.category) posts = posts.filter(p => p.category === options.category);
       if (options.featured !== undefined) posts = posts.filter(p => p.featured === options.featured);
       if (options.limit) posts = posts.slice(0, options.limit);
+      setCachedData(cacheKey, posts);
       return posts;
     }
     let q = collection(db, 'blog_posts');
@@ -185,8 +304,9 @@ export async function getBlogPosts(options = {}) {
     constraints.push(orderBy('date', 'desc'));
     q = query(q, ...constraints);
     const snap = await getDocs(q);
-    if (snap.empty) return defaultBlogPosts;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const data = snap.empty ? defaultBlogPosts : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setCachedData(cacheKey, data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch blog posts from Firestore, falling back to default data:', e);
     let posts = [...defaultBlogPosts];
@@ -198,21 +318,32 @@ export async function getBlogPosts(options = {}) {
 }
 
 export async function getBlogPost(id) {
+  const cacheKey = `blog_post_${id}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
     if (db) {
       const snap = await getDoc(doc(db, 'blog_posts', id));
-      if (snap.exists()) return { id: snap.id, ...snap.data() };
+      if (snap.exists()) {
+        const item = { id: snap.id, ...snap.data() };
+        setCachedData(cacheKey, item);
+        return item;
+      }
     }
   } catch (e) {
     console.warn('Error fetching blog post:', e);
   }
-  return defaultBlogPosts.find(p => p.id === id || p.slug === id) || defaultBlogPosts[0] || null;
+  const fallback = defaultBlogPosts.find(p => p.id === id || p.slug === id) || defaultBlogPosts[0] || null;
+  if (fallback) setCachedData(cacheKey, fallback);
+  return fallback;
 }
 
 export async function saveBlogPost(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('blog_post');
   if (id) {
     await setDoc(doc(db, 'blog_posts', id), data, { merge: true });
     return id;
@@ -225,18 +356,26 @@ export async function saveBlogPost(id, data) {
 export async function deleteBlogPost(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('blog_post');
   await deleteDoc(doc(db, 'blog_posts', id));
 }
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 
 export async function getTestimonials() {
+  const cached = getCachedData('testimonials');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultTestimonials;
+    if (!db) {
+      setCachedData('testimonials', defaultTestimonials);
+      return defaultTestimonials;
+    }
     const snap = await getDocs(collection(db, 'testimonials'));
-    if (snap.empty) return defaultTestimonials;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const data = snap.empty ? defaultTestimonials : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setCachedData('testimonials', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch testimonials from Firestore, falling back to default data:', e);
     return defaultTestimonials;
@@ -246,6 +385,7 @@ export async function getTestimonials() {
 export async function saveTestimonial(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('testimonials');
   if (id) {
     await setDoc(doc(db, 'testimonials', id), data, { merge: true });
     return id;
@@ -258,19 +398,27 @@ export async function saveTestimonial(id, data) {
 export async function deleteTestimonial(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('testimonials');
   await deleteDoc(doc(db, 'testimonials', id));
 }
 
 // ─── Process Steps ────────────────────────────────────────────────────────────
 
 export async function getProcessSteps() {
+  const cached = getCachedData('process_steps');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultProcessSteps;
-    const q = query(collection(db, 'process_steps'), orderBy('order', 'asc'));
+    if (!db) {
+      setCachedData('process_steps', defaultProcessSteps);
+      return defaultProcessSteps;
+    }
+    const q = query(collection(db, 'process_steps'), orderBy('step', 'asc'));
     const snap = await getDocs(q);
-    if (snap.empty) return defaultProcessSteps;
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const data = snap.empty ? defaultProcessSteps : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setCachedData('process_steps', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch process steps from Firestore, falling back to default data:', e);
     return defaultProcessSteps;
@@ -280,6 +428,7 @@ export async function getProcessSteps() {
 export async function saveProcessStep(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('process_steps');
   if (id) {
     await setDoc(doc(db, 'process_steps', id), data, { merge: true });
     return id;
@@ -292,25 +441,26 @@ export async function saveProcessStep(id, data) {
 export async function deleteProcessStep(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('process_steps');
   await deleteDoc(doc(db, 'process_steps', id));
 }
 
 // ─── Site Settings ────────────────────────────────────────────────────────────
 
 export async function getSiteSettings() {
+  const cached = getCachedData('site_settings');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultSiteSettings;
+    if (!db) {
+      setCachedData('site_settings', defaultSiteSettings);
+      return defaultSiteSettings;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'settings'));
-    if (!snap.exists()) return defaultSiteSettings;
-    const data = snap.data();
-    if (data?.whatsapp && (data.whatsapp.includes('8592002549') || data.whatsapp === '#')) {
-      data.whatsapp = 'https://wa.me/918592042002';
-    }
-    if (!data?.instagram || data.instagram === '#' || data.instagram === '') {
-      data.instagram = 'https://www.instagram.com/zamani.in__?utm_source=ig_web_button_share_sheet&igsi=ZDNlZDc0MzIxNw==';
-    }
-    return { ...defaultSiteSettings, ...data };
+    const data = !snap.exists() ? defaultSiteSettings : { ...defaultSiteSettings, ...snap.data() };
+    setCachedData('site_settings', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch site settings from Firestore, falling back to default data:', e);
     return defaultSiteSettings;
@@ -320,18 +470,26 @@ export async function getSiteSettings() {
 export async function saveSiteSettings(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('site_settings');
   await setDoc(doc(db, 'site_data', 'settings'), data, { merge: true });
 }
 
-// ─── Home Content ─────────────────────────────────────────────────────────────
+// ─── Home Page Content ────────────────────────────────────────────────────────
 
 export async function getHomeContent() {
+  const cached = getCachedData('home_content');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultHomeContent;
+    if (!db) {
+      setCachedData('home_content', defaultHomeContent);
+      return defaultHomeContent;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'home_content'));
-    if (!snap.exists()) return defaultHomeContent;
-    return { ...defaultHomeContent, ...snap.data() };
+    const data = !snap.exists() ? defaultHomeContent : { ...defaultHomeContent, ...snap.data() };
+    setCachedData('home_content', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch home content from Firestore, falling back to default data:', e);
     return defaultHomeContent;
@@ -341,18 +499,26 @@ export async function getHomeContent() {
 export async function saveHomeContent(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('home_content');
   await setDoc(doc(db, 'site_data', 'home_content'), data, { merge: true });
 }
 
-// ─── About Content ────────────────────────────────────────────────────────────
+// ─── About Page Content ───────────────────────────────────────────────────────
 
 export async function getAboutContent() {
+  const cached = getCachedData('about_content');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultAboutContent;
+    if (!db) {
+      setCachedData('about_content', defaultAboutContent);
+      return defaultAboutContent;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'about_content'));
-    if (!snap.exists()) return defaultAboutContent;
-    return { ...defaultAboutContent, ...snap.data() };
+    const data = !snap.exists() ? defaultAboutContent : { ...defaultAboutContent, ...snap.data() };
+    setCachedData('about_content', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch about content from Firestore, falling back to default data:', e);
     return defaultAboutContent;
@@ -362,18 +528,26 @@ export async function getAboutContent() {
 export async function saveAboutContent(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('about_content');
   await setDoc(doc(db, 'site_data', 'about_content'), data, { merge: true });
 }
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
 
 export async function getGallery() {
+  const cached = getCachedData('gallery');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultGallery;
+    if (!db) {
+      setCachedData('gallery', defaultGallery);
+      return defaultGallery;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'gallery'));
-    if (!snap.exists()) return defaultGallery;
-    return { ...defaultGallery, ...snap.data() };
+    const data = !snap.exists() ? defaultGallery : { ...defaultGallery, ...snap.data() };
+    setCachedData('gallery', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch gallery from Firestore, falling back to default data:', e);
     return defaultGallery;
@@ -383,16 +557,24 @@ export async function getGallery() {
 export async function saveGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('gallery');
   await setDoc(doc(db, 'site_data', 'gallery'), data, { merge: true });
 }
 
 export async function getFeedbackGallery() {
+  const cached = getCachedData('feedback_gallery');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultFeedbackGallery;
+    if (!db) {
+      setCachedData('feedback_gallery', defaultFeedbackGallery);
+      return defaultFeedbackGallery;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'feedback_gallery'));
-    if (!snap.exists()) return defaultFeedbackGallery;
-    return { ...defaultFeedbackGallery, ...snap.data() };
+    const data = !snap.exists() ? defaultFeedbackGallery : { ...defaultFeedbackGallery, ...snap.data() };
+    setCachedData('feedback_gallery', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch feedback gallery from Firestore, falling back to default data:', e);
     return defaultFeedbackGallery;
@@ -402,16 +584,24 @@ export async function getFeedbackGallery() {
 export async function saveFeedbackGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('feedback_gallery');
   await setDoc(doc(db, 'site_data', 'feedback_gallery'), data, { merge: true });
 }
 
 export async function getVideoGallery() {
+  const cached = getCachedData('video_gallery');
+  if (cached) return cached;
+
   try {
     const db = getFirebaseDb();
-    if (!db) return defaultVideoGallery;
+    if (!db) {
+      setCachedData('video_gallery', defaultVideoGallery);
+      return defaultVideoGallery;
+    }
     const snap = await getDoc(doc(db, 'site_data', 'video_gallery'));
-    if (!snap.exists()) return defaultVideoGallery;
-    return { ...defaultVideoGallery, ...snap.data() };
+    const data = !snap.exists() ? defaultVideoGallery : { ...defaultVideoGallery, ...snap.data() };
+    setCachedData('video_gallery', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch video gallery from Firestore, falling back to default data:', e);
     return defaultVideoGallery;
@@ -421,6 +611,7 @@ export async function getVideoGallery() {
 export async function saveVideoGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('video_gallery');
   await setDoc(doc(db, 'site_data', 'video_gallery'), data, { merge: true });
 }
 
@@ -464,7 +655,7 @@ export function getCleanVideoId(videoUrl) {
   // 1. Remove query parameters and hashes
   url = url.split('?')[0].split('#')[0].trim();
 
-  // 2. Canonicalize Cloudinary URLs: strip out transformation segments (/video/upload/.../ or /upload/.../)
+  // 2. Canonicalize Cloudinary URLs: strip out transformation segments
   if (url.includes('cloudinary.com')) {
     const uploadMatch = url.match(/\/(?:video\/)?upload\/(?:[a-zA-Z0-9_,]+\/)*(.*)/);
     if (uploadMatch && uploadMatch[1]) {
@@ -519,7 +710,7 @@ export function subscribeToVideoComments(videoUrl, callback) {
           };
         });
 
-        // Client-side sort: newest comments first (eliminates composite index requirements)
+        // Client-side sort: newest comments first
         list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         callback(list);
       },
@@ -654,6 +845,7 @@ export async function deletePackageRequest(id) {
 export async function approveAndPublishPackage(requestId, packageData) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
+  clearFirestoreCache('package');
   
   // 1. Save as live package
   const pkgId = await savePackage(null, packageData);
@@ -667,5 +859,3 @@ export async function approveAndPublishPackage(requestId, packageData) {
   
   return pkgId;
 }
-
-

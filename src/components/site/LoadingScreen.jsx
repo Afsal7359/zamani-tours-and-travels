@@ -2,27 +2,37 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function LoadingScreen({ isReady = true }) {
-  const [videoFinished, setVideoFinished] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [videoFinished, setVideoFinished] = useState(false);
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    // Only show the full-screen splash animation once on initial session entry.
+    // Subsequent internal page navigations are instantaneous (0ms blocking).
+    if (typeof window !== 'undefined' && sessionStorage.getItem('zamani_splash_shown')) {
+      setRemoved(true);
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('zamani_splash_shown', '1');
+    }
+  }, []);
 
   const dismiss = () => {
     if (isExiting || removed) return;
     setIsExiting(true);
     setTimeout(() => {
       setRemoved(true);
-    }, 400);
+    }, 300);
   };
 
   useEffect(() => {
+    if (removed) return;
     const video = videoRef.current;
     if (!video) return;
 
-    const onEnded = () => {
-      setVideoFinished(true);
-    };
-
+    const onEnded = () => setVideoFinished(true);
     const onTimeUpdate = () => {
       if (video.duration && video.currentTime >= video.duration - 0.15) {
         setVideoFinished(true);
@@ -32,24 +42,23 @@ export default function LoadingScreen({ isReady = true }) {
     video.addEventListener('ended', onEnded);
     video.addEventListener('timeupdate', onTimeUpdate);
 
-    // Snappy fallback safety timer: max 1.5s
+    // Fast snappy safety timer: max 900ms
     const maxTimer = setTimeout(() => {
       setVideoFinished(true);
-    }, 1500);
+    }, 900);
 
     return () => {
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('timeupdate', onTimeUpdate);
       clearTimeout(maxTimer);
     };
-  }, []);
+  }, [removed]);
 
-  // When both the animation has completed AND the page is ready, initiate smooth transition
   useEffect(() => {
-    if (videoFinished && isReady && !isExiting) {
+    if (videoFinished && isReady && !isExiting && !removed) {
       dismiss();
     }
-  }, [videoFinished, isReady, isExiting]);
+  }, [videoFinished, isReady, isExiting, removed]);
 
   if (removed) return null;
 

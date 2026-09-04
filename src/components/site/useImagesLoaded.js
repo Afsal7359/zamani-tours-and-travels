@@ -2,13 +2,8 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Returns `true` once every eager (non-lazy) <img> on the page has finished
- * loading. Pass `active` = true after page data has loaded and the content
- * (with its <img> tags) has rendered — until then the hook stays idle.
- *
- * Lazy images (loading="lazy") are intentionally ignored so the loader is not
- * held open by below-the-fold images that only load on scroll. A safety
- * timeout guarantees the page is never blocked indefinitely.
+ * Returns `true` once eager <img> elements are ready or immediately after a quick check.
+ * Maximum wait is capped at 150ms to ensure 0 perceived page-load lag.
  */
 export default function useImagesLoaded(active) {
   const [ready, setReady] = useState(false);
@@ -27,7 +22,7 @@ export default function useImagesLoaded(active) {
       img => img.loading !== 'lazy'
     );
 
-    if (imgs.length === 0) {
+    if (imgs.length === 0 || imgs.every(img => img.complete)) {
       finish();
       return;
     }
@@ -53,8 +48,8 @@ export default function useImagesLoaded(active) {
       }
     });
 
-    // Never hold the loader for more than 1.2s
-    const timer = setTimeout(finish, 1200);
+    // Never block longer than 150ms
+    const timer = setTimeout(finish, 150);
 
     return () => {
       clearTimeout(timer);
