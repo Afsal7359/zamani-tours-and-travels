@@ -57,7 +57,7 @@ export function getVideoPosterUrl(url) {
     const { baseUrl, cleanTail } = parsed;
     // Replace any video extension with .jpg for instant Cloudinary static thumbnail
     const jpgTail = cleanTail.replace(/\.(mp4|webm|mov|m4v|avi|mkv|ogg)($|\?)/i, '.jpg$2');
-    return `${baseUrl}/video/upload/so_0,q_auto:good,w_600/${jpgTail}`;
+    return `${baseUrl}/video/upload/so_0,f_auto,q_auto:good,w_450/${jpgTail}`;
   }
   return '';
 }
@@ -111,7 +111,7 @@ export function getOptimizedVideoUrl(url, mode = 'preview') {
     const { baseUrl, cleanTail } = parsed;
     const mp4Tail = cleanTail.replace(/\.(mov|m4v|avi|mkv|webm|ogg)($|\?)/i, '.mp4$2');
     if (mode === 'preview' || mode === 'marquee') {
-      return `${baseUrl}/video/upload/q_auto:good,w_480/${mp4Tail}`;
+      return `${baseUrl}/video/upload/q_auto:good,w_360,br_600k/${mp4Tail}`;
     }
     return `${baseUrl}/video/upload/q_auto:good,w_1080/${mp4Tail}`;
   }

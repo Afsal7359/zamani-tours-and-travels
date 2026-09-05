@@ -64,7 +64,7 @@ export function getAdaptiveVideoUrl(url, mode = 'preview') {
   const mp4Tail = cleanTail.replace(/\.(mov|m4v|avi|mkv|webm|ogg)($|\?)/i, '.mp4$2');
 
   if (mode === 'preview' || mode === 'marquee') {
-    return `${baseUrl}/video/upload/q_auto:good,w_480/${mp4Tail}`;
+    return `${baseUrl}/video/upload/q_auto:good,w_360,br_600k/${mp4Tail}`;
   }
 
   return `${baseUrl}/video/upload/q_auto:good/${mp4Tail}`;

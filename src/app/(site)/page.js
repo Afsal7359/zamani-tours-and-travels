@@ -21,7 +21,7 @@ import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 
-import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 function getSlideConnectionClass(list, i) {
@@ -76,7 +76,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           vid.pause();
         }
       },
-      { threshold: 0.05, rootMargin: '120px 60px 120px 60px' }
+      { threshold: 0.01, rootMargin: '800px 150px 800px 150px' }
     );
 
     observer.observe(el);
@@ -112,7 +112,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="lazy"
+          loading="eager"
           decoding="async"
           className="gallery-video-poster-img"
           style={{
@@ -138,7 +138,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           playsInline
           webkit-playsinline="true"
           x5-playsinline="true"
-          preload="none"
+          preload="metadata"
           onError={handleVideoError}
           onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
@@ -173,14 +173,20 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   );
 }
 
-function normalizeGalleryList(list = []) {
+function normalizeGalleryList(list = [], isVideo = false) {
   if (!Array.isArray(list)) return [];
   return list
     .map(item => {
-      if (typeof item === 'string') return { src: item, span: 1, connectNext: false };
+      if (typeof item === 'string') {
+        const src = isVideo ? item : getOptimizedImageUrl(item, 700);
+        return { src, rawSrc: item, span: 1, connectNext: false };
+      }
       if (item && typeof item === 'object') {
+        const raw = item.src || item.url || '';
+        const src = isVideo ? raw : getOptimizedImageUrl(raw, 700);
         return {
-          src: item.src || item.url || '',
+          src,
+          rawSrc: raw,
           span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
           connectNext: Boolean(item.connectNext),
         };
@@ -233,9 +239,9 @@ export default function HomePage() {
         if (p) setPackages(p);
         if (t) setTestimonials(t);
         if (st) setSettings(st);
-        if (g?.images?.length) setGallery(normalizeGalleryList(g.images));
-        if (vg?.videos?.length) setVideoGallery(normalizeGalleryList(vg.videos));
-        if (fg?.images?.length) setFeedbackGallery(normalizeGalleryList(fg.images));
+        if (g?.images?.length) setGallery(normalizeGalleryList(g.images, false));
+        if (vg?.videos?.length) setVideoGallery(normalizeGalleryList(vg.videos, true));
+        if (fg?.images?.length) setFeedbackGallery(normalizeGalleryList(fg.images, false));
       } catch (e) {
         console.error('Error loading home data:', e);
       } finally {
@@ -269,9 +275,9 @@ export default function HomePage() {
 
   const marqueeItems = home?.marqueeItems || [];
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
-  const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images);
-  const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos);
-  const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images);
+  const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
+  const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos, true);
+  const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images, false);
 
   const marqueeGallery = createMarqueeItems(galleryStrip, 8);
   const marqueeVideos = createMarqueeItems(videoStrip, 6);
