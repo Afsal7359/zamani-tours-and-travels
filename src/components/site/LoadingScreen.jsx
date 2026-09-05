@@ -34,11 +34,15 @@ export default function LoadingScreen({ isReady = true }) {
     return () => clearTimeout(maxTimer);
   }, []);
 
+  const isDismissingRef = useRef(false);
+
   const dismiss = () => {
+    if (isDismissingRef.current) return;
+    isDismissingRef.current = true;
     setIsExiting(true);
     setTimeout(() => {
       setRemoved(true);
-    }, 650);
+    }, 900);
   };
 
   // SSR or already shown in session -> Render nothing! Zero flash, zero freeze!
