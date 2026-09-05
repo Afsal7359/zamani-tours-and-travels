@@ -5006,16 +5006,16 @@ body {
   justify-content: center;
   z-index: 99999;
   overflow: hidden;
-  will-change: transform;
+  will-change: transform, opacity;
   transform: translate3d(0, 0, 0);
-  transition: transform 0.85s cubic-bezier(0.76, 0, 0.24, 1);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
-  contain: strict;
+  transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease 0.45s;
+  contain: paint;
   isolation: isolate;
 }
 
 .page-loader.page-loader-exit {
   transform: translate3d(0, -100%, 0);
+  opacity: 0;
   pointer-events: none !important;
 }
 
@@ -5031,10 +5031,6 @@ body {
   margin: 0;
   padding: 0;
   pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════

@@ -19,13 +19,6 @@ export default function LoadingScreen({ isReady = true }) {
     }
     setMounted(true);
 
-    const video = videoRef.current;
-    if (video) {
-      video.muted = true;
-      video.defaultMuted = true;
-      video.play().catch(() => {});
-    }
-
     // Safety fallback timeout (video is ~8s, allow up to 10s if onEnded does not fire)
     const maxTimer = setTimeout(() => {
       dismiss();
@@ -33,6 +26,29 @@ export default function LoadingScreen({ isReady = true }) {
 
     return () => clearTimeout(maxTimer);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+
+    const playVideo = () => {
+      video.play().catch(() => {});
+    };
+
+    if (video.readyState >= 2) {
+      playVideo();
+    } else {
+      video.addEventListener('canplay', playVideo, { once: true });
+    }
+
+    return () => {
+      video.removeEventListener('canplay', playVideo);
+    };
+  }, [mounted]);
 
   const isDismissingRef = useRef(false);
 
@@ -42,7 +58,7 @@ export default function LoadingScreen({ isReady = true }) {
     setIsExiting(true);
     setTimeout(() => {
       setRemoved(true);
-    }, 900);
+    }, 1000);
   };
 
   // SSR or already shown in session -> Render nothing! Zero flash, zero freeze!
