@@ -26,10 +26,10 @@ export default function LoadingScreen({ isReady = true }) {
       video.play().catch(() => {});
     }
 
-    // Dismiss automatically after at most 1.6s
+    // Safety fallback timeout (video is ~8s, allow up to 10s if onEnded does not fire)
     const maxTimer = setTimeout(() => {
       dismiss();
-    }, 1600);
+    }, 10000);
 
     return () => clearTimeout(maxTimer);
   }, []);
@@ -38,7 +38,7 @@ export default function LoadingScreen({ isReady = true }) {
     setIsExiting(true);
     setTimeout(() => {
       setRemoved(true);
-    }, 380);
+    }, 650);
   };
 
   // SSR or already shown in session -> Render nothing! Zero flash, zero freeze!

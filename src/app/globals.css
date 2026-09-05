@@ -4997,7 +4997,9 @@ body {
   position: fixed;
   inset: 0;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
+  height: 100dvh;
   background: #000;
   display: flex;
   align-items: center;
@@ -5021,8 +5023,10 @@ body {
 
 .page-loader-video {
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
-  object-fit: contain;
+  height: 100dvh;
+  object-fit: cover;
   display: block;
   border: none;
   outline: none;
