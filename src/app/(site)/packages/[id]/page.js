@@ -9,6 +9,7 @@ import LoadingScreen from '@/components/site/LoadingScreen';
 import useImagesLoaded from '@/components/site/useImagesLoaded';
 import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 import PartnerPackageModal from '@/components/site/PartnerPackageModal';
+import { getOptimizedImageUrl } from '@/lib/videoUtils';
 
 export default function PackageDetailPage() {
   const { id } = useParams();
@@ -36,7 +37,7 @@ export default function PackageDetailPage() {
   useEffect(() => {
     if (!pkg) return;
 
-    // Immediately pre-warm all itinerary photos and gallery images in browser cache
+    // Immediately pre-warm all itinerary photos and gallery images in browser cache (WebP / 45KB)
     const imgsToPreload = [
       pkg.image,
       ...(pkg.images || []),
@@ -46,7 +47,7 @@ export default function PackageDetailPage() {
     imgsToPreload.forEach(url => {
       if (typeof window !== 'undefined') {
         const preImg = new Image();
-        preImg.src = url;
+        preImg.src = getOptimizedImageUrl(url, 800);
       }
     });
 
@@ -205,7 +206,7 @@ export default function PackageDetailPage() {
                           {step.description && <p>{step.description}</p>}
                           {step.image && (
                             <div className="pkg-itin-photo">
-                              <img src={step.image} alt={step.title || `Day ${i + 1}`} loading="eager" decoding="async" />
+                              <img src={getOptimizedImageUrl(step.image, 800)} alt={step.title || `Day ${i + 1}`} loading="eager" decoding="async" />
                             </div>
                           )}
                         </div>

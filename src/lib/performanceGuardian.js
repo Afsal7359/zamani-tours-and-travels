@@ -76,9 +76,9 @@ export function getAdaptiveVideoUrl(url, mode = 'preview') {
 
   if (mode === 'reel' || mode === 'hd') {
     if (tier === 'low') {
-      return `${baseUrl}/video/upload/q_auto:good,w_720/${mp4Tail}`;
+      return `${baseUrl}/video/upload/q_auto:good,w_540/${mp4Tail}`;
     }
-    return `${baseUrl}/video/upload/q_auto:good,w_1080/${mp4Tail}`;
+    return `${baseUrl}/video/upload/q_auto:good,w_720/${mp4Tail}`;
   }
 
   return getOptimizedVideoUrl(url, mode);

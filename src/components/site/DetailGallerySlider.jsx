@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
-import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function DetailGallerySlider({ images = [], title = 'Gallery' }) {
@@ -22,7 +22,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
     cleanMedia.forEach(url => {
       if (!isVideoUrl(url)) {
         const img = new Image();
-        img.src = url;
+        img.src = getOptimizedImageUrl(url, 1200);
       }
     });
   }, [cleanMedia]);
@@ -177,7 +177,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                   </>
                 ) : (
                   <>
-                    <img src={mediaUrl} alt={`${title} ${i + 1}`} loading="eager" decoding="async" />
+                    <img src={getOptimizedImageUrl(mediaUrl, 1200)} alt={`${title} ${i + 1}`} loading="eager" decoding="async" />
                     <div className="svc-gallery-photo-overlay">
                       <span className="svc-gallery-fullscreen-tag">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}>
@@ -259,7 +259,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                     </div>
                   </>
                 ) : (
-                  <img src={mediaUrl} alt={`${title} thumbnail ${i + 1}`} />
+                  <img src={getOptimizedImageUrl(mediaUrl, 200)} alt={`${title} thumbnail ${i + 1}`} loading="eager" />
                 )}
               </button>
             );

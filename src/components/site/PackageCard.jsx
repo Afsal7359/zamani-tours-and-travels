@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { getOptimizedImageUrl } from '@/lib/videoUtils';
 
 export default function PackageCard({ pkg, index = 0, className = '' }) {
   const itineraryImages = Array.isArray(pkg.itinerary)
@@ -11,6 +12,15 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
   const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  // Pre-cache first images into memory
+  useEffect(() => {
+    if (typeof window === 'undefined' || !images.length) return;
+    images.slice(0, 2).forEach(src => {
+      const img = new Image();
+      img.src = getOptimizedImageUrl(src, 600);
+    });
+  }, [images]);
 
   // Auto-slide every 5 seconds when card has multiple photos and user is not hovering
   useEffect(() => {
@@ -80,7 +90,7 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
           >
             {images.map((src, idx) => (
               <div className="pkg-slider-slide" key={idx}>
-                <img src={src} alt={`${pkg.title} - ${idx + 1}`} loading="lazy" decoding="async" />
+                <img src={getOptimizedImageUrl(src, 600)} alt={`${pkg.title} - ${idx + 1}`} loading={idx === 0 ? "eager" : "lazy"} decoding="async" />
               </div>
             ))}
           </div>

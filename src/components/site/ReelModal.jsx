@@ -398,6 +398,22 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                 onDoubleClick={handleDoubleTap}
                 onClick={togglePlayPause}
               >
+                {getVideoPosterUrl(src) ? (
+                  <img
+                    src={getVideoPosterUrl(src)}
+                    alt={`Reel ${idx + 1}`}
+                    loading="eager"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      zIndex: 0,
+                    }}
+                  />
+                ) : null}
+
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
                   src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
@@ -415,6 +431,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   }}
                   onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
                   className="reel-video-element"
+                  style={{ position: 'relative', zIndex: 1 }}
                 />
 
                 {/* Big play icon overlay when paused */}
