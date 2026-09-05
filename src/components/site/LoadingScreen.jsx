@@ -33,9 +33,21 @@ export default function LoadingScreen({ isReady = true }) {
 
     video.muted = true;
     video.defaultMuted = true;
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {});
+
+    const startPlayback = () => {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          video.muted = true;
+          video.play().catch(() => {});
+        });
+      }
+    };
+
+    if (video.readyState >= 3) {
+      startPlayback();
+    } else {
+      video.addEventListener('canplay', startPlayback, { once: true });
     }
 
     const handleEnded = () => {
@@ -47,9 +59,10 @@ export default function LoadingScreen({ isReady = true }) {
     // Failsafe timer: ensures smooth dismiss if video end event is delayed
     const maxTimer = setTimeout(() => {
       setVideoFinished(true);
-    }, 3200);
+    }, 3800);
 
     return () => {
+      video.removeEventListener('canplay', startPlayback);
       video.removeEventListener('ended', handleEnded);
       clearTimeout(maxTimer);
     };
@@ -72,14 +85,15 @@ export default function LoadingScreen({ isReady = true }) {
     >
       <video
         ref={videoRef}
+        src="/logoloading.mp4"
         autoPlay
         muted
         playsInline
+        webkit-playsinline="true"
+        x5-playsinline="true"
         preload="auto"
         className="page-loader-video"
-      >
-        <source src="/logoloading.mp4" type="video/mp4" />
-      </video>
+      />
     </div>
   );
 }
