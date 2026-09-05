@@ -37,35 +37,22 @@ function getSlideConnectionClass(list, i) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(() => {
+    const raw = item?.src || '';
+    return getAdaptiveVideoUrl(raw, 'preview') || raw;
+  });
   const containerRef = useRef(null);
   const videoRef = useRef(null);
 
   const rawSrc = item?.src || '';
-  const videoSrc = getAdaptiveVideoUrl(rawSrc, 'preview');
   const posterUrl = getVideoPosterUrl(rawSrc);
 
-  // Monitor visibility: only decode and play video when inside or near visible viewport (+250px)
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { rootMargin: '250px 100px 250px 100px', threshold: 0.01 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    const nextSrc = getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
+    setCurrentSrc(nextSrc);
+  }, [rawSrc]);
 
   useEffect(() => {
-    if (!isInView) {
-      setVideoLoaded(false);
-      return;
-    }
     const vid = videoRef.current;
     if (!vid) return;
     vid.muted = true;
@@ -74,9 +61,18 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
     if (playPromise !== undefined) {
       playPromise
         .then(() => setVideoLoaded(true))
-        .catch(() => {});
+        .catch(() => {
+          vid.muted = true;
+          vid.play().catch(() => {});
+        });
     }
-  }, [isInView, videoSrc]);
+  }, [currentSrc]);
+
+  const handleVideoError = () => {
+    if (currentSrc !== rawSrc && rawSrc) {
+      setCurrentSrc(rawSrc);
+    }
+  };
 
   return (
     <div
@@ -88,7 +84,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* 1. Instant HD Poster Layer (Never Blank at screen edges, 0 decoder cost) */}
+      {/* 1. Instant Static Poster Layer (Visible while video is loading) */}
       {posterUrl ? (
         <img
           src={posterUrl}
@@ -108,11 +104,11 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         />
       ) : null}
 
-      {/* 2. Viewport-Aware Fast Lightweight Autoplay Video Layer (Only decodes when visible) */}
-      {isInView && videoSrc && (
+      {/* 2. Guaranteed Fast Autoplay Video Layer */}
+      {rawSrc && (
         <video
           ref={videoRef}
-          src={videoSrc}
+          src={currentSrc}
           autoPlay
           muted
           loop
@@ -120,6 +116,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           webkit-playsinline="true"
           x5-playsinline="true"
           preload="auto"
+          onError={handleVideoError}
           onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
           onPlaying={() => setVideoLoaded(true)}
@@ -131,7 +128,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
             height: '100%',
             objectFit: 'cover',
             zIndex: 1,
-            opacity: videoLoaded ? 1 : 0,
+            opacity: videoLoaded || !posterUrl ? 1 : 0.85,
             transition: 'opacity 0.25s ease',
             pointerEvents: 'none',
           }}

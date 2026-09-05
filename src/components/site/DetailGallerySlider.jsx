@@ -146,6 +146,12 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                       webkit-playsinline="true"
                       x5-playsinline="true"
                       preload={isActive ? 'auto' : 'metadata'}
+                      onError={(e) => {
+                        if (e.currentTarget.src !== mediaUrl && mediaUrl) {
+                          e.currentTarget.src = mediaUrl;
+                          if (isActive) e.currentTarget.play().catch(() => {});
+                        }
+                      }}
                       className="svc-gallery-video-element"
                       style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#050b26' }}
                     />

@@ -1130,18 +1130,22 @@ footer {
 }
 .foot-bottom .foot-links a:hover { color: #fff; }
 
-/* ─── Reveal animations (Hardware Accelerated 60fps Liquid Scroll) ────────── */
+/* ─── Reveal animations (Hardware Accelerated 60fps Liquid Scroll & Fail-Safe) ─── */
 .reveal {
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
   transition: opacity .45s cubic-bezier(0.16, 1, 0.3, 1), transform .45s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+.js-reveal .reveal:not(.in) {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+}
 .reveal.in {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) !important;
 }
 
 /* ─── About Page ─────────────────────────────────────────────────────────── */

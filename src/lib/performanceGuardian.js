@@ -61,23 +61,24 @@ export function getAdaptiveVideoUrl(url, mode = 'preview') {
   if (!parsed) return url;
 
   const { baseUrl, cleanTail } = parsed;
+  const mp4Tail = cleanTail.replace(/\.(mov|m4v|avi|mkv|webm|ogg)($|\?)/i, '.mp4$2');
   const tier = detectDeviceTier();
 
   if (mode === 'preview' || mode === 'marquee') {
     if (tier === 'low') {
-      return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_h264,w_320,br_300k/${cleanTail}`;
+      return `${baseUrl}/video/upload/q_auto:eco,w_360/${mp4Tail}`;
     }
     if (tier === 'medium') {
-      return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_h264,w_400,br_500k/${cleanTail}`;
+      return `${baseUrl}/video/upload/q_auto:good,w_420/${mp4Tail}`;
     }
-    return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_h264,w_440,br_650k/${cleanTail}`;
+    return `${baseUrl}/video/upload/q_auto:good,w_480/${mp4Tail}`;
   }
 
   if (mode === 'reel' || mode === 'hd') {
     if (tier === 'low') {
-      return `${baseUrl}/video/upload/f_auto,q_auto:good,w_720/${cleanTail}`;
+      return `${baseUrl}/video/upload/q_auto:good,w_720/${mp4Tail}`;
     }
-    return `${baseUrl}/video/upload/f_auto,q_auto:good,w_1080/${cleanTail}`;
+    return `${baseUrl}/video/upload/q_auto:good,w_1080/${mp4Tail}`;
   }
 
   return getOptimizedVideoUrl(url, mode);

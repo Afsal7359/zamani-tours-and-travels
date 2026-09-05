@@ -1,6 +1,6 @@
 /**
  * Universal Video & Thumbnail Helper Utilities for Zamani Tours & Travels
- * Ensures fast loading, instant poster thumbnails, zero black frames, and smooth 60fps autoplay.
+ * Ensures fast loading, instant poster thumbnails, zero black frames, and smooth autoplay across all devices.
  */
 
 export function isVideoUrl(url) {
@@ -55,27 +55,28 @@ export function getVideoPosterUrl(url) {
   const parsed = parseCloudinaryVideoUrl(url);
   if (parsed) {
     const { baseUrl, cleanTail } = parsed;
+    // Replace any video extension with .jpg for instant Cloudinary static thumbnail
     const jpgTail = cleanTail.replace(/\.(mp4|webm|mov|m4v|avi|mkv|ogg)($|\?)/i, '.jpg$2');
-    return `${baseUrl}/video/upload/so_0,f_auto,q_auto:good,w_600/${jpgTail}`;
+    return `${baseUrl}/video/upload/so_0,q_auto:good,w_600/${jpgTail}`;
   }
   return '';
 }
 
 /**
- * Generates an optimized, fast-streaming video URL from Cloudinary.
- * Mode:
- *  - 'preview' / 'marquee': lightweight web stream (w_400, br_500k, h264 for instant 60fps GPU decode)
- *  - 'reel' / 'hd': high quality (w_1080) for full screen reels
+ * Generates a clean, reliable, fast-streaming video URL.
+ * Uses standard MP4/H.264 profile without broken experimental flags so all browsers decode immediately.
  */
 export function getOptimizedVideoUrl(url, mode = 'preview') {
   if (!url || typeof url !== 'string') return '';
   const parsed = parseCloudinaryVideoUrl(url);
   if (parsed) {
     const { baseUrl, cleanTail } = parsed;
+    // Ensure clean .mp4 extension for universal HTML5 browser playback
+    const mp4Tail = cleanTail.replace(/\.(mov|m4v|avi|mkv|webm|ogg)($|\?)/i, '.mp4$2');
     if (mode === 'preview' || mode === 'marquee') {
-      return `${baseUrl}/video/upload/f_auto,q_auto:eco,vc_h264,w_400,br_500k/${cleanTail}`;
+      return `${baseUrl}/video/upload/q_auto:good,w_480/${mp4Tail}`;
     }
-    return `${baseUrl}/video/upload/f_auto,q_auto:good,w_1080/${cleanTail}`;
+    return `${baseUrl}/video/upload/q_auto:good,w_1080/${mp4Tail}`;
   }
   return url;
 }

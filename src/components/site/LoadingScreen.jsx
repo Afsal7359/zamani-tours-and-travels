@@ -2,19 +2,18 @@
 import { useState, useEffect, useRef } from 'react';
 
 export default function LoadingScreen({ isReady = true }) {
+  const [removed, setRemoved] = useState(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('zamani_splash_shown')) {
+      return true;
+    }
+    return false;
+  });
   const [isExiting, setIsExiting] = useState(false);
-  const [removed, setRemoved] = useState(false);
   const [videoFinished, setVideoFinished] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
-    // Only show the full-screen splash animation once on initial session entry.
-    // Subsequent internal page navigations are instantaneous (0ms blocking).
-    if (typeof window !== 'undefined' && sessionStorage.getItem('zamani_splash_shown')) {
-      setRemoved(true);
-      return;
-    }
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !sessionStorage.getItem('zamani_splash_shown')) {
       sessionStorage.setItem('zamani_splash_shown', '1');
     }
   }, []);

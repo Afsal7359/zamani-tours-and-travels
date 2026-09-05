@@ -52,17 +52,28 @@ export default function ServiceDetailPage() {
       entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
-    }, { threshold: 0.01, rootMargin: '0px 0px 80px 0px' });
+    }, { threshold: 0.01, rootMargin: '120px 0px' });
+    
     document.querySelectorAll('.reveal').forEach((el, i) => {
-      el.style.transitionDelay = (i % 3) * 35 + 'ms';
+      el.style.transitionDelay = (i % 3) * 30 + 'ms';
       io.observe(el);
+      // Failsafe: Ensure visible in case observer doesn't fire immediately
+      setTimeout(() => el.classList.add('in'), 350 + i * 30);
     });
     return () => io.disconnect();
   }, [service]);
 
-  const imagesReady = useImagesLoaded(!loading);
-
-  if (loading) return <LoadingScreen isReady={false} />;
+  if (loading) {
+    return (
+      <>
+        <Navbar activePage="services" />
+        <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="spinner" style={{ width: 42, height: 42, border: '3px solid rgba(200,169,110,0.2)', borderTopColor: 'var(--gold)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+        </div>
+        <Footer settings={settings} />
+      </>
+    );
+  }
 
   if (!service) {
     return (
@@ -85,7 +96,6 @@ export default function ServiceDetailPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="services" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}

@@ -407,6 +407,12 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   webkit-playsinline="true"
                   x5-playsinline="true"
                   preload={Math.abs(currentIndex - idx) <= 1 ? 'auto' : 'none'}
+                  onError={(e) => {
+                    if (e.currentTarget.src !== src && src) {
+                      e.currentTarget.src = src;
+                      e.currentTarget.play().catch(() => {});
+                    }
+                  }}
                   onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
                   className="reel-video-element"
                 />
