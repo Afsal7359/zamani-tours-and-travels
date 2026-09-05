@@ -23,18 +23,17 @@ export default function LoadingScreen({ isReady = true }) {
     setIsExiting(true);
     setTimeout(() => {
       setRemoved(true);
-    }, 300);
+    }, 450);
   };
 
   useEffect(() => {
     if (removed) return;
     const video = videoRef.current;
-    if (!video) return;
-
-    video.muted = true;
-    video.defaultMuted = true;
 
     const startPlayback = () => {
+      if (!video) return;
+      video.muted = true;
+      video.defaultMuted = true;
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -44,35 +43,32 @@ export default function LoadingScreen({ isReady = true }) {
       }
     };
 
-    if (video.readyState >= 3) {
-      startPlayback();
-    } else {
-      video.addEventListener('canplay', startPlayback, { once: true });
+    if (video) {
+      if (video.readyState >= 3) {
+        startPlayback();
+      } else {
+        video.addEventListener('canplay', startPlayback, { once: true });
+      }
+
+      // As soon as the video ends, immediately dismiss into website
+      const handleEnded = () => {
+        dismiss();
+      };
+      video.addEventListener('ended', handleEnded, { once: true });
     }
 
-    const handleEnded = () => {
-      setVideoFinished(true);
-    };
-
-    video.addEventListener('ended', handleEnded, { once: true });
-
-    // Failsafe timer: ensures smooth dismiss if video end event is delayed
+    // Absolute fail-safe: guarantees transition to website within 2.4s max
     const maxTimer = setTimeout(() => {
-      setVideoFinished(true);
-    }, 3800);
+      dismiss();
+    }, 2400);
 
     return () => {
-      video.removeEventListener('canplay', startPlayback);
-      video.removeEventListener('ended', handleEnded);
+      if (video) {
+        video.removeEventListener('canplay', startPlayback);
+      }
       clearTimeout(maxTimer);
     };
   }, [removed]);
-
-  useEffect(() => {
-    if (videoFinished && isReady && !isExiting && !removed) {
-      dismiss();
-    }
-  }, [videoFinished, isReady, isExiting, removed]);
 
   if (removed) return null;
 

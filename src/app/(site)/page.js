@@ -245,6 +245,21 @@ export default function HomePage() {
     load();
   }, []);
 
+  // Pre-warm all gallery images and video posters into browser memory cache
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const allUrls = [
+      ...gallery.map(i => i.src),
+      ...feedbackGallery.map(i => i.src),
+      ...videoGallery.map(i => getVideoPosterUrl(i.src)),
+    ].filter(Boolean);
+
+    allUrls.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+  }, [gallery, feedbackGallery, videoGallery]);
+
   useEffect(() => {
     if (loading) return;
     const io = new IntersectionObserver((entries) => {
