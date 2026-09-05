@@ -52,7 +52,6 @@ export default function ProcessPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="process" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

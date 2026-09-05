@@ -62,26 +62,12 @@ export function getAdaptiveVideoUrl(url, mode = 'preview') {
 
   const { baseUrl, cleanTail } = parsed;
   const mp4Tail = cleanTail.replace(/\.(mov|m4v|avi|mkv|webm|ogg)($|\?)/i, '.mp4$2');
-  const tier = detectDeviceTier();
 
   if (mode === 'preview' || mode === 'marquee') {
-    if (tier === 'low') {
-      return `${baseUrl}/video/upload/q_auto:eco,w_360/${mp4Tail}`;
-    }
-    if (tier === 'medium') {
-      return `${baseUrl}/video/upload/q_auto:good,w_420/${mp4Tail}`;
-    }
     return `${baseUrl}/video/upload/q_auto:good,w_480/${mp4Tail}`;
   }
 
-  if (mode === 'reel' || mode === 'hd') {
-    if (tier === 'low') {
-      return `${baseUrl}/video/upload/q_auto:good,w_540/${mp4Tail}`;
-    }
-    return `${baseUrl}/video/upload/q_auto:good,w_720/${mp4Tail}`;
-  }
-
-  return getOptimizedVideoUrl(url, mode);
+  return `${baseUrl}/video/upload/q_auto:good/${mp4Tail}`;
 }
 
 /**

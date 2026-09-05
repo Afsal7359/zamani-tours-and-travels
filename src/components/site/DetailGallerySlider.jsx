@@ -17,16 +17,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
 
   const cleanMedia = images.filter(Boolean);
 
-  // Pre-cache all gallery media into browser cache on mount
-  useEffect(() => {
-    if (typeof window === 'undefined' || !cleanMedia.length) return;
-    cleanMedia.forEach(url => {
-      if (!isVideoUrl(url)) {
-        const img = new Image();
-        img.src = getOptimizedImageUrl(url, 1200);
-      }
-    });
-  }, [cleanMedia]);
+
 
   // Auto slide every 4.5 seconds when not hovered and active item is not a video
   useEffect(() => {
@@ -184,7 +175,17 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                   </>
                 ) : (
                   <>
-                    <img src={getOptimizedImageUrl(mediaUrl, 1200)} alt={`${title} ${i + 1}`} loading="eager" decoding="async" />
+                    <img
+                      src={getOptimizedImageUrl(mediaUrl, 1200)}
+                      alt={`${title} ${i + 1}`}
+                      loading="eager"
+                      decoding="async"
+                      onError={(e) => {
+                        if (mediaUrl && e.currentTarget.src !== mediaUrl) {
+                          e.currentTarget.src = mediaUrl;
+                        }
+                      }}
+                    />
                     <div className="svc-gallery-photo-overlay">
                       <span className="svc-gallery-fullscreen-tag">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }}>

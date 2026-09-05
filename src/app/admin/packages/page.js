@@ -84,7 +84,12 @@ export default function AdminPackagesPage() {
         exclusions: form.exclusions.split('\n').map(s => s.trim()).filter(Boolean),
         images: form.images.filter(Boolean),
         itinerary: form.itinerary
-          .map(s => ({ day: s.day || '', title: s.title || '', description: s.description || '' }))
+          .map(s => ({
+            day: s.day || '',
+            title: s.title || '',
+            description: s.description || '',
+            image: s.image || '',
+          }))
           .filter(s => s.title || s.description),
       };
       await savePackage(editItem?.id || null, data);
@@ -103,7 +108,13 @@ export default function AdminPackagesPage() {
   }
 
   function addItin() {
-    setForm(p => ({ ...p, itinerary: [...p.itinerary, { day: `Day ${p.itinerary.length + 1}`, title: '', description: '' }] }));
+    setForm(p => ({
+      ...p,
+      itinerary: [
+        ...p.itinerary,
+        { day: `Day ${p.itinerary.length + 1}`, title: '', description: '', image: '' }
+      ]
+    }));
   }
 
   function updateItin(i, field, val) {
@@ -364,9 +375,16 @@ export default function AdminPackagesPage() {
                         <input value={step.title} onChange={e => updateItin(i, 'title', e.target.value)} placeholder="Arrival & check-in" />
                       </div>
                     </div>
-                    <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <div className="admin-form-group" style={{ marginBottom: '.5rem' }}>
                       <label>Description</label>
                       <textarea value={step.description} onChange={e => updateItin(i, 'description', e.target.value)} rows={3} placeholder="What happens on this day..." />
+                    </div>
+                    <div style={{ marginTop: '.5rem' }}>
+                      <ImageUpload
+                        label="Day Photo (Optional)"
+                        value={step.image || ''}
+                        onChange={val => updateItin(i, 'image', val)}
+                      />
                     </div>
                   </div>
                 ))}

@@ -53,7 +53,6 @@ export default function BlogPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="blog" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

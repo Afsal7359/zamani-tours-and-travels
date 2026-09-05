@@ -119,7 +119,6 @@ export default function ServicesPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="services" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

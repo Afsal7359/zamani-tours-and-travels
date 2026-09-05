@@ -112,7 +112,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="eager"
+          loading="lazy"
           decoding="async"
           className="gallery-video-poster-img"
           style={{
@@ -138,7 +138,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           playsInline
           webkit-playsinline="true"
           x5-playsinline="true"
-          preload="auto"
+          preload="none"
           onError={handleVideoError}
           onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
@@ -245,20 +245,7 @@ export default function HomePage() {
     load();
   }, []);
 
-  // Pre-warm all gallery images and video posters into browser memory cache
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const allUrls = [
-      ...gallery.map(i => i.src),
-      ...feedbackGallery.map(i => i.src),
-      ...videoGallery.map(i => getVideoPosterUrl(i.src)),
-    ].filter(Boolean);
 
-    allUrls.forEach(url => {
-      const img = new Image();
-      img.src = url;
-    });
-  }, [gallery, feedbackGallery, videoGallery]);
 
   useEffect(() => {
     if (loading) return;

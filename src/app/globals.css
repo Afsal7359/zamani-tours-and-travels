@@ -5014,8 +5014,9 @@ body {
 
 .page-loader.page-loader-exit {
   transform: translate3d(0, -100%, 0);
-  opacity: 0.95;
-  pointer-events: none;
+  opacity: 0;
+  pointer-events: none !important;
+  visibility: hidden;
 }
 
 .page-loader-video {

@@ -71,7 +71,6 @@ export default function AboutPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="about" />
 
       {/* ─── Page Hero ─────────────────────────────────────────────────── */}

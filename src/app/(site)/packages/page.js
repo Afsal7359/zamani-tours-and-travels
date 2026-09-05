@@ -52,7 +52,6 @@ export default function PackagesPage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="packages" />
       <PartnerPackageModal
         isOpen={partnerModalOpen}

@@ -37,20 +37,6 @@ export default function PackageDetailPage() {
   useEffect(() => {
     if (!pkg) return;
 
-    // Immediately pre-warm all itinerary photos and gallery images in browser cache (WebP / 45KB)
-    const imgsToPreload = [
-      pkg.image,
-      ...(pkg.images || []),
-      ...(pkg.itinerary || []).map(s => s?.image).filter(Boolean)
-    ].filter(Boolean);
-
-    imgsToPreload.forEach(url => {
-      if (typeof window !== 'undefined') {
-        const preImg = new Image();
-        preImg.src = getOptimizedImageUrl(url, 800);
-      }
-    });
-
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
@@ -206,7 +192,12 @@ export default function PackageDetailPage() {
                           {step.description && <p>{step.description}</p>}
                           {step.image && (
                             <div className="pkg-itin-photo">
-                              <img src={getOptimizedImageUrl(step.image, 800)} alt={step.title || `Day ${i + 1}`} loading="eager" decoding="async" />
+                              <img
+                                src={step.image}
+                                alt={step.title || `Day ${i + 1}`}
+                                loading="lazy"
+                                decoding="async"
+                              />
                             </div>
                           )}
                         </div>
