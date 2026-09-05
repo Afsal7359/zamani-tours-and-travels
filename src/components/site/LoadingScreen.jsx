@@ -31,24 +31,26 @@ export default function LoadingScreen({ isReady = true }) {
     const video = videoRef.current;
     if (!video) return;
 
-    const onEnded = () => setVideoFinished(true);
-    const onTimeUpdate = () => {
-      if (video.duration && video.currentTime >= video.duration - 0.15) {
-        setVideoFinished(true);
-      }
+    video.muted = true;
+    video.defaultMuted = true;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {});
+    }
+
+    const handleEnded = () => {
+      setVideoFinished(true);
     };
 
-    video.addEventListener('ended', onEnded);
-    video.addEventListener('timeupdate', onTimeUpdate);
+    video.addEventListener('ended', handleEnded, { once: true });
 
-    // Fast snappy safety timer: max 900ms
+    // Failsafe timer: ensures smooth dismiss if video end event is delayed
     const maxTimer = setTimeout(() => {
       setVideoFinished(true);
-    }, 900);
+    }, 3200);
 
     return () => {
-      video.removeEventListener('ended', onEnded);
-      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
       clearTimeout(maxTimer);
     };
   }, [removed]);
