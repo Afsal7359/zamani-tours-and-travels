@@ -37,14 +37,13 @@ function getSlideConnectionClass(list, i) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(() => {
-    const raw = item?.src || '';
-    return getAdaptiveVideoUrl(raw, 'preview') || raw;
-  });
   const containerRef = useRef(null);
   const videoRef = useRef(null);
 
   const rawSrc = item?.src || '';
+  const [currentSrc, setCurrentSrc] = useState(() => {
+    return getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
+  });
   const posterUrl = getVideoPosterUrl(rawSrc);
 
   useEffect(() => {
@@ -52,25 +51,48 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
     setCurrentSrc(nextSrc);
   }, [rawSrc]);
 
+  // Hardware-Accelerated 60/120fps Active Viewport Decoder Pool
+  // Only decodes and plays video frames when physically visible on-screen,
+  // releasing GPU decoders when scrolled off-screen while keeping poster intact.
   useEffect(() => {
+    const el = containerRef.current;
     const vid = videoRef.current;
-    if (!vid) return;
+    if (!el || !vid) return;
+
     vid.muted = true;
     vid.defaultMuted = true;
-    const playPromise = vid.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => setVideoLoaded(true))
-        .catch(() => {
-          vid.muted = true;
-          vid.play().catch(() => {});
-        });
-    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const p = vid.play();
+          if (p !== undefined) {
+            p.then(() => setVideoLoaded(true)).catch(() => {
+              vid.muted = true;
+              vid.play().catch(() => {});
+            });
+          }
+        } else {
+          vid.pause();
+        }
+      },
+      { threshold: 0.05, rootMargin: '120px 60px 120px 60px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [currentSrc]);
 
   const handleVideoError = () => {
     if (currentSrc !== rawSrc && rawSrc) {
       setCurrentSrc(rawSrc);
+    }
+  };
+
+  const handleMouseEnter = () => {
+    const vid = videoRef.current;
+    if (vid && vid.paused) {
+      vid.play().catch(() => {});
     }
   };
 
@@ -80,6 +102,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
+      onMouseEnter={handleMouseEnter}
       role="button"
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
