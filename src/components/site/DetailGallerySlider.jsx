@@ -13,6 +13,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const thumbsRef = useRef(null);
+  const videoRefs = useRef([]);
 
   const cleanMedia = images.filter(Boolean);
 
@@ -46,6 +47,19 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
     if (activeThumb) {
       activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
+  }, [activeIdx]);
+
+  // Manage video playback state
+  useEffect(() => {
+    videoRefs.current.forEach((video, index) => {
+      if (!video) return;
+      if (index === activeIdx) {
+        const p = video.play();
+        if (p !== undefined) p.catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
   }, [activeIdx]);
 
   if (cleanMedia.length === 0) return null;
@@ -139,14 +153,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                   <>
                     <video
                       ref={(el) => {
-                        if (el) {
-                          if (isActive) {
-                            const p = el.play();
-                            if (p !== undefined) p.catch(() => {});
-                          } else {
-                            el.pause();
-                          }
-                        }
+                        videoRefs.current[i] = el;
                       }}
                       src={mediaUrl ? getAdaptiveVideoUrl(mediaUrl, 'reel') : ''}
                       poster={getVideoPosterUrl(mediaUrl) || undefined}

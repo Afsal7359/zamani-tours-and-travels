@@ -68,7 +68,8 @@ export function getVideoPosterUrl(url) {
  */
 export function getOptimizedImageUrl(url, width = 800) {
   if (!url || typeof url !== 'string') return '';
-  if (!url.includes('cloudinary.com') || isVideoUrl(url)) return url;
+  if (!url.includes('cloudinary.com')) return url;
+  if (isVideoUrl(url)) return getVideoPosterUrl(url);
 
   let uploadPattern = '/image/upload/';
   if (!url.includes('/image/upload/') && url.includes('/upload/')) {
