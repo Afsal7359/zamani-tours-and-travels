@@ -19,7 +19,7 @@ export default function LoadingScreen({ isReady = true }) {
       fallbackTimerRef.current = null;
     }
 
-    // 1. Pause video immediately to free 100% of GPU decoders for silky 120fps slide transition
+    // 1. Pause video immediately to release decoders for slide transition
     try {
       const vid = videoRef.current;
       if (vid && !vid.paused) {
@@ -49,17 +49,17 @@ export default function LoadingScreen({ isReady = true }) {
     }
     setMounted(true);
 
-    // Hard safety timeout: video is ~8s; guarantee dismiss by 8.8s even if all events fail
+    // Long safety timeout: only as absolute fallback if video completely stalls (14 seconds)
     fallbackTimerRef.current = setTimeout(() => {
       dismiss();
-    }, 8800);
+    }, 14000);
 
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     };
   }, [dismiss]);
 
-  // Lock body scroll while splash screen is visible to prevent background layout thrashing
+  // Lock body scroll while splash screen is visible
   useEffect(() => {
     if (!mounted || removed) {
       document.body.style.overflow = '';
@@ -71,7 +71,7 @@ export default function LoadingScreen({ isReady = true }) {
     };
   }, [mounted, removed]);
 
-  // Video play guard: only initiate play if actually paused
+  // Video play guard: initiate play smoothly once ready
   useEffect(() => {
     if (!mounted) return;
     const video = videoRef.current;
@@ -97,21 +97,25 @@ export default function LoadingScreen({ isReady = true }) {
     };
   }, [mounted]);
 
-  // Continuous time tracking: ensures ZERO FREEZE on the final frame
+  // When video begins playing, set an accurate safety timer based on actual video duration
+  const handlePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+    }
+    const durationMs = video.duration && !isNaN(video.duration) ? (video.duration + 2) * 1000 : 10000;
+    fallbackTimerRef.current = setTimeout(() => {
+      dismiss();
+    }, durationMs);
+  };
+
+  // Continuous time tracking: ensures smooth transition at the exact end of video
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (!video || isDismissingRef.current) return;
-    // Video is 8.008s. When within 180ms of completion, seamlessly trigger exit slide!
-    if (video.duration && video.currentTime >= video.duration - 0.18) {
-      dismiss();
-    }
-  };
-
-  // If video pauses after reaching > 5 seconds, it has reached the end
-  const handlePause = () => {
-    const video = videoRef.current;
-    if (!video || isDismissingRef.current) return;
-    if (video.currentTime >= 5) {
+    if (video.duration && video.currentTime >= video.duration - 0.08) {
       dismiss();
     }
   };
@@ -135,12 +139,15 @@ export default function LoadingScreen({ isReady = true }) {
         webkit-playsinline="true"
         x5-playsinline="true"
         preload="auto"
+        onPlay={handlePlay}
         onTimeUpdate={handleTimeUpdate}
         onEnded={dismiss}
-        onPause={handlePause}
         onError={dismiss}
         className="page-loader-video"
       />
+      <div className="page-loader-skip-hint">
+        <span>Click anywhere to skip</span>
+      </div>
     </div>
   );
 }

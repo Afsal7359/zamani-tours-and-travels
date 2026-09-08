@@ -46,6 +46,9 @@ function getCachedData(key) {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Date.now() - parsed.timestamp < CACHE_TTL_MS) {
+          if ((key === 'gallery' || key === 'feedback_gallery') && parsed.data?.images) {
+            parsed.data.images = sanitizeGalleryArray(parsed.data.images);
+          }
           cacheStore.set(key, parsed);
           return parsed.data;
         }
@@ -534,6 +537,25 @@ export async function saveAboutContent(data) {
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
 
+export function sanitizeGalleryArray(list = []) {
+  if (!Array.isArray(list)) return [];
+  return list.map(item => {
+    let raw = typeof item === 'string' ? item : item?.src || item?.url || '';
+    if (!raw) return item;
+    const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
+    if (localMatch) {
+      const num = parseInt(localMatch[1], 10);
+      if (num > 17 || num < 1) {
+        const wrapped = ((Math.max(1, num) - 1) % 17) + 1;
+        const newSrc = `/images/gallery-${String(wrapped).padStart(2, '0')}.jpeg`;
+        if (typeof item === 'string') return newSrc;
+        return { ...item, src: newSrc };
+      }
+    }
+    return item;
+  });
+}
+
 export async function getGallery() {
   const cached = getCachedData('gallery');
   if (cached) return cached;
@@ -541,11 +563,13 @@ export async function getGallery() {
   try {
     const db = getFirebaseDb();
     if (!db) {
-      setCachedData('gallery', defaultGallery);
-      return defaultGallery;
+      const sanitized = { ...defaultGallery, images: sanitizeGalleryArray(defaultGallery.images) };
+      setCachedData('gallery', sanitized);
+      return sanitized;
     }
     const snap = await getDoc(doc(db, 'site_data', 'gallery'));
-    const data = !snap.exists() ? defaultGallery : { ...defaultGallery, ...snap.data() };
+    let data = !snap.exists() ? defaultGallery : { ...defaultGallery, ...snap.data() };
+    if (data.images) data.images = sanitizeGalleryArray(data.images);
     setCachedData('gallery', data);
     return data;
   } catch (e) {
@@ -568,11 +592,13 @@ export async function getFeedbackGallery() {
   try {
     const db = getFirebaseDb();
     if (!db) {
-      setCachedData('feedback_gallery', defaultFeedbackGallery);
-      return defaultFeedbackGallery;
+      const sanitized = { ...defaultFeedbackGallery, images: sanitizeGalleryArray(defaultFeedbackGallery.images) };
+      setCachedData('feedback_gallery', sanitized);
+      return sanitized;
     }
     const snap = await getDoc(doc(db, 'site_data', 'feedback_gallery'));
-    const data = !snap.exists() ? defaultFeedbackGallery : { ...defaultFeedbackGallery, ...snap.data() };
+    let data = !snap.exists() ? defaultFeedbackGallery : { ...defaultFeedbackGallery, ...snap.data() };
+    if (data.images) data.images = sanitizeGalleryArray(data.images);
     setCachedData('feedback_gallery', data);
     return data;
   } catch (e) {

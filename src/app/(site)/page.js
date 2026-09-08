@@ -44,7 +44,8 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   const [currentSrc, setCurrentSrc] = useState(() => {
     return getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
   });
-  const posterUrl = getVideoPosterUrl(rawSrc);
+  const fallbackPoster = `/images/gallery-${String((index % 17) + 1).padStart(2, '0')}.jpeg`;
+  const posterUrl = getVideoPosterUrl(rawSrc) || fallbackPoster;
 
   useEffect(() => {
     const nextSrc = getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
@@ -76,7 +77,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
           vid.pause();
         }
       },
-      { threshold: 0.01, rootMargin: '800px 150px 800px 150px' }
+      { threshold: 0.05, rootMargin: '120px 60px 120px 60px' }
     );
 
     observer.observe(el);
@@ -177,21 +178,34 @@ function normalizeGalleryList(list = [], isVideo = false) {
   if (!Array.isArray(list)) return [];
   return list
     .map(item => {
+      let raw = '';
+      let span = 1;
+      let connectNext = false;
+
       if (typeof item === 'string') {
-        const src = isVideo ? item : getOptimizedImageUrl(item, 700);
-        return { src, rawSrc: item, span: 1, connectNext: false };
+        raw = item.trim();
+      } else if (item && typeof item === 'object') {
+        raw = (item.src || item.url || '').trim();
+        span = [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1;
+        connectNext = Boolean(item.connectNext);
       }
-      if (item && typeof item === 'object') {
-        const raw = item.src || item.url || '';
-        const src = isVideo ? raw : getOptimizedImageUrl(raw, 700);
-        return {
-          src,
-          rawSrc: raw,
-          span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
-          connectNext: Boolean(item.connectNext),
-        };
+
+      if (!raw) return null;
+
+      // Ensure local gallery images only reference existing images (gallery-01 to gallery-17)
+      if (!isVideo) {
+        const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
+        if (localMatch) {
+          const num = parseInt(localMatch[1], 10);
+          if (num > 17 || num < 1) {
+            const wrapped = ((Math.max(1, num) - 1) % 17) + 1;
+            raw = `/images/gallery-${String(wrapped).padStart(2, '0')}.jpeg`;
+          }
+        }
       }
-      return null;
+
+      const src = isVideo ? raw : getOptimizedImageUrl(raw, 700);
+      return { src, rawSrc: raw, span, connectNext };
     })
     .filter(item => item && Boolean(item.src));
 }
@@ -492,7 +506,19 @@ export default function HomePage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <img src={item.src} alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`} loading="eager" decoding="async" />
+                  <img
+                    src={item.src}
+                    alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`}
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => {
+                      const fallbackNum = ((i % 17) + 1);
+                      const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
+                      if (e.currentTarget.src !== fallbackSrc) {
+                        e.currentTarget.src = fallbackSrc;
+                      }
+                    }}
+                  />
                 </div>
               );
             })}
@@ -558,7 +584,19 @@ export default function HomePage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <img src={item.src} alt={`Customer review ${(i % feedbackStrip.length) + 1}`} loading="eager" decoding="async" />
+                  <img
+                    src={item.src}
+                    alt={`Customer review ${(i % feedbackStrip.length) + 1}`}
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => {
+                      const fallbackNum = ((i % 17) + 1);
+                      const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
+                      if (e.currentTarget.src !== fallbackSrc) {
+                        e.currentTarget.src = fallbackSrc;
+                      }
+                    }}
+                  />
                 </div>
               );
             })}

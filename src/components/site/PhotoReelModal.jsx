@@ -15,7 +15,19 @@ export default function PhotoReelModal({
   onClose,
 }) {
   // Normalize photo array: can be strings or objects { src, span, ... }
-  const normalizedPhotos = (photos || []).map(p => (typeof p === 'string' ? p : p?.src || ''));
+  const normalizedPhotos = (photos || []).map(p => {
+    let raw = typeof p === 'string' ? p : p?.src || '';
+    if (!raw) return '';
+    const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
+    if (localMatch) {
+      const num = parseInt(localMatch[1], 10);
+      if (num > 17 || num < 1) {
+        const wrapped = ((Math.max(1, num) - 1) % 17) + 1;
+        raw = `/images/gallery-${String(wrapped).padStart(2, '0')}.jpeg`;
+      }
+    }
+    return raw;
+  }).filter(Boolean);
   const [currentIndex, setCurrentIndex] = useState(
     initialIndex >= 0 && initialIndex < normalizedPhotos.length ? initialIndex : 0
   );
@@ -335,6 +347,13 @@ export default function PhotoReelModal({
                   alt={`Zamani gallery photo ${idx + 1}`}
                   className="photo-reel-img"
                   loading={Math.abs(currentIndex - idx) <= 2 ? 'eager' : 'lazy'}
+                  onError={(e) => {
+                    const fallbackNum = ((idx % 17) + 1);
+                    const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
+                    if (e.currentTarget.src !== fallbackSrc) {
+                      e.currentTarget.src = fallbackSrc;
+                    }
+                  }}
                 />
               </div>
             ))}

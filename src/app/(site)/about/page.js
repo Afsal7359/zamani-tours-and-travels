@@ -12,14 +12,25 @@ function normalizeGalleryItems(list = []) {
   if (!Array.isArray(list)) return [];
   return list
     .map(item => {
-      if (typeof item === 'string') return { src: item, span: 1 };
-      if (item && typeof item === 'object') {
-        return {
-          src: item.src || item.url || '',
-          span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
-        };
+      let raw = '';
+      let span = 1;
+      if (typeof item === 'string') {
+        raw = item.trim();
+      } else if (item && typeof item === 'object') {
+        raw = (item.src || item.url || '').trim();
+        span = [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1;
       }
-      return null;
+      if (!raw) return null;
+
+      const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
+      if (localMatch) {
+        const num = parseInt(localMatch[1], 10);
+        if (num > 17 || num < 1) {
+          const wrapped = ((Math.max(1, num) - 1) % 17) + 1;
+          raw = `/images/gallery-${String(wrapped).padStart(2, '0')}.jpeg`;
+        }
+      }
+      return { src: raw, span };
     })
     .filter(item => item && Boolean(item.src));
 }
@@ -188,7 +199,18 @@ export default function AboutPage() {
                 onClick={() => setLightbox(i)}
                 aria-label={`View gallery image ${i + 1}`}
               >
-                <img src={item.src} alt={`Zamani gallery ${i + 1}`} loading="lazy" />
+                <img
+                  src={item.src}
+                  alt={`Zamani gallery ${i + 1}`}
+                  loading="lazy"
+                  onError={(e) => {
+                    const fallbackNum = ((i % 17) + 1);
+                    const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
+                    if (e.currentTarget.src !== fallbackSrc) {
+                      e.currentTarget.src = fallbackSrc;
+                    }
+                  }}
+                />
               </button>
             ))}
           </div>

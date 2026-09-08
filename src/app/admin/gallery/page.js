@@ -17,15 +17,27 @@ function normalizeItems(list = []) {
   if (!Array.isArray(list)) return [];
   return list
     .map(item => {
-      if (typeof item === 'string') return { src: item, span: 1, connectNext: false };
-      if (item && typeof item === 'object') {
-        return {
-          src: item.src || item.url || '',
-          span: [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1,
-          connectNext: Boolean(item.connectNext),
-        };
+      let raw = '';
+      let span = 1;
+      let connectNext = false;
+      if (typeof item === 'string') {
+        raw = item.trim();
+      } else if (item && typeof item === 'object') {
+        raw = (item.src || item.url || '').trim();
+        span = [1, 2, 3].includes(Number(item.span)) ? Number(item.span) : 1;
+        connectNext = Boolean(item.connectNext);
       }
-      return null;
+      if (!raw) return null;
+
+      const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
+      if (localMatch) {
+        const num = parseInt(localMatch[1], 10);
+        if (num > 17 || num < 1) {
+          const wrapped = ((Math.max(1, num) - 1) % 17) + 1;
+          raw = `/images/gallery-${String(wrapped).padStart(2, '0')}.jpeg`;
+        }
+      }
+      return { src: raw, span, connectNext };
     })
     .filter(item => item && Boolean(item.src));
 }
