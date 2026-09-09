@@ -453,25 +453,7 @@ export const defaultGallery = {
 
 // Second gallery row dedicated to customer feedbacks & traveller moments
 export const defaultFeedbackGallery = {
-  images: [
-    '/images/gallery-10.jpeg',
-    '/images/gallery-11.jpeg',
-    '/images/gallery-12.jpeg',
-    '/images/gallery-13.jpeg',
-    '/images/gallery-14.jpeg',
-    '/images/gallery-15.jpeg',
-    '/images/gallery-16.jpeg',
-    '/images/gallery-17.jpeg',
-    '/images/gallery-01.jpeg',
-    '/images/gallery-02.jpeg',
-    '/images/gallery-03.jpeg',
-    '/images/gallery-04.jpeg',
-    '/images/gallery-05.jpeg',
-    '/images/gallery-06.jpeg',
-    '/images/gallery-07.jpeg',
-    '/images/gallery-08.jpeg',
-    '/images/gallery-09.jpeg',
-  ],
+  images: [],
 };
 
 // Video gallery row for journey reels & video highlights

@@ -63,9 +63,9 @@ export default function AdminGalleryPage() {
           getVideoGallery(),
           getFeedbackGallery(),
         ]);
-        setMainImages(gData?.images?.length ? normalizeItems(gData.images) : normalizeItems(defaultGallery.images));
-        setVideoList(vData?.videos?.length ? normalizeItems(vData.videos) : normalizeItems(defaultVideoGallery.videos));
-        setFeedbackImages(fgData?.images?.length ? normalizeItems(fgData.images) : normalizeItems(defaultFeedbackGallery.images));
+        setMainImages(Array.isArray(gData?.images) ? normalizeItems(gData.images) : normalizeItems(defaultGallery.images));
+        setVideoList(Array.isArray(vData?.videos) ? normalizeItems(vData.videos) : normalizeItems(defaultVideoGallery.videos));
+        setFeedbackImages(Array.isArray(fgData?.images) ? normalizeItems(fgData.images) : normalizeItems(defaultFeedbackGallery.images));
       } catch (e) {
         console.error('Error fetching gallery data:', e);
         setMainImages(normalizeItems(defaultGallery.images));
@@ -208,6 +208,17 @@ export default function AdminGalleryPage() {
         connectNext: false,
       }))
     );
+  }
+
+  function clearAll() {
+    const rowName =
+      activeTab === 'main'
+        ? 'Row 1 (Company Banners)'
+        : activeTab === 'videos'
+        ? 'Row 2 (Video Highlights)'
+        : 'Row 3 (Customer Feedbacks)';
+    if (!confirm(`Are you sure you want to remove all items from ${rowName}?`)) return;
+    setCurrentList([]);
   }
 
   function removeItem(idx) {
@@ -362,6 +373,15 @@ export default function AdminGalleryPage() {
                 >
                   ✂️ Separate All
                 </button>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="admin-btn admin-btn-danger"
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+                  title="Remove all items from this row"
+                >
+                  🗑️ Clear This Row
+                </button>
               </div>
             </div>
           </div>
@@ -394,6 +414,8 @@ export default function AdminGalleryPage() {
                 ? uploadProgress || 'Uploading...'
                 : activeTab === 'videos'
                 ? '+ Upload Videos (MP4/WebM)'
+                : activeTab === 'feedback'
+                ? '+ Upload Customer Feedback Images'
                 : '+ Upload Images'}
             </button>
             <input
@@ -416,7 +438,9 @@ export default function AdminGalleryPage() {
 
           {currentList.length === 0 ? (
             <div className="admin-empty">
-              No {activeTab === 'videos' ? 'videos' : 'images'} in this row yet — click Upload above or add URLs to get started.
+              {activeTab === 'feedback'
+                ? 'No customer feedback images in this row yet — upload traveller review screenshots or feedback photos to display them in Row 3 on the home page.'
+                : `No ${activeTab === 'videos' ? 'videos' : 'images'} in this row yet — click Upload above or add URLs to get started.`}
             </div>
           ) : (
             <div className="admin-gallery-grid">
