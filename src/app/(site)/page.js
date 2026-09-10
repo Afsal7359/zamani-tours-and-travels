@@ -15,6 +15,7 @@ import {
   getFeedbackGallery,
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
+import LoadingScreen from '@/components/site/LoadingScreen';
 import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
@@ -33,7 +34,7 @@ function getSlideConnectionClass(list, i) {
   return '';
 }
 
-function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
+function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = true }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -51,19 +52,23 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
   }, [rawSrc]);
 
   // Hardware-Accelerated 60/120fps Active Viewport Decoder Pool
-  // Only decodes and plays video frames when physically visible on-screen,
-  // releasing GPU decoders when scrolled off-screen while keeping poster intact.
+  // Only decodes and plays video frames when physically visible on-screen and intro is complete
   useEffect(() => {
     const el = containerRef.current;
     const vid = videoRef.current;
     if (!el || !vid) return;
+
+    if (!canPlay) {
+      vid.pause();
+      return;
+    }
 
     vid.muted = true;
     vid.defaultMuted = true;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && canPlay) {
           const p = vid.play();
           if (p !== undefined) {
             p.then(() => setVideoLoaded(true)).catch(() => {
@@ -80,7 +85,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [currentSrc]);
+  }, [currentSrc, canPlay]);
 
   const handleVideoError = () => {
     if (currentSrc !== rawSrc && rawSrc) {
@@ -225,6 +230,7 @@ function createMarqueeItems(items, minCount = 8) {
 
 export default function HomePage() {
   const router = useRouter();
+  const [introFinished, setIntroFinished] = useState(false);
   const [home, setHome] = useState(null);
   const [services, setServices] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -301,6 +307,7 @@ export default function HomePage() {
 
   return (
     <>
+      <LoadingScreen onFinished={() => setIntroFinished(true)} />
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -557,6 +564,7 @@ export default function HomePage() {
                       index={i}
                       totalLength={videoStrip.length}
                       conn={conn}
+                      canPlay={introFinished}
                       onSelect={() => setSelectedVideoIndex(i % videoStrip.length)}
                     />
                   );

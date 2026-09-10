@@ -9,6 +9,8 @@ export default function ImageUpload({ value, onChange, label }) {
   const { beginUpload, endUpload } = useUpload();
   const activeRef = useRef(false);
 
+  const [progress, setProgress] = useState(0);
+
   // If this field unmounts mid-upload (e.g. modal closed), release the counter.
   useEffect(() => () => {
     if (activeRef.current) {
@@ -21,10 +23,11 @@ export default function ImageUpload({ value, onChange, label }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
+    setProgress(0);
     beginUpload();
     activeRef.current = true;
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadToCloudinary(file, (pct) => setProgress(pct));
       if (url) {
         onChange(url);
       }
@@ -33,6 +36,7 @@ export default function ImageUpload({ value, onChange, label }) {
       alert('Image upload failed. Please try again.');
     } finally {
       setUploading(false);
+      setProgress(0);
       if (activeRef.current) {
         endUpload();
         activeRef.current = false;
@@ -64,7 +68,7 @@ export default function ImageUpload({ value, onChange, label }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
-              Uploading...
+              Uploading {progress > 0 ? `${progress}%` : '...'}
             </>
           ) : (
             <>
