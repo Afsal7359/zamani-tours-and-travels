@@ -15,8 +15,6 @@ import {
   getFeedbackGallery,
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
@@ -103,6 +101,12 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect }) {
       className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
       aria-hidden={index >= totalLength}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       onMouseEnter={handleMouseEnter}
       role="button"
       tabIndex={0}
@@ -285,8 +289,6 @@ export default function HomePage() {
     return () => io.disconnect();
   }, [home, services, packages, testimonials, loading]);
 
-  const imagesReady = useImagesLoaded(!loading);
-
   const marqueeItems = home?.marqueeItems || [];
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
   const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
@@ -299,7 +301,6 @@ export default function HomePage() {
 
   return (
     <>
-      <LoadingScreen isReady={!loading && imagesReady} />
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -503,6 +504,12 @@ export default function HomePage() {
                   key={`g1-${i}`}
                   aria-hidden={i >= galleryStrip.length}
                   onClick={() => setSelectedPhotoIndex(i % galleryStrip.length)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPhotoIndex(i % galleryStrip.length);
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
                 >
@@ -583,6 +590,12 @@ export default function HomePage() {
                       key={`g2-${i}`}
                       aria-hidden={i >= feedbackStrip.length}
                       onClick={() => setSelectedFeedbackIndex(i % feedbackStrip.length)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedFeedbackIndex(i % feedbackStrip.length);
+                        }
+                      }}
                       role="button"
                       tabIndex={0}
                     >

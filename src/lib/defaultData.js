@@ -459,7 +459,6 @@ export const defaultFeedbackGallery = {
 // Video gallery row for journey reels & video highlights
 export const defaultVideoGallery = {
   videos: [
-    'https://res.cloudinary.com/demo/video/upload/f_auto,q_auto/dog.mp4',
     'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-beach-resort-and-the-ocean-43187-small.mp4',
     'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-small.mp4',
     'https://assets.mixkit.co/videos/preview/mixkit-palm-tree-on-a-tropical-beach-43185-small.mp4',

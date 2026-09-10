@@ -7,8 +7,7 @@ export function isVideoUrl(url) {
   if (!url || typeof url !== 'string') return false;
   return (
     /\.(mp4|webm|mov|m4v|ogg|avi|mkv)($|\?)/i.test(url) ||
-    url.includes('/video/upload/') ||
-    (url.includes('cloudinary.com') && url.includes('/upload/'))
+    url.includes('/video/upload/')
   );
 }
 
@@ -17,10 +16,7 @@ export function isVideoUrl(url) {
  */
 export function parseCloudinaryVideoUrl(url) {
   if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return null;
-  let uploadPattern = '/video/upload/';
-  if (!url.includes('/video/upload/') && url.includes('/upload/')) {
-    uploadPattern = '/upload/';
-  }
+  const uploadPattern = '/video/upload/';
   if (!url.includes(uploadPattern)) return null;
 
   const parts = url.split(uploadPattern);
@@ -106,6 +102,9 @@ export function getOptimizedImageUrl(url, width = 800) {
  */
 export function getOptimizedVideoUrl(url, mode = 'preview') {
   if (!url || typeof url !== 'string') return '';
+  if (url.includes('mixkit.co') && url.includes('-large.mp4') && (mode === 'preview' || mode === 'marquee')) {
+    return url.replace('-large.mp4', '-small.mp4');
+  }
   const parsed = parseCloudinaryVideoUrl(url);
   if (parsed) {
     const { baseUrl, cleanTail } = parsed;

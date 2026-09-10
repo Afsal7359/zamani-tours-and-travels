@@ -57,6 +57,9 @@ export function detectDeviceTier() {
  */
 export function getAdaptiveVideoUrl(url, mode = 'preview') {
   if (!url || typeof url !== 'string') return '';
+  if (url.includes('mixkit.co') && url.includes('-large.mp4') && (mode === 'preview' || mode === 'marquee')) {
+    return url.replace('-large.mp4', '-small.mp4');
+  }
   const parsed = parseCloudinaryVideoUrl(url);
   if (!parsed) return url;
 
