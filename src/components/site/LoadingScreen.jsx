@@ -5,8 +5,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * High-Performance Smooth Video Intro & Preloader
  * - Hardware-accelerated 60/120fps playback of /logoloading.mp4
  * - Automatic smooth curtain slide-up reveal at end of video
- * - Instant skip on click or tap
- * - Safety fallback timer prevents freezing under any network condition
+ * - Instant skip on click, tap, scroll, or keypress
+ * - Guaranteed non-blocking scroll restoration so the page NEVER gets stuck
  */
 export default function LoadingScreen({ onFinished }) {
   const [mounted, setMounted] = useState(false);
@@ -15,10 +15,27 @@ export default function LoadingScreen({ onFinished }) {
   const videoRef = useRef(null);
   const isDismissingRef = useRef(false);
   const fallbackTimerRef = useRef(null);
+  const onFinishedRef = useRef(onFinished);
+
+  // Keep latest onFinished without triggering re-runs
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
+
+  const unlockScroll = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('intro-scroll-lock');
+      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
+    }
+  }, []);
 
   const dismiss = useCallback(() => {
     if (isDismissingRef.current) return;
     isDismissingRef.current = true;
+
+    // Immediately unlock page scrolling so user can scroll as curtain begins rising
+    unlockScroll();
 
     if (fallbackTimerRef.current) {
       clearTimeout(fallbackTimerRef.current);
@@ -39,16 +56,19 @@ export default function LoadingScreen({ onFinished }) {
     // Complete exit and unmount after CSS transition completes
     setTimeout(() => {
       setRemoved(true);
-      document.body.style.overflow = '';
-      if (typeof onFinished === 'function') {
-        onFinished();
+      unlockScroll();
+      if (typeof onFinishedRef.current === 'function') {
+        onFinishedRef.current();
       }
     }, 750);
-  }, [onFinished]);
+  }, [unlockScroll]);
 
+  // Mount effect: runs ONCE only
   useEffect(() => {
     setMounted(true);
-    document.body.style.overflow = 'hidden';
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('intro-scroll-lock');
+    }
 
     // Maximum safety timeout (video is 8s; max wait 9.5s)
     fallbackTimerRef.current = setTimeout(() => {
@@ -59,9 +79,9 @@ export default function LoadingScreen({ onFinished }) {
       if (fallbackTimerRef.current) {
         clearTimeout(fallbackTimerRef.current);
       }
-      document.body.style.overflow = '';
+      unlockScroll();
     };
-  }, [dismiss]);
+  }, [dismiss, unlockScroll]);
 
   // Handle video autoplay smoothly
   useEffect(() => {

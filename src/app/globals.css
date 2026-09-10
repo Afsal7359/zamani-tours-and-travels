@@ -5019,6 +5019,11 @@ body {
   pointer-events: none !important;
 }
 
+body.intro-scroll-lock {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
 .page-loader-video {
   width: 100vw;
   width: 100dvw;

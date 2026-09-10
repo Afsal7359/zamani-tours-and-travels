@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/site/Navbar';
@@ -122,7 +122,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="eager"
+          loading={canPlay ? 'eager' : 'lazy'}
           decoding="async"
           className="gallery-video-poster-img"
           style={{
@@ -231,6 +231,7 @@ function createMarqueeItems(items, minCount = 8) {
 export default function HomePage() {
   const router = useRouter();
   const [introFinished, setIntroFinished] = useState(false);
+  const handleIntroFinished = useCallback(() => setIntroFinished(true), []);
   const [home, setHome] = useState(null);
   const [services, setServices] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -307,7 +308,7 @@ export default function HomePage() {
 
   return (
     <>
-      <LoadingScreen onFinished={() => setIntroFinished(true)} />
+      <LoadingScreen onFinished={handleIntroFinished} />
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
@@ -523,7 +524,7 @@ export default function HomePage() {
                   <img
                     src={item.src}
                     alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`}
-                    loading="eager"
+                    loading={introFinished ? 'eager' : 'lazy'}
                     decoding="async"
                     onError={(e) => {
                       const fallbackNum = ((i % 17) + 1);
