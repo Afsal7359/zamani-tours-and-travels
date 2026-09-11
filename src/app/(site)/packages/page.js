@@ -4,8 +4,6 @@ import Link from 'next/link';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getPackages, getSiteSettings } from '@/lib/firestore';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 import PackageCard from '@/components/site/PackageCard';
 import PartnerPackageModal from '@/components/site/PartnerPackageModal';
 
@@ -47,8 +45,6 @@ export default function PackagesPage() {
     });
     return () => io.disconnect();
   }, [packages, loading]);
-
-  const imagesReady = useImagesLoaded(!loading);
 
   return (
     <>

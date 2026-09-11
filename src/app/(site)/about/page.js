@@ -4,8 +4,6 @@ import Link from 'next/link';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getAboutContent, getSiteSettings, getGallery } from '@/lib/firestore';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 
 function normalizeGalleryItems(list = []) {
@@ -73,8 +71,6 @@ export default function AboutPage() {
     });
     return () => io.disconnect();
   }, [about, loading]);
-
-  const imagesReady = useImagesLoaded(!loading);
 
   const values = about?.values || [];
   const timeline = about?.timeline || [];

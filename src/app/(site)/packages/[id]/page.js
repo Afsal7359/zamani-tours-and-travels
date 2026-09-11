@@ -5,8 +5,6 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getPackageBySlug, getPackage, getSiteSettings } from '@/lib/firestore';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 import PartnerPackageModal from '@/components/site/PartnerPackageModal';
 import { getOptimizedImageUrl } from '@/lib/videoUtils';

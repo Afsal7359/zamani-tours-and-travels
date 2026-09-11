@@ -34,6 +34,12 @@ export default function LoadingScreen({ onFinished }) {
     if (isDismissingRef.current) return;
     isDismissingRef.current = true;
 
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('zamani_intro_played', 'true');
+      }
+    } catch (_) {}
+
     // Immediately unlock page scrolling so user can scroll as curtain begins rising
     unlockScroll();
 
@@ -65,6 +71,16 @@ export default function LoadingScreen({ onFinished }) {
 
   // Mount effect: runs ONCE only
   useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('zamani_intro_played') === 'true') {
+        setRemoved(true);
+        if (typeof onFinishedRef.current === 'function') {
+          onFinishedRef.current();
+        }
+        return;
+      }
+    } catch (_) {}
+
     setMounted(true);
     if (typeof document !== 'undefined') {
       document.body.classList.add('intro-scroll-lock');
@@ -82,6 +98,23 @@ export default function LoadingScreen({ onFinished }) {
       unlockScroll();
     };
   }, [dismiss, unlockScroll]);
+
+  // Skip immediately on any scroll, wheel, or swipe gesture
+  useEffect(() => {
+    if (!mounted || removed || isExiting) return;
+
+    const handleScrollOrSwipe = () => {
+      dismiss();
+    };
+
+    window.addEventListener('wheel', handleScrollOrSwipe, { passive: true });
+    window.addEventListener('touchmove', handleScrollOrSwipe, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleScrollOrSwipe);
+      window.removeEventListener('touchmove', handleScrollOrSwipe);
+    };
+  }, [mounted, removed, isExiting, dismiss]);
 
   // Handle video autoplay smoothly
   useEffect(() => {

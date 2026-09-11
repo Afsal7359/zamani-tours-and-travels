@@ -8,6 +8,7 @@ import { useUpload } from '@/components/admin/UploadContext';
 
 export default function AdminHomePage() {
   const [form, setForm] = useState(defaultHomeContent);
+  const [marqueeStr, setMarqueeStr] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -17,7 +18,13 @@ export default function AdminHomePage() {
     async function load() {
       try {
         const data = await getHomeContent();
-        if (data) setForm({ ...defaultHomeContent, ...data });
+        if (data) {
+          setForm({ ...defaultHomeContent, ...data });
+          const items = Array.isArray(data.marqueeItems) ? data.marqueeItems : defaultHomeContent.marqueeItems || [];
+          setMarqueeStr(items.join(', '));
+        } else {
+          setMarqueeStr((defaultHomeContent.marqueeItems || []).join(', '));
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }
@@ -32,7 +39,11 @@ export default function AdminHomePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await saveHomeContent(form);
+      const dataToSave = {
+        ...form,
+        marqueeItems: marqueeStr.split(',').map(s => s.trim()).filter(Boolean),
+      };
+      await saveHomeContent(dataToSave);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) { console.error(err); alert('Error saving. Please try again.'); }
@@ -98,8 +109,8 @@ export default function AdminHomePage() {
             <label>Marquee Items (comma-separated)</label>
             <input
               name="marqueeItemsStr"
-              value={Array.isArray(form.marqueeItems) ? form.marqueeItems.join(', ') : ''}
-              onChange={e => setForm(prev => ({ ...prev, marqueeItems: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+              value={marqueeStr}
+              onChange={e => setMarqueeStr(e.target.value)}
               placeholder="Flight Tickets, Visa Services, ..."
             />
           </div>

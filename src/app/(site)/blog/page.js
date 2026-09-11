@@ -4,8 +4,6 @@ import Link from 'next/link';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getBlogPosts, getSiteSettings } from '@/lib/firestore';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 
 const CATEGORIES = ['All', 'Umrah', 'Visa Guides', 'Destinations', 'GCC Work', 'Forex'];
 
@@ -40,8 +38,6 @@ export default function BlogPage() {
     });
     return () => io.disconnect();
   }, [posts, activeCategory, loading]);
-
-  const imagesReady = useImagesLoaded(!loading);
 
   const filteredPosts = activeCategory === 'All'
     ? posts

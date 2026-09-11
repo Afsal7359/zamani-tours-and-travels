@@ -52,6 +52,7 @@ export default function AdminLayout({ children }) {
     '/admin': 'Dashboard',
     '/admin/home': 'Home Content',
     '/admin/about': 'About Content',
+    '/admin/gallery': 'Media & Gallery',
     '/admin/services': 'Services',
     '/admin/packages': 'Tour Packages',
     '/admin/package-requests': 'Partner Package Requests',

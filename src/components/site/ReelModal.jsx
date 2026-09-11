@@ -149,6 +149,43 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   }, [goNext, goPrev, showComments]);
 
+  const isLikedRef = useRef(isLiked);
+  useEffect(() => {
+    isLikedRef.current = isLiked;
+  }, [isLiked]);
+
+  const togglePlayPause = useCallback(() => {
+    const vid = videoRefs.current[currentIndex];
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play().catch(() => {});
+      setIsPlaying(true);
+    } else {
+      vid.pause();
+      setIsPlaying(false);
+    }
+  }, [currentIndex]);
+
+  const handleLikeToggle = useCallback(async () => {
+    if (!activeVideoUrl) return;
+    const vidKey = `liked_${getCleanVideoId(activeVideoUrl)}`;
+    const nextState = !isLikedRef.current;
+    setIsLiked(nextState);
+    try {
+      localStorage.setItem(vidKey, String(nextState));
+    } catch (e) {}
+
+    // Optimistic UI update
+    setLikesCount(prev => (nextState ? prev + 1 : Math.max(0, prev - 1)));
+
+    // Firestore sync
+    try {
+      await updateVideoLikes(activeVideoUrl, nextState ? 1 : -1);
+    } catch (err) {
+      console.warn('Error updating like:', err);
+    }
+  }, [activeVideoUrl]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -179,7 +216,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goNext, goPrev, showComments, onClose]);
+  }, [goNext, goPrev, showComments, onClose, togglePlayPause, handleLikeToggle]);
 
   // Lock background body scroll
   useEffect(() => {
@@ -209,45 +246,13 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   };
 
-  const togglePlayPause = () => {
-    const vid = videoRefs.current[currentIndex];
-    if (!vid) return;
-    if (vid.paused) {
-      vid.play();
-      setIsPlaying(true);
-    } else {
-      vid.pause();
-      setIsPlaying(false);
-    }
-  };
-
   const handleDoubleTap = (e) => {
     e.stopPropagation();
-    if (!isLiked) {
+    if (!isLikedRef.current) {
       handleLikeToggle();
     }
     setHeartAnimation(true);
     setTimeout(() => setHeartAnimation(false), 900);
-  };
-
-  const handleLikeToggle = async () => {
-    if (!activeVideoUrl) return;
-    const vidKey = `liked_${getCleanVideoId(activeVideoUrl)}`;
-    const nextState = !isLiked;
-    setIsLiked(nextState);
-    try {
-      localStorage.setItem(vidKey, String(nextState));
-    } catch (e) {}
-
-    // Optimistic UI update
-    setLikesCount(prev => (nextState ? prev + 1 : Math.max(0, prev - 1)));
-
-    // Firestore sync
-    try {
-      await updateVideoLikes(activeVideoUrl, nextState ? 1 : -1);
-    } catch (err) {
-      console.warn('Error updating like:', err);
-    }
   };
 
   const handleCommentSubmit = async (e) => {

@@ -5,8 +5,6 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import { getServiceBySlug, getService, getSiteSettings } from '@/lib/firestore';
-import LoadingScreen from '@/components/site/LoadingScreen';
-import useImagesLoaded from '@/components/site/useImagesLoaded';
 import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 
 const iconMap = {

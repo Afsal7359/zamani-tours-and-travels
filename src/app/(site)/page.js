@@ -314,7 +314,7 @@ export default function HomePage() {
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <section className="hero">
         <div className="hero-bg">
-          {home?.heroImage && <img src={home.heroImage} alt="Hero" />}
+          {home?.heroImage && <img src={home.heroImage} alt="Hero" fetchPriority="high" decoding="async" />}
         </div>
         <div className="hero-content container">
           <div className="hero-top">
@@ -611,8 +611,15 @@ export default function HomePage() {
                       <img
                         src={item.src}
                         alt={`Customer review ${(i % feedbackStrip.length) + 1}`}
-                        loading="eager"
+                        loading="lazy"
                         decoding="async"
+                        onError={(e) => {
+                          const fallbackNum = ((i % 17) + 1);
+                          const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
+                          if (e.currentTarget.src !== fallbackSrc) {
+                            e.currentTarget.src = fallbackSrc;
+                          }
+                        }}
                       />
                     </div>
                   );

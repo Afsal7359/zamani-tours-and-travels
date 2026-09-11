@@ -133,6 +133,31 @@ export default function PhotoReelModal({
     }
   }, [goNext, goPrev, showComments]);
 
+  const isLikedRef = useRef(isLiked);
+  useEffect(() => {
+    isLikedRef.current = isLiked;
+  }, [isLiked]);
+
+  const handleLikeToggle = useCallback(async () => {
+    if (!activePhotoUrl) return;
+    const photoKey = `liked_${getCleanVideoId(activePhotoUrl)}`;
+    const nextState = !isLikedRef.current;
+    setIsLiked(nextState);
+    try {
+      localStorage.setItem(photoKey, String(nextState));
+    } catch (e) {}
+
+    // Optimistic UI update
+    setLikesCount(prev => (nextState ? prev + 1 : Math.max(0, prev - 1)));
+
+    // Firestore sync
+    try {
+      await updateVideoLikes(activePhotoUrl, nextState ? 1 : -1);
+    } catch (err) {
+      console.warn('Error updating like:', err);
+    }
+  }, [activePhotoUrl]);
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -157,7 +182,7 @@ export default function PhotoReelModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goNext, goPrev, showComments, onClose]);
+  }, [goNext, goPrev, showComments, onClose, handleLikeToggle]);
 
   // Lock background body scroll
   useEffect(() => {
@@ -194,31 +219,11 @@ export default function PhotoReelModal({
 
   const handleDoubleTap = (e) => {
     e.stopPropagation();
-    if (!isLiked) {
+    if (!isLikedRef.current) {
       handleLikeToggle();
     }
     setHeartAnimation(true);
     setTimeout(() => setHeartAnimation(false), 900);
-  };
-
-  const handleLikeToggle = async () => {
-    if (!activePhotoUrl) return;
-    const photoKey = `liked_${getCleanVideoId(activePhotoUrl)}`;
-    const nextState = !isLiked;
-    setIsLiked(nextState);
-    try {
-      localStorage.setItem(photoKey, String(nextState));
-    } catch (e) {}
-
-    // Optimistic UI update
-    setLikesCount(prev => (nextState ? prev + 1 : Math.max(0, prev - 1)));
-
-    // Firestore sync
-    try {
-      await updateVideoLikes(activePhotoUrl, nextState ? 1 : -1);
-    } catch (err) {
-      console.warn('Error updating like:', err);
-    }
   };
 
   const handleCommentSubmit = async (e) => {
