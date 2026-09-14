@@ -304,17 +304,7 @@ export default function PackageDetailPage() {
               </div>
 
               {/* ─── Partner Box ────────────────────────────────────── */}
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #0A1235, #17245a)',
-                  borderRadius: '16px',
-                  padding: '1.4rem',
-                  color: '#fff',
-                  marginTop: '1.5rem',
-                  border: '1px solid rgba(246, 192, 66, 0.25)',
-                  boxShadow: '0 10px 25px -5px rgba(10, 18, 53, 0.3)',
-                }}
-              >
+              <div className="pkg-partner-card reveal">
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F6C042', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.3rem' }}>
                   Resorts & Tour Operators
                 </div>
