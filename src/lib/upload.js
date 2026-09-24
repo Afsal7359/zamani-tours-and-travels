@@ -179,74 +179,100 @@ async function uploadDirectToCloudinary(file, onProgress) {
  * before uploading. Reduces 10MB+ images down to ~200-400KB in milliseconds,
  * eliminating browser freezing, network timeouts, and storage bloat.
  */
-export async function compressImageBeforeUpload(file, maxDimension = 1920, quality = 0.82) {
+/**
+ * Automatically optimizes and compresses high-resolution smartphone/camera photos
+ * before uploading. Reduces 10MB+ images down to ~200-400KB in milliseconds,
+ * eliminating browser freezing, network timeouts, and storage bloat.
+ */
+export async function compressImageBeforeUpload(file, maxDimension = 1920, quality = 0.85) {
   if (!file || typeof window === 'undefined') return file;
-  if (!file.type || !file.type.startsWith('image/')) return file;
-  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
-  // If already lightweight (<= 400KB), return as is
-  if (file.size <= 400 * 1024) return file;
+
+  const fileName = (file.name || '').toLowerCase();
+  const isVideo = file.type?.startsWith('video/') || /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv)$/i.test(fileName);
+  if (isVideo) return file;
+
+  const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|webp|heic|heif|jfif|avif|bmp)$/i.test(fileName);
+  if (!isImage) return file;
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml' || fileName.endsWith('.gif') || fileName.endsWith('.svg')) return file;
+  // If already very lightweight (<= 350KB), return as is
+  if (file.size <= 350 * 1024) return file;
 
   return new Promise((resolve) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
 
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      let { width, height } = img;
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
 
-      if (width <= maxDimension && height <= maxDimension && file.size <= 800 * 1024) {
-        resolve(file);
-        return;
-      }
-
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
+        if (width <= maxDimension && height <= maxDimension && file.size <= 600 * 1024) {
+          resolve(file);
+          return;
         }
-      }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob || blob.size >= file.size) {
-            resolve(file);
-            return;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
           }
-          const cleanName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
-          const compressedFile = new File([blob], cleanName, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
-        },
-        'image/jpeg',
-        quality
-      );
-    };
+        }
 
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        const isPng = file.type === 'image/png' || fileName.endsWith('.png');
+        const outputMime = isPng ? 'image/png' : 'image/jpeg';
+        const outExt = isPng ? '.png' : '.jpg';
+
+        if (!isPng) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob || blob.size >= file.size) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^/.]+$/, '') + outExt;
+            const compressedFile = new File([blob], cleanName, {
+              type: outputMime,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          outputMime,
+          isPng ? undefined : quality
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
+    } catch (e) {
+      console.warn('Image compression fallback:', e);
       resolve(file);
-    };
-
-    img.src = objectUrl;
+    }
   });
 }
 

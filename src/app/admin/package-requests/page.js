@@ -8,6 +8,7 @@ import {
   approveAndPublishPackage,
   getPackages
 } from '@/lib/firestore';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedImageUrl, getItineraryMedia } from '@/lib/videoUtils';
 
 function toSlug(str) {
   return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -109,7 +110,12 @@ export default function AdminPackageRequestsPage() {
       highlights: Array.isArray(req.highlights) ? req.highlights : [],
       inclusions: Array.isArray(req.inclusions) ? req.inclusions : [],
       exclusions: Array.isArray(req.exclusions) ? req.exclusions : [],
-      itinerary: Array.isArray(req.itinerary) ? req.itinerary : [],
+      itinerary: (Array.isArray(req.itinerary) ? req.itinerary : []).map((step, idx) => ({
+        day: step.day || `Day ${idx + 1}`,
+        title: step.title || '',
+        description: step.description || step.desc || '',
+        image: getItineraryMedia(step),
+      })),
       order: 10,
       tags: ['Partner Stay', req.location || ''].filter(Boolean),
     });
@@ -412,23 +418,44 @@ export default function AdminPackageRequestsPage() {
                 </h4>
                 {Array.isArray(selectedReq.itinerary) && selectedReq.itinerary.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {selectedReq.itinerary.map((itin, idx) => (
-                      <div key={idx} className="itin-item-box">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                          <span style={{ fontWeight: 700, color: '#2B47E5', fontSize: '0.85rem' }}>
-                            {itin.day || `Day ${idx + 1}`}: {itin.title}
-                          </span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.4 }}>
-                          {itin.description}
-                        </p>
-                        {itin.image && (
-                          <div style={{ marginTop: '0.4rem' }}>
-                            <img src={itin.image} alt={itin.title} style={{ height: '60px', borderRadius: '6px', objectFit: 'cover' }} />
+                    {selectedReq.itinerary.map((itin, idx) => {
+                      const itinMedia = getItineraryMedia(itin);
+                      return (
+                        <div key={idx} className="itin-item-box">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                            <span style={{ fontWeight: 700, color: '#2B47E5', fontSize: '0.85rem' }}>
+                              {itin.day || `Day ${idx + 1}`}: {itin.title}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.4 }}>
+                            {itin.description}
+                          </p>
+                          {itinMedia && (
+                            <div style={{ marginTop: '0.4rem' }}>
+                              {isVideoUrl(itinMedia) ? (
+                                <video
+                                  src={itinMedia}
+                                  poster={getVideoPosterUrl(itinMedia) || undefined}
+                                  controls
+                                  muted
+                                  playsInline
+                                  style={{ height: '80px', borderRadius: '6px', objectFit: 'cover', background: '#050b26' }}
+                                />
+                              ) : (
+                                <img
+                                  src={getOptimizedImageUrl(itinMedia, 300)}
+                                  alt={itin.title}
+                                  style={{ height: '60px', borderRadius: '6px', objectFit: 'cover' }}
+                                  onError={(e) => {
+                                    if (e.currentTarget.src !== itinMedia) e.currentTarget.src = itinMedia;
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p style={{ fontSize: '0.82rem', color: '#64748b' }}>No day-wise itinerary details provided.</p>

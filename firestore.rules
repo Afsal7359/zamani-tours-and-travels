@@ -19,6 +19,13 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // ─── Partner & Resort Package Requests ─────────────────────────────────
+    // Anyone can submit a package request; only admin can read, approve, or delete.
+    match /package_requests/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // ─── Video Reels Interactions (Likes & Comments) ──────────────────────
     // Anyone can read and post comments; only admin can delete/edit.
     match /video_comments/{id} {
@@ -32,4 +39,3 @@ service cloud.firestore {
     }
   }
 }
-

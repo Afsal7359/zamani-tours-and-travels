@@ -30,13 +30,14 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
     image: '',
     images: [],
     
-    includes: ['Accommodation', 'Daily Breakfast', 'Sightseeing Transfers', 'All Taxes & Tolls'],
-    excludes: ['Airfare / Train tickets', 'Personal expenses', 'Optional activities / Entry tickets'],
+    highlights: '',
+    inclusions: 'Accommodation in luxury room\nDaily breakfast\nSightseeing transfers\nAll applicable taxes & fees',
+    exclusions: 'Airfare / Train tickets\nPersonal expenses\nOptional activities / Entry tickets',
     
     itinerary: [
-      { day: 1, title: 'Arrival & Check-in', desc: 'Welcome drink on arrival. Leisure evening.', image: '' },
-      { day: 2, title: 'Full Day Sightseeing', desc: 'Explore top tourist spots with private driver.', image: '' },
-      { day: 3, title: 'Check-out & Departure', desc: 'Breakfast and onward transfer.', image: '' }
+      { day: 'Day 1', title: 'Arrival & Check-in', description: 'Welcome drink on arrival. Leisure evening by the property.', image: '' },
+      { day: 'Day 2', title: 'Full Day Sightseeing', description: 'Explore top tourist spots, plantations, and scenic viewpoints.', image: '' },
+      { day: 'Day 3', title: 'Check-out & Departure', description: 'Breakfast and onward transfer for safe departure.', image: '' }
     ],
     
     specialNote: ''
@@ -46,8 +47,8 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [uploadingItinIdx, setUploadingItinIdx] = useState(null);
 
-  const mainImageInputRef = useRef(null);
-  const galleryImagesInputRef = useRef(null);
+  const mainFileInputRef = useRef(null);
+  const galleryFileInputRef = useRef(null);
   const itinImageInputRefs = useRef({});
 
   if (!isOpen) return null;
@@ -161,6 +162,12 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
 
     setSubmitting(true);
     try {
+      const parseLines = (val) => {
+        if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+        if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
+        return [];
+      };
+
       const payload = {
         partnerName: formData.partnerName.trim(),
         resortName: formData.resortName.trim(),
@@ -179,14 +186,21 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
         description: formData.description.trim(),
         longDescription: formData.longDescription.trim(),
         
-        image: formData.image.trim(),
-        images: formData.images.filter(Boolean),
+        image: (formData.image || '').trim(),
+        images: Array.isArray(formData.images) ? formData.images.filter(Boolean) : [],
         
-        highlights: formData.highlights.split('\n').map(s => s.trim()).filter(Boolean),
-        inclusions: formData.inclusions.split('\n').map(s => s.trim()).filter(Boolean),
-        exclusions: formData.exclusions.split('\n').map(s => s.trim()).filter(Boolean),
+        highlights: parseLines(formData.highlights),
+        inclusions: parseLines(formData.inclusions),
+        exclusions: parseLines(formData.exclusions),
         
-        itinerary: formData.itinerary.filter(d => d.title.trim() || d.description.trim()),
+        itinerary: (Array.isArray(formData.itinerary) ? formData.itinerary : [])
+          .map((d, idx) => ({
+            day: d.day || `Day ${idx + 1}`,
+            title: (d.title || '').trim(),
+            description: (d.description || d.desc || '').trim(),
+            image: (d.image || d.photo || d.img || '').trim(),
+          }))
+          .filter(d => d.title || d.description || d.image),
       };
 
       const docId = await savePackageRequest(payload);
@@ -194,7 +208,7 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting package request:', err);
-      alert('Something went wrong while submitting. Please try again or contact us directly.');
+      alert('Something went wrong while submitting: ' + (err.message || err));
     } finally {
       setSubmitting(false);
     }

@@ -1,13 +1,13 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getOptimizedImageUrl } from '@/lib/videoUtils';
+import { getOptimizedImageUrl, getItineraryMedia } from '@/lib/videoUtils';
 
 export default function PackageCard({ pkg, index = 0, className = '' }) {
-  const itineraryImages = Array.isArray(pkg.itinerary)
-    ? pkg.itinerary.map(item => item?.image).filter(Boolean)
+  const itineraryImages = Array.isArray(pkg?.itinerary)
+    ? pkg.itinerary.map(item => getItineraryMedia(item)).filter(Boolean)
     : [];
-  const images = Array.from(new Set([pkg.image, ...(pkg.images || []), ...itineraryImages])).filter(Boolean);
+  const images = Array.from(new Set([pkg?.image, ...(pkg?.images || []), ...itineraryImages])).filter(Boolean);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef(0);

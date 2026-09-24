@@ -4757,7 +4757,11 @@ footer {
   font-weight: 800;
   z-index: 1;
 }
-.pkg-itin-content { padding-top: .15rem; }
+.pkg-itin-content {
+  padding-top: .15rem;
+  flex: 1;
+  min-width: 0;
+}
 .pkg-itin-day {
   font-size: .65rem;
   font-weight: 800;
@@ -4769,26 +4773,36 @@ footer {
   font-size: 1rem;
   color: var(--navy);
   margin: .2rem 0 .4rem;
+  word-break: break-word;
 }
 .pkg-itin-content p {
   font-size: .88rem;
   color: #5a627d;
   line-height: 1.7;
+  word-break: break-word;
 }
 .pkg-itin-photo {
-  margin-top: 0.8rem;
+  margin-top: 0.85rem;
   border-radius: 12px;
   overflow: hidden;
-  max-width: 480px;
-  box-shadow: 0 4px 16px rgba(10, 18, 53, 0.08);
+  max-width: 520px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
+  max-height: 280px;
+  background: #0b1536;
+  position: relative;
+  box-shadow: 0 4px 18px rgba(10, 18, 53, 0.08);
   border: 1px solid rgba(10, 18, 53, 0.08);
 }
-.pkg-itin-photo img {
+.pkg-itin-photo img,
+.pkg-itin-photo video {
   width: 100%;
-  height: 220px;
+  height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s var(--ease);
+  background: #0b1536;
+  transition: transform 0.4s var(--ease), opacity 0.3s ease;
 }
 .pkg-itin-photo:hover img {
   transform: scale(1.03);

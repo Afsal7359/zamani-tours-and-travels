@@ -7,7 +7,7 @@ import Footer from '@/components/site/Footer';
 import { getPackageBySlug, getPackage, getSiteSettings } from '@/lib/firestore';
 import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 import PartnerPackageModal from '@/components/site/PartnerPackageModal';
-import { getOptimizedImageUrl } from '@/lib/videoUtils';
+import { getOptimizedImageUrl, getItineraryMedia, isVideoUrl, getVideoPosterUrl } from '@/lib/videoUtils';
 
 export default function PackageDetailPage() {
   const { id } = useParams();
@@ -75,11 +75,12 @@ export default function PackageDetailPage() {
     );
   }
 
-  const allImages = [pkg.image, ...(pkg.images || [])].filter(Boolean);
+  const itinerary = Array.isArray(pkg.itinerary) ? pkg.itinerary : [];
+  const itineraryImages = itinerary.map(item => getItineraryMedia(item)).filter(Boolean);
+  const allImages = Array.from(new Set([pkg.image, ...(pkg.images || []), ...itineraryImages])).filter(Boolean);
   const highlights = Array.isArray(pkg.highlights) ? pkg.highlights : [];
   const inclusions = Array.isArray(pkg.inclusions) ? pkg.inclusions : [];
   const exclusions = Array.isArray(pkg.exclusions) ? pkg.exclusions : [];
-  const itinerary = Array.isArray(pkg.itinerary) ? pkg.itinerary : [];
   const longDesc = pkg.longDescription || pkg.description || '';
   const paragraphs = longDesc.split('\n\n').filter(Boolean);
 
@@ -94,7 +95,15 @@ export default function PackageDetailPage() {
       >
         {allImages[0] && (
           <div className="svc-detail-hero-bg">
-            <img src={allImages[0]} alt={pkg.title} />
+            <img
+              src={getOptimizedImageUrl(allImages[0], 1920)}
+              alt={pkg.title}
+              onError={(e) => {
+                if (allImages[0] && e.currentTarget.src !== allImages[0]) {
+                  e.currentTarget.src = allImages[0];
+                }
+              }}
+            />
             <div className="svc-detail-hero-overlay" />
           </div>
         )}
@@ -179,28 +188,53 @@ export default function PackageDetailPage() {
                 <div className="pkg-itinerary reveal">
                   <h3>Day-by-Day Itinerary</h3>
                   <div className="pkg-itin-list">
-                    {itinerary.map((step, i) => (
-                      <div className="pkg-itin-item" key={i}>
-                        <div className="pkg-itin-marker">
-                          <span>{i + 1}</span>
+                    {itinerary.map((step, i) => {
+                      const stepDesc = step.description || step.desc || step.details || '';
+                      const stepImg = getItineraryMedia(step);
+                      const isVid = isVideoUrl(stepImg);
+
+                      return (
+                        <div className="pkg-itin-item" key={i}>
+                          <div className="pkg-itin-marker">
+                            <span>{i + 1}</span>
+                          </div>
+                          <div className="pkg-itin-content">
+                            <span className="pkg-itin-day">{step.day || `Day ${i + 1}`}</span>
+                            <h4>{step.title}</h4>
+                            {stepDesc && <p>{stepDesc}</p>}
+                            {stepImg && (
+                              <div className="pkg-itin-photo">
+                                {isVid ? (
+                                  <video
+                                    src={stepImg}
+                                    poster={getVideoPosterUrl(stepImg) || undefined}
+                                    controls
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                    className="pkg-itin-video"
+                                  />
+                                ) : (
+                                  <img
+                                    src={getOptimizedImageUrl(stepImg, 800)}
+                                    alt={step.title || `Day ${i + 1}`}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => {
+                                      if (stepImg && e.currentTarget.src !== stepImg) {
+                                        e.currentTarget.src = stepImg;
+                                      } else {
+                                        e.currentTarget.style.display = 'none';
+                                      }
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="pkg-itin-content">
-                          <span className="pkg-itin-day">{step.day || `Day ${i + 1}`}</span>
-                          <h4>{step.title}</h4>
-                          {step.description && <p>{step.description}</p>}
-                          {step.image && (
-                            <div className="pkg-itin-photo">
-                              <img
-                                src={step.image}
-                                alt={step.title || `Day ${i + 1}`}
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

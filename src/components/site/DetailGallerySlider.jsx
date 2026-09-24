@@ -248,6 +248,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                   <>
                     <video
                       src={mediaUrl}
+                      poster={getVideoPosterUrl(mediaUrl) || undefined}
                       muted
                       preload="metadata"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -267,7 +268,17 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                     </div>
                   </>
                 ) : (
-                  <img src={getOptimizedImageUrl(mediaUrl, 200)} alt={`${title} thumbnail ${i + 1}`} loading="eager" />
+                  <img
+                    src={getOptimizedImageUrl(mediaUrl, 200)}
+                    alt={`${title} thumbnail ${i + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      if (mediaUrl && e.currentTarget.src !== mediaUrl) {
+                        e.currentTarget.src = mediaUrl;
+                      }
+                    }}
+                  />
                 )}
               </button>
             );

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getPackages, savePackage, deletePackage } from '@/lib/firestore';
 import ImageUpload from '@/components/admin/ImageUpload';
 import { useUpload } from '@/components/admin/UploadContext';
+import { getItineraryMedia } from '@/lib/videoUtils';
 
 function toSlug(str) {
   return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -52,6 +53,13 @@ export default function AdminPackagesPage() {
   function openModal(item = null) {
     if (item) {
       setEditItem(item);
+      const mappedItinerary = (Array.isArray(item.itinerary) ? item.itinerary : []).map((step, idx) => ({
+        day: step.day || `Day ${idx + 1}`,
+        title: step.title || '',
+        description: step.description || step.desc || '',
+        image: getItineraryMedia(step),
+      }));
+
       setForm({
         ...emptyForm,
         ...item,
@@ -61,7 +69,7 @@ export default function AdminPackagesPage() {
         inclusions: Array.isArray(item.inclusions) ? item.inclusions.join('\n') : (item.inclusions || ''),
         exclusions: Array.isArray(item.exclusions) ? item.exclusions.join('\n') : (item.exclusions || ''),
         images: Array.isArray(item.images) ? item.images : [],
-        itinerary: Array.isArray(item.itinerary) ? item.itinerary : [],
+        itinerary: mappedItinerary,
         longDescription: item.longDescription || '',
       });
     } else {
@@ -75,27 +83,39 @@ export default function AdminPackagesPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const parseList = (val) => {
+        if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+        if (typeof val === 'string') return val.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+        return [];
+      };
+
+      const parseLines = (val) => {
+        if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
+        if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
+        return [];
+      };
+
       const data = {
         ...form,
-        order: Number(form.order),
-        tags: form.tags.split(',').map(s => s.trim()).filter(Boolean),
-        highlights: form.highlights.split('\n').map(s => s.trim()).filter(Boolean),
-        inclusions: form.inclusions.split('\n').map(s => s.trim()).filter(Boolean),
-        exclusions: form.exclusions.split('\n').map(s => s.trim()).filter(Boolean),
-        images: form.images.filter(Boolean),
-        itinerary: form.itinerary
-          .map(s => ({
-            day: s.day || '',
+        order: Number(form.order) || 1,
+        tags: parseList(form.tags),
+        highlights: parseLines(form.highlights),
+        inclusions: parseLines(form.inclusions),
+        exclusions: parseLines(form.exclusions),
+        images: Array.isArray(form.images) ? form.images.filter(Boolean) : [],
+        itinerary: (Array.isArray(form.itinerary) ? form.itinerary : [])
+          .map((s, idx) => ({
+            day: s.day || `Day ${idx + 1}`,
             title: s.title || '',
-            description: s.description || '',
-            image: s.image || '',
+            description: s.description || s.desc || '',
+            image: getItineraryMedia(s),
           }))
-          .filter(s => s.title || s.description),
+          .filter(s => s.title || s.description || s.image),
       };
       await savePackage(editItem?.id || null, data);
       setModal(false);
       await load();
-    } catch (err) { console.error(err); alert('Error saving.'); }
+    } catch (err) { console.error(err); alert('Error saving package: ' + (err.message || err)); }
     finally { setSaving(false); }
   }
 
