@@ -29,6 +29,11 @@ function normalizeItems(list = []) {
       }
       if (!raw) return null;
 
+      // Filter out 403-dead mixkit preview URLs
+      if (raw.includes('mixkit.co')) {
+        return null;
+      }
+
       const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
       if (localMatch) {
         const num = parseInt(localMatch[1], 10);

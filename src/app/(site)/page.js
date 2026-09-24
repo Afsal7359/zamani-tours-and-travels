@@ -51,40 +51,26 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
     setCurrentSrc(nextSrc);
   }, [rawSrc]);
 
-  // Hardware-Accelerated 60/120fps Active Viewport Decoder Pool
-  // Only decodes and plays video frames when physically visible on-screen and intro is complete
+  // Robust Autoplay Manager: Ensures video decodes smoothly and falls back to poster if needed
   useEffect(() => {
-    const el = containerRef.current;
     const vid = videoRef.current;
-    if (!el || !vid) return;
-
-    if (!canPlay) {
-      vid.pause();
-      return;
-    }
+    if (!vid) return;
 
     vid.muted = true;
     vid.defaultMuted = true;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && canPlay) {
-          const p = vid.play();
-          if (p !== undefined) {
-            p.then(() => setVideoLoaded(true)).catch(() => {
-              vid.muted = true;
-              vid.play().catch(() => {});
-            });
-          }
-        } else {
-          vid.pause();
-        }
-      },
-      { threshold: 0.05, rootMargin: '120px 60px 120px 60px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
+    if (canPlay) {
+      const playPromise = vid.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setVideoLoaded(true))
+          .catch(() => {
+            // Autoplay restricted by browser/power saver - poster frame remains visible
+          });
+      }
+    } else {
+      vid.pause();
+    }
   }, [currentSrc, canPlay]);
 
   const handleVideoError = () => {
@@ -117,8 +103,8 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
       tabIndex={0}
       style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
     >
-      {/* 1. Instant Static Poster Layer (Visible while video is loading) */}
-      {posterUrl ? (
+      {/* 1. Instant Static Poster Layer (Visible immediately while video is loading/decoding) */}
+      {posterUrl && (
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
@@ -135,10 +121,10 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
             display: 'block',
           }}
         />
-      ) : null}
+      )}
 
       {/* 2. Guaranteed Fast Autoplay Video Layer */}
-      {rawSrc && (
+      {currentSrc && (
         <video
           ref={videoRef}
           src={currentSrc}
@@ -200,6 +186,11 @@ function normalizeGalleryList(list = [], isVideo = false) {
       }
 
       if (!raw) return null;
+
+      // Automatically filter out 403-blocked/dead mixkit preview URLs
+      if (isVideo && raw.includes('mixkit.co')) {
+        return null;
+      }
 
       // Ensure local gallery images only reference existing images (gallery-01 to gallery-17)
       if (!isVideo) {
