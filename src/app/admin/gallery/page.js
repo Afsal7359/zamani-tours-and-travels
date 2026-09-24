@@ -143,9 +143,13 @@ export default function AdminGalleryPage() {
       const newItems = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        setUploadProgress(`Uploading ${i + 1} of ${files.length} (${file.name})...`);
-        const url = await uploadToCloudinary(file, (pct) => {
-          setUploadProgress(`Uploading ${i + 1} of ${files.length} (${file.name}) — ${pct}%`);
+        setUploadProgress(`Uploading ${i + 1}/${files.length} (${file.name})...`);
+        const url = await uploadToCloudinary(file, (pct, statusText) => {
+          if (statusText) {
+            setUploadProgress(`Uploading ${i + 1}/${files.length} (${file.name}) — ${statusText}`);
+          } else {
+            setUploadProgress(`Uploading ${i + 1}/${files.length} (${file.name}) — ${pct}%`);
+          }
         });
         if (url) {
           newItems.push({ src: url, span: 1, connectNext: false });
