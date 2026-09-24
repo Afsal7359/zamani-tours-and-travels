@@ -57,8 +57,8 @@ export function detectDeviceTier() {
  */
 export function getAdaptiveVideoUrl(url, mode = 'preview') {
   if (!url || typeof url !== 'string') return '';
-  if (url.includes('mixkit.co') && url.includes('-large.mp4') && (mode === 'preview' || mode === 'marquee')) {
-    return url.replace('-large.mp4', '-small.mp4');
+  if (url.includes('mixkit.co')) {
+    return ''; // Dead mixkit URLs are stripped
   }
   const parsed = parseCloudinaryVideoUrl(url);
   if (!parsed) return url;
@@ -75,7 +75,7 @@ export function getAdaptiveVideoUrl(url, mode = 'preview') {
 
 /**
  * React Hook: Real-Time Dynamic FPS & Battery Guardian
- * If frame rate drops below 32 FPS for prolonged periods, dynamically activates Lite Mode.
+ * Optimized with visibilityChange watchdog and memory leak prevention.
  */
 export function usePerformanceGuardian() {
   const [tier, setTier] = useState('high');
@@ -89,22 +89,24 @@ export function usePerformanceGuardian() {
       return;
     }
 
-    // Real-time FPS watchdog: checks if browser is struggling with GPU decoding
     let frameCount = 0;
     let lastTime = performance.now();
     let lowFpsCount = 0;
     let animId = null;
+    let active = true;
 
     const checkFps = (now) => {
+      if (!active || document.hidden) return;
       frameCount++;
       const elapsed = now - lastTime;
       if (elapsed >= 1000) {
         const fps = Math.round((frameCount * 1000) / elapsed);
-        if (fps < 30) {
+        if (fps < 28) {
           lowFpsCount++;
           if (lowFpsCount >= 3) {
-            // 3 consecutive seconds of <30 FPS -> switch to self-healing Lite Mode
             setIsLiteMode(true);
+            active = false;
+            return;
           }
         } else {
           lowFpsCount = Math.max(0, lowFpsCount - 1);
@@ -115,9 +117,23 @@ export function usePerformanceGuardian() {
       animId = requestAnimationFrame(checkFps);
     };
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (animId) cancelAnimationFrame(animId);
+      } else if (active) {
+        lastTime = performance.now();
+        frameCount = 0;
+        animId = requestAnimationFrame(checkFps);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
     animId = requestAnimationFrame(checkFps);
+
     return () => {
+      active = false;
       if (animId) cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 

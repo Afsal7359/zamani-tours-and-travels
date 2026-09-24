@@ -240,7 +240,7 @@ export default function HomePage() {
   useEffect(() => {
     async function load() {
       try {
-        const [h, s, p, t, st, g, vg, fg] = await Promise.all([
+        const results = await Promise.allSettled([
           getHomeContent(),
           getServices(),
           getPackages(),
@@ -250,14 +250,23 @@ export default function HomePage() {
           getVideoGallery(),
           getFeedbackGallery(),
         ]);
-        if (h) setHome(h);
-        if (s) setServices(s);
-        if (p) setPackages(p);
-        if (t) setTestimonials(t);
-        if (st) setSettings(st);
-        if (g?.images && Array.isArray(g.images)) setGallery(normalizeGalleryList(g.images, false));
-        if (vg?.videos && Array.isArray(vg.videos)) setVideoGallery(normalizeGalleryList(vg.videos, true));
-        if (fg?.images && Array.isArray(fg.images)) setFeedbackGallery(normalizeGalleryList(fg.images, false));
+
+        const [hRes, sRes, pRes, tRes, stRes, gRes, vgRes, fgRes] = results;
+
+        if (hRes.status === 'fulfilled' && hRes.value) setHome(hRes.value);
+        if (sRes.status === 'fulfilled' && sRes.value) setServices(sRes.value);
+        if (pRes.status === 'fulfilled' && pRes.value) setPackages(pRes.value);
+        if (tRes.status === 'fulfilled' && tRes.value) setTestimonials(tRes.value);
+        if (stRes.status === 'fulfilled' && stRes.value) setSettings(stRes.value);
+        if (gRes.status === 'fulfilled' && gRes.value?.images && Array.isArray(gRes.value.images)) {
+          setGallery(normalizeGalleryList(gRes.value.images, false));
+        }
+        if (vgRes.status === 'fulfilled' && vgRes.value?.videos && Array.isArray(vgRes.value.videos)) {
+          setVideoGallery(normalizeGalleryList(vgRes.value.videos, true));
+        }
+        if (fgRes.status === 'fulfilled' && fgRes.value?.images && Array.isArray(fgRes.value.images)) {
+          setFeedbackGallery(normalizeGalleryList(fgRes.value.images, false));
+        }
       } catch (e) {
         console.error('Error loading home data:', e);
       } finally {

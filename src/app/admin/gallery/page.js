@@ -87,11 +87,16 @@ export default function AdminGalleryPage() {
     setLoading(true);
     try {
       // Always fetch fresh data directly from Firestore (bypassing stale cache)
-      const [gData, vData, fgData] = await Promise.all([
+      const results = await Promise.allSettled([
         getGallery(true),
         getVideoGallery(true),
         getFeedbackGallery(true),
       ]);
+      const [gRes, vRes, fgRes] = results;
+      const gData = gRes.status === 'fulfilled' ? gRes.value : null;
+      const vData = vRes.status === 'fulfilled' ? vRes.value : null;
+      const fgData = fgRes.status === 'fulfilled' ? fgRes.value : null;
+
       setMainImages(Array.isArray(gData?.images) ? normalizeItems(gData.images) : normalizeItems(defaultGallery.images));
       setVideoList(Array.isArray(vData?.videos) ? normalizeItems(vData.videos) : normalizeItems(defaultVideoGallery.videos));
       setFeedbackImages(Array.isArray(fgData?.images) ? normalizeItems(fgData.images) : normalizeItems(defaultFeedbackGallery.images));
