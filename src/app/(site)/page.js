@@ -291,11 +291,11 @@ export default function HomePage() {
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
   const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
   const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos, true);
-  const feedbackStrip = feedbackGallery;
+  const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images, false);
 
   const marqueeGallery = createMarqueeItems(galleryStrip, 8);
   const marqueeVideos = createMarqueeItems(videoStrip, 6);
-  const marqueeFeedbacks = feedbackStrip.length ? createMarqueeItems(feedbackStrip, 8) : [];
+  const marqueeFeedbacks = createMarqueeItems(feedbackStrip, 8);
 
   return (
     <>
