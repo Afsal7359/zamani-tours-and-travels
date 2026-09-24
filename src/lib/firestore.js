@@ -556,9 +556,11 @@ export function sanitizeGalleryArray(list = []) {
   });
 }
 
-export async function getGallery() {
-  const cached = getCachedData('gallery');
-  if (cached) return cached;
+export async function getGallery(forceFresh = false) {
+  if (!forceFresh) {
+    const cached = getCachedData('gallery');
+    if (cached) return cached;
+  }
 
   try {
     const db = getFirebaseDb();
@@ -568,7 +570,15 @@ export async function getGallery() {
       return sanitized;
     }
     const snap = await getDoc(doc(db, 'site_data', 'gallery'));
-    let data = !snap.exists() ? defaultGallery : { ...defaultGallery, ...snap.data() };
+    let data;
+    if (!snap.exists()) {
+      data = defaultGallery;
+    } else {
+      const d = snap.data();
+      data = {
+        images: Array.isArray(d?.images) ? d.images : defaultGallery.images,
+      };
+    }
     if (data.images) data.images = sanitizeGalleryArray(data.images);
     setCachedData('gallery', data);
     return data;
@@ -585,9 +595,11 @@ export async function saveGallery(data) {
   await setDoc(doc(db, 'site_data', 'gallery'), data, { merge: true });
 }
 
-export async function getFeedbackGallery() {
-  const cached = getCachedData('feedback_gallery');
-  if (cached) return cached;
+export async function getFeedbackGallery(forceFresh = false) {
+  if (!forceFresh) {
+    const cached = getCachedData('feedback_gallery');
+    if (cached) return cached;
+  }
 
   try {
     const db = getFirebaseDb();
@@ -597,7 +609,15 @@ export async function getFeedbackGallery() {
       return sanitized;
     }
     const snap = await getDoc(doc(db, 'site_data', 'feedback_gallery'));
-    let data = !snap.exists() ? defaultFeedbackGallery : { ...defaultFeedbackGallery, ...snap.data() };
+    let data;
+    if (!snap.exists()) {
+      data = defaultFeedbackGallery;
+    } else {
+      const d = snap.data();
+      data = {
+        images: Array.isArray(d?.images) ? d.images : defaultFeedbackGallery.images,
+      };
+    }
     if (data.images) data.images = sanitizeGalleryArray(data.images);
     setCachedData('feedback_gallery', data);
     return data;
@@ -614,9 +634,11 @@ export async function saveFeedbackGallery(data) {
   await setDoc(doc(db, 'site_data', 'feedback_gallery'), data, { merge: true });
 }
 
-export async function getVideoGallery() {
-  const cached = getCachedData('video_gallery');
-  if (cached) return cached;
+export async function getVideoGallery(forceFresh = false) {
+  if (!forceFresh) {
+    const cached = getCachedData('video_gallery');
+    if (cached) return cached;
+  }
 
   try {
     const db = getFirebaseDb();
@@ -625,16 +647,17 @@ export async function getVideoGallery() {
       return defaultVideoGallery;
     }
     const snap = await getDoc(doc(db, 'site_data', 'video_gallery'));
-    if (snap.exists()) {
+    let data;
+    if (!snap.exists()) {
+      data = defaultVideoGallery;
+    } else {
       const d = snap.data();
-      const data = {
-        videos: Array.isArray(d?.videos) && d.videos.length > 0 ? d.videos : defaultVideoGallery.videos,
+      data = {
+        videos: Array.isArray(d?.videos) ? d.videos : defaultVideoGallery.videos,
       };
-      setCachedData('video_gallery', data);
-      return data;
     }
-    setCachedData('video_gallery', defaultVideoGallery);
-    return defaultVideoGallery;
+    setCachedData('video_gallery', data);
+    return data;
   } catch (e) {
     console.warn('Could not fetch video gallery from Firestore, falling back to default data:', e);
     return defaultVideoGallery;

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   getGallery,
@@ -11,7 +11,7 @@ import {
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
 import { uploadToCloudinary } from '@/lib/upload';
-import { getVideoPosterUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl, isVideoUrl } from '@/lib/videoUtils';
 
 function normalizeItems(list = []) {
   if (!Array.isArray(list)) return [];
@@ -50,33 +50,60 @@ export default function AdminGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const fileRef = useRef();
 
+  // Keep live refs to avoid stale closures in async upload handlers
+  const mainImagesRef = useRef(mainImages);
+  const videoListRef = useRef(videoList);
+  const feedbackImagesRef = useRef(feedbackImages);
+  const activeTabRef = useRef(activeTab);
+
   useEffect(() => {
-    async function load() {
-      try {
-        const [gData, vData, fgData] = await Promise.all([
-          getGallery(),
-          getVideoGallery(),
-          getFeedbackGallery(),
-        ]);
-        setMainImages(Array.isArray(gData?.images) ? normalizeItems(gData.images) : normalizeItems(defaultGallery.images));
-        setVideoList(Array.isArray(vData?.videos) ? normalizeItems(vData.videos) : normalizeItems(defaultVideoGallery.videos));
-        setFeedbackImages(Array.isArray(fgData?.images) ? normalizeItems(fgData.images) : normalizeItems(defaultFeedbackGallery.images));
-      } catch (e) {
-        console.error('Error fetching gallery data:', e);
-        setMainImages(normalizeItems(defaultGallery.images));
-        setVideoList(normalizeItems(defaultVideoGallery.videos));
-        setFeedbackImages(normalizeItems(defaultFeedbackGallery.images));
-      } finally {
-        setLoading(false);
-      }
+    mainImagesRef.current = mainImages;
+  }, [mainImages]);
+
+  useEffect(() => {
+    videoListRef.current = videoList;
+  }, [videoList]);
+
+  useEffect(() => {
+    feedbackImagesRef.current = feedbackImages;
+  }, [feedbackImages]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Always fetch fresh data directly from Firestore (bypassing stale cache)
+      const [gData, vData, fgData] = await Promise.all([
+        getGallery(true),
+        getVideoGallery(true),
+        getFeedbackGallery(true),
+      ]);
+      setMainImages(Array.isArray(gData?.images) ? normalizeItems(gData.images) : normalizeItems(defaultGallery.images));
+      setVideoList(Array.isArray(vData?.videos) ? normalizeItems(vData.videos) : normalizeItems(defaultVideoGallery.videos));
+      setFeedbackImages(Array.isArray(fgData?.images) ? normalizeItems(fgData.images) : normalizeItems(defaultFeedbackGallery.images));
+      setHasUnsavedChanges(false);
+    } catch (e) {
+      console.error('Error fetching gallery data:', e);
+      setMainImages(normalizeItems(defaultGallery.images));
+      setVideoList(normalizeItems(defaultVideoGallery.videos));
+      setFeedbackImages(normalizeItems(defaultFeedbackGallery.images));
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   const currentList =
     activeTab === 'main'
@@ -85,18 +112,23 @@ export default function AdminGalleryPage() {
       ? videoList
       : feedbackImages;
 
-  const setCurrentList =
-    activeTab === 'main'
-      ? setMainImages
-      : activeTab === 'videos'
-      ? setVideoList
-      : setFeedbackImages;
+  const updateCurrentList = (updater) => {
+    setHasUnsavedChanges(true);
+    if (activeTab === 'main') {
+      setMainImages(updater);
+    } else if (activeTab === 'videos') {
+      setVideoList(updater);
+    } else {
+      setFeedbackImages(updater);
+    }
+  };
 
   async function handleFiles(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploading(true);
     setUploadProgress(`Preparing ${files.length} file${files.length > 1 ? 's' : ''}...`);
+
     try {
       const newItems = [];
       for (let i = 0; i < files.length; i++) {
@@ -111,28 +143,23 @@ export default function AdminGalleryPage() {
       }
 
       if (newItems.length > 0) {
-        let updatedMain = mainImages;
-        let updatedVideos = videoList;
-        let updatedFeedback = feedbackImages;
-
-        if (activeTab === 'main') {
-          updatedMain = [...mainImages, ...newItems];
-          setMainImages(updatedMain);
-        } else if (activeTab === 'videos') {
-          updatedVideos = [...videoList, ...newItems];
-          setVideoList(updatedVideos);
+        const currentTab = activeTabRef.current;
+        if (currentTab === 'main') {
+          const updated = [...mainImagesRef.current, ...newItems];
+          setMainImages(updated);
+          await saveGallery({ images: updated });
+        } else if (currentTab === 'videos') {
+          const updated = [...videoListRef.current, ...newItems];
+          setVideoList(updated);
+          await saveVideoGallery({ videos: updated });
         } else {
-          updatedFeedback = [...feedbackImages, ...newItems];
-          setFeedbackImages(updatedFeedback);
+          const updated = [...feedbackImagesRef.current, ...newItems];
+          setFeedbackImages(updated);
+          await saveFeedbackGallery({ images: updated });
         }
 
-        // Auto-save changes immediately to Firestore
-        await Promise.all([
-          saveGallery({ images: updatedMain }),
-          saveVideoGallery({ videos: updatedVideos }),
-          saveFeedbackGallery({ images: updatedFeedback }),
-        ]);
         setSaved(true);
+        setHasUnsavedChanges(false);
         setTimeout(() => setSaved(false), 4000);
       }
     } catch (err) {
@@ -148,30 +175,19 @@ export default function AdminGalleryPage() {
   function addUrl() {
     const raw = urlInput.trim();
     if (!raw) return;
-    // Support multiple comma or newline-separated URLs
     const splitUrls = raw
       .split(/[\n,]+/)
       .map(u => u.trim())
       .filter(Boolean);
     if (splitUrls.length > 0) {
       const newItems = splitUrls.map(u => ({ src: u, span: 1, connectNext: false }));
-      setCurrentList(prev => [...prev, ...newItems]);
+      updateCurrentList(prev => [...prev, ...newItems]);
       setUrlInput('');
     }
   }
 
-  function setItemSpan(idx, span) {
-    setCurrentList(prev => {
-      const next = [...prev];
-      if (next[idx]) {
-        next[idx] = { ...next[idx], span: Number(span) || 1 };
-      }
-      return next;
-    });
-  }
-
   function toggleConnectNext(idx) {
-    setCurrentList(prev => {
+    updateCurrentList(prev => {
       const next = [...prev];
       if (next[idx]) {
         next[idx] = { ...next[idx], connectNext: !next[idx].connectNext };
@@ -180,9 +196,8 @@ export default function AdminGalleryPage() {
     });
   }
 
-  // Quick helper: Merge sets of 3 consecutive images into seamless panorama groups
   function mergeSetsOf3() {
-    setCurrentList(prev =>
+    updateCurrentList(prev =>
       prev.map((item, idx) => ({
         ...item,
         connectNext: idx % 3 !== 2 && idx < prev.length - 1,
@@ -190,9 +205,8 @@ export default function AdminGalleryPage() {
     );
   }
 
-  // Quick helper: Merge sets of 2 consecutive images
   function mergeSetsOf2() {
-    setCurrentList(prev =>
+    updateCurrentList(prev =>
       prev.map((item, idx) => ({
         ...item,
         connectNext: idx % 2 === 0 && idx < prev.length - 1,
@@ -200,14 +214,56 @@ export default function AdminGalleryPage() {
     );
   }
 
-  // Reset all connections
   function disconnectAll() {
-    setCurrentList(prev =>
+    updateCurrentList(prev =>
       prev.map(item => ({
         ...item,
         connectNext: false,
       }))
     );
+  }
+
+  function removeDemoPlaceholders() {
+    const isVideo = activeTab === 'videos';
+    const rowName =
+      activeTab === 'main'
+        ? 'Row 1 (Company Banners)'
+        : activeTab === 'videos'
+        ? 'Row 2 (Video Highlights)'
+        : 'Row 3 (Customer Feedbacks)';
+
+    if (!confirm(`Remove sample/demo placeholder items from ${rowName}? Your uploaded custom media will remain.`)) {
+      return;
+    }
+
+    updateCurrentList(prev =>
+      prev.filter(item => {
+        const src = item?.src || '';
+        if (isVideo) {
+          return !src.includes('mixkit.co') && !src.includes('sea_turtle.mp4') && !src.includes('elephants.mp4') && !src.includes('ship.mp4') && !src.includes('dog.mp4');
+        }
+        return !src.startsWith('/images/gallery-') && !src.includes('unsplash.com');
+      })
+    );
+  }
+
+  function restoreDefaults() {
+    const rowName =
+      activeTab === 'main'
+        ? 'Row 1 (Company Banners)'
+        : activeTab === 'videos'
+        ? 'Row 2 (Video Highlights)'
+        : 'Row 3 (Customer Feedbacks)';
+
+    if (!confirm(`Restore default sample items for ${rowName}?`)) return;
+
+    if (activeTab === 'main') {
+      updateCurrentList(() => normalizeItems(defaultGallery.images));
+    } else if (activeTab === 'videos') {
+      updateCurrentList(() => normalizeItems(defaultVideoGallery.videos));
+    } else {
+      updateCurrentList(() => normalizeItems(defaultFeedbackGallery.images));
+    }
   }
 
   function clearAll() {
@@ -218,15 +274,15 @@ export default function AdminGalleryPage() {
         ? 'Row 2 (Video Highlights)'
         : 'Row 3 (Customer Feedbacks)';
     if (!confirm(`Are you sure you want to remove all items from ${rowName}?`)) return;
-    setCurrentList([]);
+    updateCurrentList(() => []);
   }
 
   function removeItem(idx) {
-    setCurrentList(prev => prev.filter((_, i) => i !== idx));
+    updateCurrentList(prev => prev.filter((_, i) => i !== idx));
   }
 
   function move(idx, dir) {
-    setCurrentList(prev => {
+    updateCurrentList(prev => {
       const next = [...prev];
       const j = idx + dir;
       if (j < 0 || j >= next.length) return prev;
@@ -239,13 +295,13 @@ export default function AdminGalleryPage() {
     if (e) e.preventDefault();
     setSaving(true);
     try {
-      // Save all 3 rows simultaneously so no changes from any tab are lost
       await Promise.all([
         saveGallery({ images: mainImages }),
         saveVideoGallery({ videos: videoList }),
         saveFeedbackGallery({ images: feedbackImages }),
       ]);
       setSaved(true);
+      setHasUnsavedChanges(false);
       setTimeout(() => setSaved(false), 4000);
     } catch (err) {
       console.error('Error saving gallery:', err);
@@ -255,12 +311,12 @@ export default function AdminGalleryPage() {
     }
   }
 
-  if (loading) return <div className="admin-empty">Loading gallery data...</div>;
+  if (loading) return <div className="admin-empty">Loading gallery data directly from database...</div>;
 
   return (
     <>
       <div className="admin-breadcrumb">
-        <Link href="/admin">Dashboard</Link> / Gallery
+        <Link href="/admin">Dashboard</Link> / Media &amp; Gallery
       </div>
 
       {/* ─── Gallery Tabs ─── */}
@@ -293,15 +349,22 @@ export default function AdminGalleryPage() {
         </div>
 
         {/* Global Save Button in Header */}
-        <button
-          type="button"
-          onClick={handleSave}
-          className="admin-btn admin-btn-primary"
-          disabled={saving || uploading}
-          style={{ minWidth: '180px' }}
-        >
-          {saving ? 'Saving All Rows...' : '💾 Save All 3 Rows'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {hasUnsavedChanges && (
+            <span style={{ fontSize: '0.82rem', color: '#d97706', fontWeight: 600 }}>
+              ● Unsaved changes
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            className="admin-btn admin-btn-primary"
+            disabled={saving || uploading}
+            style={{ minWidth: '180px' }}
+          >
+            {saving ? 'Saving All Rows...' : '💾 Save All 3 Rows'}
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSave}>
@@ -337,10 +400,10 @@ export default function AdminGalleryPage() {
                 <span style={{ fontSize: '1.25rem' }}>🔗</span>
                 <div>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>
-                    Multi-Image Seamless Merge (Panorama Slices):
+                    Multi-Image Seamless Merge &amp; Cleanup:
                   </strong>
                   <div style={{ fontSize: '0.8rem', color: '#475569' }}>
-                    Click <strong>🔗 Merge with Next</strong> on any card to attach 2 or 3 separate images together with <strong>0px gap</strong> seamlessly!
+                    Connect images with 0px gap, or remove demo placeholders so only your real uploads appear.
                   </div>
                 </div>
               </div>
@@ -354,7 +417,7 @@ export default function AdminGalleryPage() {
                   style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', background: '#ecfdf5', borderColor: '#10b981', color: '#065f46' }}
                   title="Connect images in groups of 3 (Card 1+2+3, Card 4+5+6, etc.)"
                 >
-                  🔗 Merge in Sets of 3 (Panorama)
+                  🔗 Merge in 3s
                 </button>
                 <button
                   type="button"
@@ -363,7 +426,7 @@ export default function AdminGalleryPage() {
                   style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', background: '#eff6ff', borderColor: '#3b82f6', color: '#1e40af' }}
                   title="Connect images in pairs of 2 (Card 1+2, Card 3+4, etc.)"
                 >
-                  🔗 Merge in Pairs of 2
+                  🔗 Merge in 2s
                 </button>
                 <button
                   type="button"
@@ -375,12 +438,30 @@ export default function AdminGalleryPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={removeDemoPlaceholders}
+                  className="admin-btn admin-btn-secondary"
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', background: '#fffbeb', borderColor: '#f59e0b', color: '#b45309' }}
+                  title="Remove sample/demo placeholder images so only your uploaded files remain"
+                >
+                  🧹 Remove Demo Items
+                </button>
+                <button
+                  type="button"
+                  onClick={restoreDefaults}
+                  className="admin-btn admin-btn-secondary"
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+                  title="Restore default sample images"
+                >
+                  🔄 Restore Samples
+                </button>
+                <button
+                  type="button"
                   onClick={clearAll}
                   className="admin-btn admin-btn-danger"
                   style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
                   title="Remove all items from this row"
                 >
-                  🗑️ Clear This Row
+                  🗑️ Clear Row
                 </button>
               </div>
             </div>
@@ -439,7 +520,7 @@ export default function AdminGalleryPage() {
           {currentList.length === 0 ? (
             <div className="admin-empty">
               {activeTab === 'feedback'
-                ? 'No customer feedback images in this row yet — upload traveller review screenshots or feedback photos to display them in Row 3 on the home page.'
+                ? 'No customer feedback images in this row yet — click "+ Upload Customer Feedback Images" or add image URLs to display them in Row 3 on the home page.'
                 : `No ${activeTab === 'videos' ? 'videos' : 'images'} in this row yet — click Upload above or add URLs to get started.`}
             </div>
           ) : (
@@ -463,7 +544,7 @@ export default function AdminGalleryPage() {
                     </button>
                   </div>
 
-                  {activeTab === 'videos' ? (
+                  {activeTab === 'videos' || isVideoUrl(item.src) ? (
                     <video
                       src={item.src || ''}
                       poster={getVideoPosterUrl(item.src) || undefined}
@@ -476,7 +557,13 @@ export default function AdminGalleryPage() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#050b26' }}
                     />
                   ) : (
-                    <img src={item.src} alt={`Gallery ${idx + 1}`} />
+                    <img
+                      src={item.src}
+                      alt={`Gallery ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.style.opacity = '0.5';
+                      }}
+                    />
                   )}
 
                   <div className="admin-gallery-actions">
@@ -511,7 +598,7 @@ export default function AdminGalleryPage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
           <button type="submit" className="admin-btn admin-btn-primary" disabled={saving || uploading} style={{ minWidth: '200px' }}>
             {uploading
               ? uploadProgress || 'Uploading…'
@@ -519,9 +606,14 @@ export default function AdminGalleryPage() {
               ? 'Saving All Rows...'
               : '💾 Save All 3 Rows to Site'}
           </button>
+          {hasUnsavedChanges && (
+            <span style={{ color: '#d97706', fontSize: '.88rem', fontWeight: 600 }}>
+              ⚠️ You have unsaved changes. Click &quot;Save All 3 Rows&quot; to update the live website.
+            </span>
+          )}
           {saved && (
             <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.92rem' }}>
-              ✓ All 3 gallery rows saved successfully!
+              ✓ All 3 gallery rows saved successfully to database!
             </span>
           )}
         </div>
