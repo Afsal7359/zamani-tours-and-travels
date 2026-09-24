@@ -59,8 +59,8 @@ export async function uploadToFirebaseStorage(file, onProgress) {
  * Handles MP4/MOV/WebM/AVI videos and high-res images seamlessly with real-time percentage progress.
  */
 async function uploadDirectToCloudinary(file, onProgress) {
-  // 1. Get signed credentials from signature endpoint
-  const sigRes = await fetch('/api/upload/signature');
+  // 1. Get signed credentials from signature endpoint with no-cache guarantee
+  const sigRes = await fetch('/api/upload/signature', { cache: 'no-store' });
   if (!sigRes.ok) {
     const errText = await sigRes.text();
     throw new Error(`Failed to obtain upload signature: ${errText}`);
@@ -229,11 +229,14 @@ export async function uploadToCloudinary(rawFile, onProgress) {
   // Automatically optimize and compress images in-browser to avoid upload hangs
   const file = await compressImageBeforeUpload(rawFile);
 
+  let lastError = null;
+
   // Strategy 1: Cloudinary Direct Upload
   try {
     const url = await uploadDirectToCloudinary(file, onProgress);
     if (url) return url;
   } catch (cloudinaryErr) {
+    lastError = cloudinaryErr;
     console.warn('Cloudinary upload failed, engaging Firebase Storage fallback:', cloudinaryErr?.message || cloudinaryErr);
   }
 
@@ -242,6 +245,7 @@ export async function uploadToCloudinary(rawFile, onProgress) {
     const fbUrl = await uploadToFirebaseStorage(file, onProgress);
     if (fbUrl) return fbUrl;
   } catch (firebaseErr) {
+    lastError = firebaseErr;
     console.warn('Firebase Storage upload failed, engaging API proxy fallback:', firebaseErr?.message || firebaseErr);
   }
 
@@ -254,6 +258,6 @@ export async function uploadToCloudinary(rawFile, onProgress) {
     if (proxyData.url) return proxyData.url;
     throw new Error(proxyData.error || 'Upload failed across all storage providers');
   } catch (proxyErr) {
-    throw new Error(proxyErr.message || 'Upload failed. Please check your internet connection.');
+    throw new Error(lastError?.message || proxyErr.message || 'Upload failed. Please check your internet connection.');
   }
 }
