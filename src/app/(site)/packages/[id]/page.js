@@ -96,15 +96,13 @@ export default function PackageDetailPage() {
         {allImages[0] && (
           <div className="svc-detail-hero-bg">
             <img
-              src={getOptimizedImageUrl(allImages[0], 1920)}
+              src={allImages[0]}
               alt={pkg.title}
               onError={(e) => {
-                const fallback = '/images/gallery-01.jpeg';
-                if (allImages[0] && e.currentTarget.src !== allImages[0] && !e.currentTarget.dataset.triedOriginal) {
-                  e.currentTarget.dataset.triedOriginal = '1';
-                  e.currentTarget.src = allImages[0];
-                } else if (e.currentTarget.src !== fallback) {
-                  e.currentTarget.src = fallback;
+                const opt = getOptimizedImageUrl(allImages[0], 1920);
+                if (opt && e.currentTarget.src !== opt && !e.currentTarget.dataset.triedOpt) {
+                  e.currentTarget.dataset.triedOpt = '1';
+                  e.currentTarget.src = opt;
                 }
               }}
             />
@@ -220,17 +218,15 @@ export default function PackageDetailPage() {
                                   />
                                 ) : (
                                   <img
-                                    src={getOptimizedImageUrl(stepImg, 800)}
+                                    src={stepImg}
                                     alt={step.title || `Day ${i + 1}`}
                                     loading="lazy"
                                     decoding="async"
                                     onError={(e) => {
-                                      const fallback = `/images/gallery-${String(((i % 17) + 1)).padStart(2, '0')}.jpeg`;
-                                      if (stepImg && e.currentTarget.src !== stepImg && !e.currentTarget.dataset.triedOriginal) {
-                                        e.currentTarget.dataset.triedOriginal = '1';
-                                        e.currentTarget.src = stepImg;
-                                      } else if (e.currentTarget.src !== fallback) {
-                                        e.currentTarget.src = fallback;
+                                      const opt = getOptimizedImageUrl(stepImg, 800);
+                                      if (opt && e.currentTarget.src !== opt && !e.currentTarget.dataset.triedOpt) {
+                                        e.currentTarget.dataset.triedOpt = '1';
+                                        e.currentTarget.src = opt;
                                       }
                                     }}
                                   />

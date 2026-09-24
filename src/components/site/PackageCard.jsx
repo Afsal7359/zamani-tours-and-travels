@@ -84,17 +84,15 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
             {images.map((src, idx) => (
               <div className="pkg-slider-slide" key={idx}>
                 <img
-                  src={getOptimizedImageUrl(src, 600)}
+                  src={src}
                   alt={`${pkg.title} - ${idx + 1}`}
                   loading={idx === 0 ? "eager" : "lazy"}
                   decoding="async"
                   onError={(e) => {
-                    const fallback = `/images/gallery-${String((((index + idx) % 17) + 1)).padStart(2, '0')}.jpeg`;
-                    if (src && e.currentTarget.src !== src && !e.currentTarget.dataset.triedOriginal) {
-                      e.currentTarget.dataset.triedOriginal = '1';
-                      e.currentTarget.src = src;
-                    } else if (e.currentTarget.src !== fallback) {
-                      e.currentTarget.src = fallback;
+                    const opt = getOptimizedImageUrl(src, 600);
+                    if (opt && e.currentTarget.src !== opt && !e.currentTarget.dataset.triedOpt) {
+                      e.currentTarget.dataset.triedOpt = '1';
+                      e.currentTarget.src = opt;
                     }
                   }}
                 />

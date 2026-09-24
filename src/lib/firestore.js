@@ -625,9 +625,16 @@ export async function getVideoGallery() {
       return defaultVideoGallery;
     }
     const snap = await getDoc(doc(db, 'site_data', 'video_gallery'));
-    const data = !snap.exists() ? defaultVideoGallery : { ...defaultVideoGallery, ...snap.data() };
-    setCachedData('video_gallery', data);
-    return data;
+    if (snap.exists()) {
+      const d = snap.data();
+      const data = {
+        videos: Array.isArray(d?.videos) && d.videos.length > 0 ? d.videos : defaultVideoGallery.videos,
+      };
+      setCachedData('video_gallery', data);
+      return data;
+    }
+    setCachedData('video_gallery', defaultVideoGallery);
+    return defaultVideoGallery;
   } catch (e) {
     console.warn('Could not fetch video gallery from Firestore, falling back to default data:', e);
     return defaultVideoGallery;
