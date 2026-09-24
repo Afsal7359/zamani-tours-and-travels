@@ -446,7 +446,18 @@ export default function HomePage() {
                 style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div className="svc-img-wrap">
-                  <img src={svc.image} alt={svc.title} />
+                  <img
+                    src={getOptimizedImageUrl(svc.image, 600) || `/images/gallery-${String((i % 17) + 1).padStart(2, '0')}.jpeg`}
+                    alt={svc.title}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      const fallback = `/images/gallery-${String((i % 17) + 1).padStart(2, '0')}.jpeg`;
+                      if (e.currentTarget.src !== fallback) {
+                        e.currentTarget.src = fallback;
+                      }
+                    }}
+                  />
                 </div>
                 <div className="svc-body">
                   <div className="svc-num">{svc.num}</div>

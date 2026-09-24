@@ -104,9 +104,9 @@ export async function getServices() {
       setCachedData('services', defaultServices);
       return defaultServices;
     }
-    const q = query(collection(db, 'services'), orderBy('order', 'asc'));
-    const snap = await getDocs(q);
-    const data = snap.empty ? defaultServices : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await getDocs(collection(db, 'services'));
+    let data = snap.empty ? defaultServices : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    data = data.sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999));
     setCachedData('services', data);
     return data;
   } catch (e) {
@@ -195,9 +195,9 @@ export async function getPackages() {
       setCachedData('packages', defaultPackages);
       return defaultPackages;
     }
-    const q = query(collection(db, 'packages'), orderBy('order', 'asc'));
-    const snap = await getDocs(q);
-    const data = snap.empty ? defaultPackages : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await getDocs(collection(db, 'packages'));
+    let data = snap.empty ? defaultPackages : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    data = data.sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999));
     setCachedData('packages', data);
     return data;
   } catch (e) {

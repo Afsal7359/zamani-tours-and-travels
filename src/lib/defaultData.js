@@ -459,10 +459,10 @@ export const defaultFeedbackGallery = {
 // Video gallery row for journey reels & video highlights
 export const defaultVideoGallery = {
   videos: [
-    'https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-a-beach-resort-and-the-ocean-43187-small.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-waves-coming-to-the-beach-5016-small.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-palm-tree-on-a-tropical-beach-43185-small.mp4',
-    'https://assets.mixkit.co/videos/preview/mixkit-top-view-of-the-sea-coast-with-turquoise-water-43360-small.mp4',
+    'https://res.cloudinary.com/demo/video/upload/q_auto:good,w_720/sea_turtle.mp4',
+    'https://res.cloudinary.com/demo/video/upload/q_auto:good,w_720/elephants.mp4',
+    'https://res.cloudinary.com/demo/video/upload/q_auto:good,w_720/ship.mp4',
+    'https://res.cloudinary.com/demo/video/upload/q_auto:good,w_720/dog.mp4',
   ],
 };
 

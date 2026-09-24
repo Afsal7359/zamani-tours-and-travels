@@ -99,8 +99,12 @@ export default function PackageDetailPage() {
               src={getOptimizedImageUrl(allImages[0], 1920)}
               alt={pkg.title}
               onError={(e) => {
-                if (allImages[0] && e.currentTarget.src !== allImages[0]) {
+                const fallback = '/images/gallery-01.jpeg';
+                if (allImages[0] && e.currentTarget.src !== allImages[0] && !e.currentTarget.dataset.triedOriginal) {
+                  e.currentTarget.dataset.triedOriginal = '1';
                   e.currentTarget.src = allImages[0];
+                } else if (e.currentTarget.src !== fallback) {
+                  e.currentTarget.src = fallback;
                 }
               }}
             />
@@ -221,10 +225,12 @@ export default function PackageDetailPage() {
                                     loading="lazy"
                                     decoding="async"
                                     onError={(e) => {
-                                      if (stepImg && e.currentTarget.src !== stepImg) {
+                                      const fallback = `/images/gallery-${String(((i % 17) + 1)).padStart(2, '0')}.jpeg`;
+                                      if (stepImg && e.currentTarget.src !== stepImg && !e.currentTarget.dataset.triedOriginal) {
+                                        e.currentTarget.dataset.triedOriginal = '1';
                                         e.currentTarget.src = stepImg;
-                                      } else {
-                                        e.currentTarget.style.display = 'none';
+                                      } else if (e.currentTarget.src !== fallback) {
+                                        e.currentTarget.src = fallback;
                                       }
                                     }}
                                   />
