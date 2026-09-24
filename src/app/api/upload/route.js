@@ -24,6 +24,11 @@ export async function POST(request) {
       Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&') + apiSecret;
     const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
 
+    const isVideo =
+      file.type?.startsWith('video/') ||
+      /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv)$/i.test(file.name || '');
+    const resourceType = isVideo ? 'video' : 'auto';
+
     const uploadForm = new FormData();
     uploadForm.append('file', file);
     uploadForm.append('timestamp', String(timestamp));
@@ -32,7 +37,7 @@ export async function POST(request) {
     uploadForm.append('folder', 'zamani');
 
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
       { method: 'POST', body: uploadForm }
     );
 
