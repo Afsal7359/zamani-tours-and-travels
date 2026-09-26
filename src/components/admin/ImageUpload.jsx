@@ -12,9 +12,11 @@ export default function ImageUpload({
   showTypeBadge = true,
 }) {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState('');
+  const activeRef = useRef(false);
   const inputRef = useRef();
   const { beginUpload, endUpload } = useUpload();
-  const [statusText, setStatusText] = useState('');
 
   // If this field unmounts mid-upload (e.g. modal closed), release the counter.
   useEffect(() => () => {

@@ -105,7 +105,7 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
   }
 
   async function handleItineraryImageUpload(index, e) {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploadingItinIdx(index);
     try {
@@ -119,8 +119,10 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
       }
     } catch (err) {
       console.error(err);
+      alert(err.message || 'Failed to upload itinerary image. Please try again.');
     } finally {
       setUploadingItinIdx(null);
+      if (e.target) e.target.value = '';
     }
   }
 
