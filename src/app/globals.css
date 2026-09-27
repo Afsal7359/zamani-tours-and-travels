@@ -1511,7 +1511,7 @@ footer {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-.gallery-marquee:hover .gallery-marquee-track {
+.gallery-marquee-track:hover {
   animation-play-state: paused;
 }
 .gallery-slide {
@@ -2387,7 +2387,9 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   .gallery-marquee-track,
-  .marquee-track { animation: none; }
+  .marquee-track {
+    animation-duration: 90s;
+  }
 }
 
 .why {

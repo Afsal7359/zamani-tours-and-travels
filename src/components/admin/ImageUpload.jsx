@@ -14,9 +14,20 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
+  const [loadError, setLoadError] = useState(false);
+  const [imgSrc, setImgSrc] = useState('');
   const activeRef = useRef(false);
   const inputRef = useRef();
   const { beginUpload, endUpload } = useUpload();
+
+  useEffect(() => {
+    setLoadError(false);
+    if (value) {
+      setImgSrc(getOptimizedImageUrl(value, 400));
+    } else {
+      setImgSrc('');
+    }
+  }, [value]);
 
   // If this field unmounts mid-upload (e.g. modal closed), release the counter.
   useEffect(() => () => {
@@ -32,6 +43,7 @@ export default function ImageUpload({
     setUploading(true);
     setProgress(0);
     setStatusText('');
+    setLoadError(false);
     beginUpload();
     activeRef.current = true;
     try {
@@ -55,6 +67,20 @@ export default function ImageUpload({
       }
       if (inputRef.current) inputRef.current.value = '';
     }
+  }
+
+  function handleClear() {
+    setLoadError(false);
+    setImgSrc('');
+    onChange('');
+    if (inputRef.current) inputRef.current.value = '';
+  }
+
+  function handleReplace() {
+    handleClear();
+    setTimeout(() => {
+      inputRef.current?.click();
+    }, 50);
   }
 
   const isVid = isVideoUrl(value);
@@ -123,7 +149,10 @@ export default function ImageUpload({
         <input
           type="text"
           value={value || ''}
-          onChange={e => onChange(e.target.value)}
+          onChange={e => {
+            setLoadError(false);
+            onChange(e.target.value);
+          }}
           placeholder="or paste image / video URL..."
           style={{ flex: 1 }}
         />
@@ -131,7 +160,7 @@ export default function ImageUpload({
         {value && (
           <button
             type="button"
-            onClick={() => onChange('')}
+            onClick={handleClear}
             title="Clear media"
             style={{
               background: '#fee2e2',
@@ -151,8 +180,48 @@ export default function ImageUpload({
 
       {/* Preview */}
       {value && (
-        <div style={{ marginTop: '0.6rem', position: 'relative', display: 'inline-block' }}>
-          {isVid ? (
+        <div style={{ marginTop: '0.6rem', position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
+          {loadError ? (
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                background: '#fff1f2',
+                border: '1px dashed #fda4af',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                maxWidth: '450px',
+              }}
+            >
+              <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9f1239' }}>
+                  Image not found or broken URL
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#be123c', marginTop: '2px' }}>
+                  This image was deleted or moved. Click to replace with a new image.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleReplace}
+                style={{
+                  background: '#be123c',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.35rem 0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Upload New
+              </button>
+            </div>
+          ) : isVid ? (
             <video
               src={value}
               poster={getVideoPosterUrl(value) || undefined}
@@ -160,6 +229,7 @@ export default function ImageUpload({
               muted
               playsInline
               preload="metadata"
+              onError={() => setLoadError(true)}
               style={{
                 maxWidth: '100%',
                 maxHeight: '180px',
@@ -171,12 +241,14 @@ export default function ImageUpload({
             />
           ) : (
             <img
-              src={getOptimizedImageUrl(value, 400)}
+              src={imgSrc || value}
               className="admin-img-preview"
               alt="Preview"
-              onError={(e) => {
-                if (e.currentTarget.src !== value) {
-                  e.currentTarget.src = value;
+              onError={() => {
+                if (imgSrc !== value && value) {
+                  setImgSrc(value);
+                } else {
+                  setLoadError(true);
                 }
               }}
               style={{

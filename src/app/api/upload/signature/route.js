@@ -6,9 +6,9 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+    const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+    const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
 
     if (!cloudName || !apiKey || !apiSecret) {
       return NextResponse.json(
@@ -25,7 +25,7 @@ export async function GET() {
     const params = { folder, timestamp };
     const stringToSign =
       Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&') + apiSecret;
-    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
 
     return NextResponse.json(
       {

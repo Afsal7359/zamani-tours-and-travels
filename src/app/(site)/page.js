@@ -36,6 +36,7 @@ function getSlideConnectionClass(list, i) {
 
 function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = true }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const containerRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -51,7 +52,40 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
     setCurrentSrc(nextSrc);
   }, [rawSrc]);
 
-  // Robust Autoplay Manager: Ensures video decodes smoothly and falls back to poster if needed
+  // Viewport IntersectionObserver: Only decode and play videos when in or near viewport
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '120px 20px 120px 20px',
+        threshold: 0.05,
+      }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  // Guaranteed DOM-level muted and playsInline setup for rock-solid autoplay
+  const setVideoNode = useCallback((node) => {
+    videoRef.current = node;
+    if (node) {
+      node.muted = true;
+      node.defaultMuted = true;
+      node.playsInline = true;
+      node.setAttribute('muted', '');
+      node.setAttribute('playsinline', '');
+      node.setAttribute('webkit-playsinline', 'true');
+    }
+  }, []);
+
+  // Intelligent playback: plays when in view and canPlay is true; pauses when off-screen to preserve GPU decoders
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
@@ -59,19 +93,19 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
     vid.muted = true;
     vid.defaultMuted = true;
 
-    if (canPlay) {
+    if (canPlay && isInView) {
       const playPromise = vid.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => setVideoLoaded(true))
           .catch(() => {
-            // Autoplay restricted by browser/power saver - poster frame remains visible
+            // Browser restricted autoplay - static poster remains crisp
           });
       }
     } else {
       vid.pause();
     }
-  }, [currentSrc, canPlay]);
+  }, [currentSrc, canPlay, isInView]);
 
   const handleVideoError = () => {
     if (currentSrc !== rawSrc && rawSrc) {
@@ -81,8 +115,12 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
 
   const handleMouseEnter = () => {
     const vid = videoRef.current;
-    if (vid && vid.paused) {
-      vid.play().catch(() => {});
+    if (vid) {
+      vid.muted = true;
+      vid.defaultMuted = true;
+      if (vid.paused) {
+        vid.play().then(() => setVideoLoaded(true)).catch(() => {});
+      }
     }
   };
 
@@ -108,7 +146,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
         <img
           src={posterUrl}
           alt={`Video reel ${(index % totalLength) + 1}`}
-          loading={canPlay ? 'eager' : 'lazy'}
+          loading="lazy"
           decoding="async"
           className="gallery-video-poster-img"
           style={{
@@ -126,7 +164,7 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
       {/* 2. Guaranteed Fast Autoplay Video Layer */}
       {currentSrc && (
         <video
-          ref={videoRef}
+          ref={setVideoNode}
           src={currentSrc}
           autoPlay
           muted
@@ -137,8 +175,15 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
           preload="metadata"
           onError={handleVideoError}
           onLoadedData={() => setVideoLoaded(true)}
-          onCanPlay={() => setVideoLoaded(true)}
+          onCanPlay={() => {
+            if (isInView && canPlay && videoRef.current?.paused) {
+              videoRef.current.play().then(() => setVideoLoaded(true)).catch(() => {});
+            }
+          }}
           onPlaying={() => setVideoLoaded(true)}
+          onTimeUpdate={() => {
+            if (!videoLoaded) setVideoLoaded(true);
+          }}
           className="gallery-video-element"
           style={{
             position: 'absolute',
@@ -147,8 +192,8 @@ function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = 
             height: '100%',
             objectFit: 'cover',
             zIndex: 1,
-            opacity: videoLoaded || !posterUrl ? 1 : 0.85,
-            transition: 'opacity 0.25s ease',
+            opacity: videoLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease',
             pointerEvents: 'none',
           }}
         />
@@ -576,7 +621,7 @@ export default function HomePage() {
                       index={i}
                       totalLength={videoStrip.length}
                       conn={conn}
-                      canPlay={introFinished}
+                      canPlay={true}
                       onSelect={() => setSelectedVideoIndex(i % videoStrip.length)}
                     />
                   );

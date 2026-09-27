@@ -10,9 +10,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+    const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+    const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
 
     if (!cloudName || !apiKey || !apiSecret) {
       return NextResponse.json({ error: 'Cloudinary not configured' }, { status: 500 });
@@ -22,7 +22,7 @@ export async function POST(request) {
     const params = { folder: 'zamani', timestamp };
     const stringToSign =
       Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&') + apiSecret;
-    const signature = crypto.createHash('sha256').update(stringToSign).digest('hex');
+    const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
 
     const isVideo =
       file.type?.startsWith('video/') ||

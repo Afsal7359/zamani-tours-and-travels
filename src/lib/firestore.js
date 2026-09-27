@@ -167,11 +167,13 @@ export async function saveService(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('service');
+  const payload = cleanDocData({ ...data });
+  delete payload.id;
   if (id) {
-    await setDoc(doc(db, 'services', id), data, { merge: true });
+    await setDoc(doc(db, 'services', id), payload, { merge: true });
     return id;
   } else {
-    const ref = await addDoc(collection(db, 'services'), data);
+    const ref = await addDoc(collection(db, 'services'), payload);
     return ref.id;
   }
 }
@@ -183,6 +185,26 @@ export async function deleteService(id) {
   await deleteDoc(doc(db, 'services', id));
 }
 
+// ─── Document Data Sanitizer (Removes undefined fields for Firestore) ────────
+export function cleanDocData(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj
+      .map(item => cleanDocData(item))
+      .filter(item => item !== undefined);
+  }
+  const result = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined) continue;
+    if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+      result[key] = cleanDocData(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
 // ─── Tour Packages ────────────────────────────────────────────────────────────
 
 export async function getPackages() {
@@ -192,17 +214,30 @@ export async function getPackages() {
   try {
     const db = getFirebaseDb();
     if (!db) {
-      setCachedData('packages', defaultPackages);
-      return defaultPackages;
+      const data = defaultPackages.map((p, idx) => ({ id: p.id || `default_${p.slug || idx}`, ...p }));
+      setCachedData('packages', data);
+      return data;
     }
     const snap = await getDocs(collection(db, 'packages'));
-    let data = snap.empty ? defaultPackages : snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let data;
+    if (snap.empty) {
+      data = defaultPackages.map((p, idx) => ({ id: p.id || `default_${p.slug || idx}`, ...p }));
+    } else {
+      const firestoreItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const firestoreSlugs = new Set(firestoreItems.map(p => p.slug || p.id));
+      // Include any default packages not yet saved into Firestore
+      const unseededDefaults = defaultPackages
+        .filter(p => !firestoreSlugs.has(p.slug) && !firestoreSlugs.has(p.id))
+        .map((p, idx) => ({ id: p.id || `default_${p.slug || idx}`, ...p }));
+      data = [...firestoreItems, ...unseededDefaults];
+    }
     data = data.sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999));
     setCachedData('packages', data);
     return data;
   } catch (e) {
     console.warn('Could not fetch packages from Firestore, falling back to default data:', e);
-    return defaultPackages;
+    const data = defaultPackages.map((p, idx) => ({ id: p.id || `default_${p.slug || idx}`, ...p }));
+    return data;
   }
 }
 
@@ -224,8 +259,8 @@ export async function getPackage(id) {
   } catch (e) {
     console.warn('Error fetching package:', e);
   }
-  const fallback = defaultPackages.find(p => p.id === id || p.slug === id || String(p.order) === id) || null;
-  if (fallback) setCachedData(cacheKey, fallback);
+  const fallback = defaultPackages.find(p => p.id === id || p.slug === id || `default_${p.slug}` === id || String(p.order) === id) || null;
+  if (fallback) setCachedData(cacheKey, { id: fallback.id || `default_${fallback.slug}`, ...fallback });
   return fallback;
 }
 
@@ -250,7 +285,7 @@ export async function getPackageBySlug(slug) {
     console.warn('Error fetching package by slug:', e);
   }
   const fallback = defaultPackages.find(p => p.slug === slug || p.id === slug) || null;
-  if (fallback) setCachedData(cacheKey, fallback);
+  if (fallback) setCachedData(cacheKey, { id: fallback.id || `default_${fallback.slug}`, ...fallback });
   return fallback;
 }
 
@@ -258,11 +293,16 @@ export async function savePackage(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('package');
-  if (id) {
-    await setDoc(doc(db, 'packages', id), data, { merge: true });
+  
+  const payload = cleanDocData({ ...data });
+  delete payload.id; // ensure id is not embedded inside document fields
+
+  // If id starts with default_, generate a new clean document or use slug as doc id
+  if (id && !id.startsWith('default_')) {
+    await setDoc(doc(db, 'packages', id), payload, { merge: true });
     return id;
   } else {
-    const ref = await addDoc(collection(db, 'packages'), data);
+    const ref = await addDoc(collection(db, 'packages'), payload);
     return ref.id;
   }
 }
@@ -271,7 +311,9 @@ export async function deletePackage(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('package');
-  await deleteDoc(doc(db, 'packages', id));
+  if (id && !id.startsWith('default_')) {
+    await deleteDoc(doc(db, 'packages', id));
+  }
 }
 
 // ─── Blog Posts ───────────────────────────────────────────────────────────────
@@ -347,11 +389,13 @@ export async function saveBlogPost(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('blog_post');
+  const payload = cleanDocData({ ...data });
+  delete payload.id;
   if (id) {
-    await setDoc(doc(db, 'blog_posts', id), data, { merge: true });
+    await setDoc(doc(db, 'blog_posts', id), payload, { merge: true });
     return id;
   } else {
-    const ref = await addDoc(collection(db, 'blog_posts'), data);
+    const ref = await addDoc(collection(db, 'blog_posts'), payload);
     return ref.id;
   }
 }
@@ -389,11 +433,13 @@ export async function saveTestimonial(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('testimonials');
+  const payload = cleanDocData({ ...data });
+  delete payload.id;
   if (id) {
-    await setDoc(doc(db, 'testimonials', id), data, { merge: true });
+    await setDoc(doc(db, 'testimonials', id), payload, { merge: true });
     return id;
   } else {
-    const ref = await addDoc(collection(db, 'testimonials'), data);
+    const ref = await addDoc(collection(db, 'testimonials'), payload);
     return ref.id;
   }
 }
@@ -432,11 +478,13 @@ export async function saveProcessStep(id, data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('process_steps');
+  const payload = cleanDocData({ ...data });
+  delete payload.id;
   if (id) {
-    await setDoc(doc(db, 'process_steps', id), data, { merge: true });
+    await setDoc(doc(db, 'process_steps', id), payload, { merge: true });
     return id;
   } else {
-    const ref = await addDoc(collection(db, 'process_steps'), data);
+    const ref = await addDoc(collection(db, 'process_steps'), payload);
     return ref.id;
   }
 }
@@ -474,7 +522,8 @@ export async function saveSiteSettings(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('site_settings');
-  await setDoc(doc(db, 'site_data', 'settings'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'settings'), payload, { merge: true });
 }
 
 // ─── Home Page Content ────────────────────────────────────────────────────────
@@ -503,7 +552,8 @@ export async function saveHomeContent(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('home_content');
-  await setDoc(doc(db, 'site_data', 'home_content'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'home_content'), payload, { merge: true });
 }
 
 // ─── About Page Content ───────────────────────────────────────────────────────
@@ -532,7 +582,8 @@ export async function saveAboutContent(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('about_content');
-  await setDoc(doc(db, 'site_data', 'about_content'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'about_content'), payload, { merge: true });
 }
 
 // ─── Gallery ──────────────────────────────────────────────────────────────────
@@ -592,7 +643,8 @@ export async function saveGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('gallery');
-  await setDoc(doc(db, 'site_data', 'gallery'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'gallery'), payload, { merge: true });
 }
 
 export async function getFeedbackGallery(forceFresh = false) {
@@ -631,7 +683,8 @@ export async function saveFeedbackGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('feedback_gallery');
-  await setDoc(doc(db, 'site_data', 'feedback_gallery'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'feedback_gallery'), payload, { merge: true });
 }
 
 export async function getVideoGallery(forceFresh = false) {
@@ -668,7 +721,8 @@ export async function saveVideoGallery(data) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('video_gallery');
-  await setDoc(doc(db, 'site_data', 'video_gallery'), data, { merge: true });
+  const payload = cleanDocData({ ...data });
+  await setDoc(doc(db, 'site_data', 'video_gallery'), payload, { merge: true });
 }
 
 // ─── Contact Submissions ──────────────────────────────────────────────────────

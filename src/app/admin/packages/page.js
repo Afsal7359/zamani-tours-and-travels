@@ -57,20 +57,27 @@ export default function AdminPackagesPage() {
         day: step.day || `Day ${idx + 1}`,
         title: step.title || '',
         description: step.description || step.desc || '',
-        image: getItineraryMedia(step),
+        image: getItineraryMedia(step) || '',
       }));
 
       setForm({
-        ...emptyForm,
-        ...item,
+        order: item.order ?? 1,
+        title: item.title || '',
         slug: item.slug || toSlug(item.title || ''),
-        tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
+        location: item.location || '',
+        duration: item.duration || '',
+        price: item.price || '',
+        priceNote: item.priceNote || 'per person',
+        badge: item.badge || '',
+        description: item.description || '',
+        longDescription: item.longDescription || '',
+        image: item.image || '',
+        images: Array.isArray(item.images) ? item.images.filter(Boolean) : [],
+        tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || ''),
         highlights: Array.isArray(item.highlights) ? item.highlights.join('\n') : (item.highlights || ''),
         inclusions: Array.isArray(item.inclusions) ? item.inclusions.join('\n') : (item.inclusions || ''),
         exclusions: Array.isArray(item.exclusions) ? item.exclusions.join('\n') : (item.exclusions || ''),
-        images: Array.isArray(item.images) ? item.images : [],
         itinerary: mappedItinerary,
-        longDescription: item.longDescription || '',
       });
     } else {
       setEditItem(null);
@@ -96,19 +103,28 @@ export default function AdminPackagesPage() {
       };
 
       const data = {
-        ...form,
         order: Number(form.order) || 1,
+        title: form.title?.trim() || '',
+        slug: toSlug(form.slug || form.title || ''),
+        location: form.location?.trim() || '',
+        duration: form.duration?.trim() || '',
+        price: form.price?.trim() || '',
+        priceNote: form.priceNote?.trim() || 'per person',
+        badge: form.badge?.trim() || '',
+        description: form.description?.trim() || '',
+        longDescription: form.longDescription?.trim() || '',
+        image: (form.image || '').trim(),
+        images: Array.isArray(form.images) ? form.images.map(s => String(s).trim()).filter(Boolean) : [],
         tags: parseList(form.tags),
         highlights: parseLines(form.highlights),
         inclusions: parseLines(form.inclusions),
         exclusions: parseLines(form.exclusions),
-        images: Array.isArray(form.images) ? form.images.filter(Boolean) : [],
         itinerary: (Array.isArray(form.itinerary) ? form.itinerary : [])
           .map((s, idx) => ({
-            day: s.day || `Day ${idx + 1}`,
-            title: s.title || '',
-            description: s.description || s.desc || '',
-            image: getItineraryMedia(s),
+            day: s.day?.trim() || `Day ${idx + 1}`,
+            title: s.title?.trim() || '',
+            description: s.description?.trim() || s.desc?.trim() || '',
+            image: (typeof s.image === 'string' ? s.image : (getItineraryMedia(s) || '')).trim(),
           }))
           .filter(s => s.title || s.description || s.image),
       };

@@ -227,6 +227,8 @@ export default function PackageDetailPage() {
                                       if (opt && e.currentTarget.src !== opt && !e.currentTarget.dataset.triedOpt) {
                                         e.currentTarget.dataset.triedOpt = '1';
                                         e.currentTarget.src = opt;
+                                      } else {
+                                        e.currentTarget.style.display = 'none';
                                       }
                                     }}
                                   />
