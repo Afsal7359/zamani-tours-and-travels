@@ -163,9 +163,9 @@ h4 { font-size: 1.1rem; }
   box-shadow: 0 2px 20px rgba(10,18,53,.1);
   padding: .7rem 0;
 }
-.nav.scrolled .brand-text strong { color: var(--navy); }
-.nav.scrolled .brand-text span { color: var(--royal); }
-.nav.scrolled .nav-links a { color: rgba(10,18,53,.65); }
+.nav.scrolled .brand-title { color: var(--navy); text-shadow: none; }
+.nav.scrolled .brand-sub { color: #1638D8; text-shadow: none; }
+.nav.scrolled .nav-links a { color: rgba(10,18,53,.75); }
 .nav.scrolled .nav-links a:hover,
 .nav.scrolled .nav-links a.active { color: var(--navy); background: var(--mist); }
 .nav.scrolled .nav-cta .phone { color: var(--navy); }
@@ -181,45 +181,57 @@ h4 { font-size: 1.1rem; }
 .brand {
   display: flex;
   align-items: center;
-  gap: .7rem;
+  gap: .75rem;
   text-decoration: none;
   flex-shrink: 0;
 }
 .brand-mark {
-  height: 52px;
+  height: 46px;
   width: auto;
-  min-width: 52px;
-  max-width: 180px;
+  min-width: 44px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   flex-shrink: 0;
 }
 .brand-mark img {
-  height: 52px;
+  height: 46px;
   width: auto;
-  max-height: 52px;
-  max-width: 180px;
+  max-height: 46px;
   object-fit: contain;
   display: block;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.brand:hover .brand-mark img {
+  transform: scale(1.04);
 }
 .brand-text {
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
-.brand-text strong {
+.brand-title {
   font-family: var(--serif);
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.1;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.65), 0 1px 3px rgba(5,11,38,0.9);
+  transition: color .3s ease, text-shadow .3s ease;
 }
-.brand-text span {
-  font-size: .62rem;
-  font-weight: 600;
-  letter-spacing: .16em;
+.brand-sub {
+  font-family: var(--sans);
+  font-size: .6rem;
+  font-weight: 800;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--gold-soft);
+  color: #F6C042;
+  margin-top: 3px;
+  line-height: 1;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  transition: color .3s ease, text-shadow .3s ease;
 }
 .nav-links {
   display: flex;

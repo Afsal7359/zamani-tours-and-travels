@@ -58,12 +58,14 @@ export default function Navbar({ activePage }) {
           <Link href="/" className="brand" aria-label="Zamani Tours & Travels">
             <div className="brand-mark">
               <img
-                src={settings.logoUrl && settings.logoUrl !== '/images/zamaniLogo.svg' && settings.logoUrl !== '/images/zamaniLogo.png'
-                  ? settings.logoUrl
-                  : (scrolled ? '/images/zamaniLogo.png' : '/images/zamani-logo-white.png')}
+                src={settings.logoUrl && !settings.logoUrl.endsWith('zamani-logo-white.png') ? settings.logoUrl : '/images/zamaniLogo.png'}
                 alt={brandName}
-                onError={e => { e.currentTarget.src = scrolled ? '/images/zamaniLogo.png' : '/images/zamani-logo-white.png'; }}
+                onError={e => { e.currentTarget.src = '/images/zamaniLogo.png'; }}
               />
+            </div>
+            <div className="brand-text">
+              <strong className="brand-title">{brandName}</strong>
+              <span className="brand-sub">{brandSubtitle}</span>
             </div>
           </Link>
 
