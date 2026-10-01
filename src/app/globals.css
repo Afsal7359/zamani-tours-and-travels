@@ -155,21 +155,21 @@ h4 { font-size: 1.1rem; }
   z-index: 900;
   transition: background .4s var(--ease), box-shadow .4s var(--ease), padding .3s var(--ease);
   padding: 1.2rem 0;
+  background: transparent;
 }
 .nav.scrolled {
-  background: rgba(255,255,255,.97);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 2px 20px rgba(10,18,53,.1);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border-bottom: none;
   padding: .7rem 0;
 }
-.nav.scrolled .brand-title { color: var(--navy); text-shadow: none; }
-.nav.scrolled .brand-sub { color: #1638D8; text-shadow: none; }
-.nav.scrolled .nav-links a { color: rgba(10,18,53,.75); }
+.nav.scrolled .nav-links a { color: rgba(255, 255, 255, 0.9); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
 .nav.scrolled .nav-links a:hover,
-.nav.scrolled .nav-links a.active { color: var(--navy); background: var(--mist); }
-.nav.scrolled .nav-cta .phone { color: var(--navy); }
-.nav.scrolled .menu-toggle span { background: var(--navy); }
+.nav.scrolled .nav-links a.active { color: #fff; background: rgba(255, 255, 255, 0.15); }
+.nav.scrolled .nav-cta .phone { color: var(--gold-soft); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
+.nav.scrolled .menu-toggle span { background: #fff; }
 .nav-inner {
   max-width: var(--maxw);
   margin: 0 auto;
