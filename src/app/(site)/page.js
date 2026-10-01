@@ -19,6 +19,7 @@ import LoadingScreen from '@/components/site/LoadingScreen';
 import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
+import HeroImageSequence from '@/components/site/HeroImageSequence';
 
 import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
@@ -359,7 +360,7 @@ export default function HomePage() {
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <section className="hero">
         <div className="hero-bg">
-          {home?.heroImage && <img src={home.heroImage} alt="Hero" fetchPriority="high" decoding="async" />}
+          <HeroImageSequence fallbackImage={home?.heroImage || '/imageheroscetion/ezgif-frame-001.jpg'} />
         </div>
         <div className="hero-content container">
           <div className="hero-top">
