@@ -63,10 +63,6 @@ export default function Navbar({ activePage }) {
                 onError={e => { e.currentTarget.src = '/images/zamaniLogo.png'; }}
               />
             </div>
-            <div className="brand-text">
-              <strong className="brand-title">{brandName}</strong>
-              <span className="brand-sub">{brandSubtitle}</span>
-            </div>
           </Link>
 
           <ul className="nav-links">
