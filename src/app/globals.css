@@ -328,13 +328,20 @@ h4 { font-size: 1.1rem; }
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
-.hero {
+.hero-pinned-wrapper {
   position: relative;
+  height: 250vh;
+}
+.hero {
+  position: sticky;
+  top: 0;
+  height: 100vh;
   min-height: 100vh;
   display: flex;
   align-items: flex-end;
   overflow: hidden;
   background: var(--ink);
+  z-index: 10;
 }
 .hero-bg {
   position: absolute;
@@ -5243,7 +5250,8 @@ body.intro-scroll-lock {
 
   /* Hero Section */
   .hero {
-    min-height: calc(100vh - 60px);
+    height: 100vh;
+    min-height: 100vh;
     align-items: flex-end;
   }
   .hero-content {

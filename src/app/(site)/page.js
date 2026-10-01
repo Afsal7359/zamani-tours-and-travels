@@ -282,6 +282,7 @@ export default function HomePage() {
   const [selectedFeedbackIndex, setSelectedFeedbackIndex] = useState(null);
   const [loading, setLoading] = useState(true);
   const pkgTrackRef = useRef(null);
+  const heroPinnedRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -358,64 +359,66 @@ export default function HomePage() {
       <Navbar activePage="home" />
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
-      <section className="hero">
-        <div className="hero-bg">
-          <HeroImageSequence fallbackImage={home?.heroImage || '/imageheroscetion/ezgif-frame-001.jpg'} />
-        </div>
-        <div className="hero-content container">
-          <div className="hero-top">
-            <div>
-              <span className="eyebrow light">Zamani Tours &amp; Travels</span>
-              <h1>
-                {home?.heroTitle}<br />
-                <em>{home?.heroTitleEm}</em><br />
-                {home?.heroTitleSuffix}
-              </h1>
-              <p className="lead">{home?.heroLead}</p>
-              <div className="hero-cta">
-                <Link href="/contact" className="btn btn-primary">
-                  Plan My Journey
-                  <span className="arr">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M2 8L8 2M8 2H3M8 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                </Link>
-                <Link href="/services" className="btn btn-ghost">Explore Services</Link>
+      <div className="hero-pinned-wrapper" ref={heroPinnedRef}>
+        <section className="hero">
+          <div className="hero-bg">
+            <HeroImageSequence wrapperRef={heroPinnedRef} fallbackImage={home?.heroImage || '/imageheroscetion/ezgif-frame-001.jpg'} />
+          </div>
+          <div className="hero-content container">
+            <div className="hero-top">
+              <div>
+                <span className="eyebrow light">Zamani Tours &amp; Travels</span>
+                <h1>
+                  {home?.heroTitle}<br />
+                  <em>{home?.heroTitleEm}</em><br />
+                  {home?.heroTitleSuffix}
+                </h1>
+                <p className="lead">{home?.heroLead}</p>
+                <div className="hero-cta">
+                  <Link href="/contact" className="btn btn-primary">
+                    Plan My Journey
+                    <span className="arr">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 8L8 2M8 2H3M8 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </span>
+                  </Link>
+                  <Link href="/services" className="btn btn-ghost">Explore Services</Link>
+                </div>
+              </div>
+              <div className="hero-meta">
+                <span>{home?.heroMetaLeft}</span>
+                <strong>{home?.heroMetaTrust}</strong>
               </div>
             </div>
-            <div className="hero-meta">
-              <span>{home?.heroMetaLeft}</span>
-              <strong>{home?.heroMetaTrust}</strong>
-            </div>
-          </div>
 
-          <div className="hero-search">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.5)" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input type="text" placeholder="Where would you like to go?" />
-            <div className="divider" />
-            <select>
-              <option>Service</option>
-              <option>Flights</option>
-              <option>Visa</option>
-              <option>Umrah</option>
-              <option>Holiday</option>
-              <option>Forex</option>
-            </select>
-            <button className="search-btn" aria-label="Search" onClick={() => router.push('/services')}>
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="hero-search">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.5)" strokeWidth="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
-            </button>
+              <input type="text" placeholder="Where would you like to go?" />
+              <div className="divider" />
+              <select>
+                <option>Service</option>
+                <option>Flights</option>
+                <option>Visa</option>
+                <option>Umrah</option>
+                <option>Holiday</option>
+                <option>Forex</option>
+              </select>
+              <button className="search-btn" aria-label="Search" onClick={() => router.push('/services')}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="hero-badge">
-          <div className="big">{home?.heroBadgeNum}</div>
-          <p>{home?.heroBadgeLabel}</p>
-        </div>
-      </section>
+          <div className="hero-badge">
+            <div className="big">{home?.heroBadgeNum}</div>
+            <p>{home?.heroBadgeLabel}</p>
+          </div>
+        </section>
+      </div>
 
       {/* ─── Marquee ──────────────────────────────────────────────────── */}
       <div className="marquee">

@@ -6,7 +6,7 @@ const TOTAL_FRAMES = 47;
 const getFramePath = (index) =>
   `/imageheroscetion/ezgif-frame-${String(index + 1).padStart(3, '0')}.jpg`;
 
-export default function HeroImageSequence({ fallbackImage }) {
+export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
   const canvasRef = useRef(null);
   const imagesRef = useRef([]);
   const currentFrameRef = useRef(0);
@@ -92,7 +92,7 @@ export default function HeroImageSequence({ fallbackImage }) {
   const renderLoop = useCallback(() => {
     const diff = targetFrameRef.current - currentFrameRef.current;
     if (Math.abs(diff) > 0.01) {
-      currentFrameRef.current += diff * 0.14; // smooth fluid spring lerp
+      currentFrameRef.current += diff * 0.18; // smooth spring lerp
       drawFrame(Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.round(currentFrameRef.current))));
       animFrameIdRef.current = requestAnimationFrame(renderLoop);
     } else {
@@ -108,46 +108,61 @@ export default function HeroImageSequence({ fallbackImage }) {
     }
   }, [renderLoop]);
 
-  // Scroll event listener for smooth frame progression
+  // Scroll handler tied to pinned wrapper bounding box
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const heroHeight = window.innerHeight * 0.9;
-      const progress = Math.min(1, Math.max(0, scrollY / heroHeight));
+      const wrapper = wrapperRef?.current;
+      if (!wrapper) {
+        const scrollY = window.scrollY;
+        const heroHeight = window.innerHeight * 1.5;
+        const progress = Math.min(1, Math.max(0, scrollY / heroHeight));
+        targetFrameRef.current = Math.round(progress * (TOTAL_FRAMES - 1));
+        triggerRender();
+        return;
+      }
 
-      const calculatedTarget = Math.round(progress * (TOTAL_FRAMES - 1));
+      const rect = wrapper.getBoundingClientRect();
+      const scrollableHeight = wrapper.clientHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
 
-      // Single scroll auto-advance: when user initiates scroll from top, smoothly complete frame animation
-      if (scrollY > 10 && !autoPlayTriggeredRef.current && progress < 0.8) {
-        autoPlayTriggeredRef.current = true;
-        targetFrameRef.current = TOTAL_FRAMES - 1;
-      } else if (scrollY === 0) {
+      const currentScroll = -rect.top;
+      const progress = Math.min(1, Math.max(0, currentScroll / scrollableHeight));
+      const target = Math.round(progress * (TOTAL_FRAMES - 1));
+
+      targetFrameRef.current = target;
+      if (progress === 0) {
         autoPlayTriggeredRef.current = false;
-        targetFrameRef.current = 0;
-      } else if (!autoPlayTriggeredRef.current) {
-        targetFrameRef.current = calculatedTarget;
       }
 
       triggerRender();
     };
 
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [triggerRender]);
+  }, [wrapperRef, triggerRender]);
 
-  // Wheel listener for instant auto-play on first scroll nudge
+  // Single scroll auto-advance helper: when user initiates scroll from top, smoothly scroll page to complete sequence
   useEffect(() => {
     const handleWheel = (e) => {
-      if (e.deltaY > 0 && window.scrollY < 50 && !autoPlayTriggeredRef.current) {
+      const wrapper = wrapperRef?.current;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const currentScroll = -rect.top;
+
+      if (e.deltaY > 0 && currentScroll < 30 && !autoPlayTriggeredRef.current) {
         autoPlayTriggeredRef.current = true;
-        targetFrameRef.current = TOTAL_FRAMES - 1;
-        triggerRender();
+        const scrollableHeight = wrapper.clientHeight - window.innerHeight;
+        const targetY = window.scrollY + scrollableHeight - currentScroll;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
       }
     };
 
     window.addEventListener('wheel', handleWheel, { passive: true });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, [triggerRender]);
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [wrapperRef]);
 
   return (
     <div className="hero-sequence-wrapper" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
