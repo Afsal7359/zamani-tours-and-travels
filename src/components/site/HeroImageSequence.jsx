@@ -13,13 +13,12 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
   const targetFrameRef = useRef(0);
   const animFrameIdRef = useRef(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
-  const autoPlayTriggeredRef = useRef(false);
 
-  // Draw a specific frame index to canvas with cover fitting
+  // High-precision crystal-clear canvas rendering
   const drawFrame = useCallback((frameIndex) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
     if (!ctx) return;
 
     const img = imagesRef.current[frameIndex];
@@ -30,39 +29,54 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     const iW = img.naturalWidth;
     const iH = img.naturalHeight;
 
-    const scale = Math.max(cW / iW, cH / iH);
+    // Enable high-quality image smoothing & bicubic scaling for 4K crispness
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const canvasAspect = cW / cH;
+    let scale;
+    if (canvasAspect < 1.0) {
+      // Mobile vertical view: cover nicely with height fit focus to maintain full frame clarity
+      const heightFitScale = cH / iH;
+      const widthFitScale = cW / iW;
+      scale = Math.max(heightFitScale, widthFitScale * 1.05);
+    } else {
+      // Desktop / Tablet landscape: full cover
+      scale = Math.max(cW / iW, cH / iH);
+    }
+
     const x = (cW - iW * scale) / 2;
     const y = (cH - iH * scale) / 2;
 
-    ctx.clearRect(0, 0, cW, cH);
+    ctx.fillStyle = '#050b26';
+    ctx.fillRect(0, 0, cW, cH);
     ctx.drawImage(img, x, y, iW * scale, iH * scale);
   }, []);
 
-  // Responsive retina sizing
+  // Responsive retina DPI sizing up to 2.5x for ultra-high pixel density
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const parent = canvas.parentElement;
     if (!parent) return;
 
-    const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2);
+    const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2.5);
     const rect = parent.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
 
     drawFrame(Math.round(currentFrameRef.current));
   }, [drawFrame]);
 
-  // Preload all 47 frame images
+  // Preload all 47 frame images reliably
   useEffect(() => {
     let loadedCount = 0;
     const imgs = [];
 
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       const img = new Image();
-      img.src = getFramePath(i);
       img.onload = () => {
         loadedCount++;
         if (i === 0) {
@@ -76,6 +90,15 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
       img.onerror = () => {
         loadedCount++;
       };
+      img.src = getFramePath(i);
+
+      if (img.complete && img.naturalWidth > 0) {
+        if (i === 0) {
+          handleResize();
+          drawFrame(0);
+        }
+      }
+
       imgs.push(img);
     }
 
@@ -85,14 +108,26 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
   useEffect(() => {
     handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, [handleResize]);
 
-  // Smooth 60fps lerp render loop
+  useEffect(() => {
+    return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
+  }, []);
+
+  // Silky smooth 60fps responsive lerp loop
   const renderLoop = useCallback(() => {
     const diff = targetFrameRef.current - currentFrameRef.current;
-    if (Math.abs(diff) > 0.01) {
-      currentFrameRef.current += diff * 0.18; // smooth spring lerp
+    if (Math.abs(diff) > 0.001) {
+      currentFrameRef.current += diff * 0.16; // Ultra-responsive, smooth liquid interpolation
       drawFrame(Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.round(currentFrameRef.current))));
       animFrameIdRef.current = requestAnimationFrame(renderLoop);
     } else {
@@ -108,61 +143,42 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     }
   }, [renderLoop]);
 
-  // Scroll handler tied to pinned wrapper bounding box
+  // Scroll handler with accurate progress mapping for desktop & mobile
   useEffect(() => {
     const handleScroll = () => {
+      const scrollY = typeof window !== 'undefined' ? window.scrollY || window.pageYOffset || 0 : 0;
+      
+      if (scrollY <= 5) {
+        targetFrameRef.current = 0;
+        triggerRender();
+        return;
+      }
+
       const wrapper = wrapperRef?.current;
       if (!wrapper) {
-        const scrollY = window.scrollY;
-        const heroHeight = window.innerHeight * 1.5;
+        const heroHeight = window.innerHeight * 1.8;
         const progress = Math.min(1, Math.max(0, scrollY / heroHeight));
-        targetFrameRef.current = Math.round(progress * (TOTAL_FRAMES - 1));
+        targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
         triggerRender();
         return;
       }
 
       const rect = wrapper.getBoundingClientRect();
-      const scrollableHeight = wrapper.clientHeight - window.innerHeight;
+      const viewportH = typeof window !== 'undefined' ? window.innerHeight || document.documentElement.clientHeight : 800;
+      const scrollableHeight = wrapper.clientHeight - viewportH;
       if (scrollableHeight <= 0) return;
 
-      const currentScroll = -rect.top;
+      const currentScroll = Math.max(0, -rect.top);
       const progress = Math.min(1, Math.max(0, currentScroll / scrollableHeight));
-      const target = Math.round(progress * (TOTAL_FRAMES - 1));
-
-      targetFrameRef.current = target;
-      if (progress === 0) {
-        autoPlayTriggeredRef.current = false;
-      }
-
+      
+      targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
       triggerRender();
     };
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    return () => window.removeEventListener('scroll', handleScroll, { capture: true });
   }, [wrapperRef, triggerRender]);
-
-  // Single scroll auto-advance helper: when user initiates scroll from top, smoothly scroll page to complete sequence
-  useEffect(() => {
-    const handleWheel = (e) => {
-      const wrapper = wrapperRef?.current;
-      if (!wrapper) return;
-      const rect = wrapper.getBoundingClientRect();
-      const currentScroll = -rect.top;
-
-      if (e.deltaY > 0 && currentScroll < 30 && !autoPlayTriggeredRef.current) {
-        autoPlayTriggeredRef.current = true;
-        const scrollableHeight = wrapper.clientHeight - window.innerHeight;
-        const targetY = window.scrollY + scrollableHeight - currentScroll;
-        window.scrollTo({ top: targetY, behavior: 'smooth' });
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: true });
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-    };
-  }, [wrapperRef]);
 
   return (
     <div className="hero-sequence-wrapper" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -173,7 +189,6 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
           width: '100%',
           height: '100%',
           display: 'block',
-          objectFit: 'cover'
         }}
       />
       {fallbackImage && !imagesLoaded && (
@@ -193,3 +208,5 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     </div>
   );
 }
+
+
