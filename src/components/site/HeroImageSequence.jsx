@@ -123,11 +123,11 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     };
   }, []);
 
-  // Silky smooth 60fps responsive lerp loop
+  // Silky smooth video-like 60fps lerp loop (continuous video playback flow)
   const renderLoop = useCallback(() => {
     const diff = targetFrameRef.current - currentFrameRef.current;
     if (Math.abs(diff) > 0.001) {
-      currentFrameRef.current += diff * 0.16; // Ultra-responsive, smooth liquid interpolation
+      currentFrameRef.current += diff * 0.08; // Continuous video-like smooth playback
       drawFrame(Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.round(currentFrameRef.current))));
       animFrameIdRef.current = requestAnimationFrame(renderLoop);
     } else {

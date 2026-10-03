@@ -367,7 +367,6 @@ export default function HomePage() {
           <div className="hero-content container">
             <div className="hero-top">
               <div>
-                <span className="eyebrow light">Zamani Tours &amp; Travels</span>
                 <h1>
                   {home?.heroTitle}<br />
                   <em>{home?.heroTitleEm}</em><br />
@@ -412,10 +411,6 @@ export default function HomePage() {
                 </svg>
               </button>
             </div>
-          </div>
-          <div className="hero-badge">
-            <div className="big">{home?.heroBadgeNum}</div>
-            <p>{home?.heroBadgeLabel}</p>
           </div>
         </section>
       </div>

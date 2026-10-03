@@ -330,16 +330,16 @@ h4 { font-size: 1.1rem; }
 /* ─── Hero ───────────────────────────────────────────────────────────────── */
 .hero-pinned-wrapper {
   position: relative;
-  height: 230vh;
+  height: 280vh;
 }
 @media (max-width: 1024px) {
   .hero-pinned-wrapper {
-    height: 215vh;
+    height: 250vh;
   }
 }
 @media (max-width: 576px) {
   .hero-pinned-wrapper {
-    height: 200vh;
+    height: 240vh;
   }
 }
 .hero {
@@ -371,7 +371,7 @@ h4 { font-size: 1.1rem; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(5,11,38,.94) 0%, rgba(5,11,38,.48) 50%, rgba(5,11,38,.2) 100%);
+  background: linear-gradient(to top, rgba(5,11,38,.95) 0%, rgba(5,11,38,.55) 50%, rgba(5,11,38,.22) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -379,8 +379,8 @@ h4 { font-size: 1.1rem; }
   position: relative;
   z-index: 2;
   width: 100%;
-  padding-bottom: clamp(2.5rem, 5vw, 5rem);
-  padding-top: clamp(10rem, 15vh, 14rem);
+  padding-bottom: clamp(3rem, 6vw, 6rem);
+  padding-top: clamp(14rem, 22vh, 20rem);
 }
 .hero-top {
   display: flex;
@@ -395,32 +395,29 @@ h4 { font-size: 1.1rem; }
   gap: .4rem;
   align-items: flex-end;
   flex-shrink: 0;
+  margin-bottom: 0.5rem;
 }
 .hero-meta span {
-  font-size: .7rem;
+  font-size: .72rem;
   font-weight: 700;
-  letter-spacing: .18em;
+  letter-spacing: .2em;
   text-transform: uppercase;
-  color: rgba(255,255,255,.5);
+  color: rgba(255,255,255,.6);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
 .hero-meta strong {
-  font-size: .75rem;
+  font-size: .78rem;
   font-weight: 700;
   color: var(--gold-soft);
-  letter-spacing: .08em;
-}
-.hero .eyebrow {
-  display: inline-block;
-  margin-bottom: 0.8rem;
-  letter-spacing: 0.22em;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  letter-spacing: .1em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
 .hero h1 {
   color: #fff;
   max-width: 820px;
   letter-spacing: -.02em;
-  margin-top: 0.3rem;
-  text-shadow: 0 4px 20px rgba(5, 11, 38, 0.7);
+  margin-top: 0.5rem;
+  text-shadow: 0 4px 20px rgba(5, 11, 38, 0.85);
 }
 .hero h1 em {
   font-style: italic;
@@ -428,11 +425,11 @@ h4 { font-size: 1.1rem; }
 }
 .hero p.lead {
   font-size: clamp(.95rem, 1.4vw, 1.15rem);
-  color: rgba(255,255,255,.82);
+  color: rgba(255,255,255,.85);
   max-width: 540px;
   margin-top: 1.4rem;
   line-height: 1.7;
-  text-shadow: 0 2px 12px rgba(5, 11, 38, 0.8);
+  text-shadow: 0 2px 12px rgba(5, 11, 38, 0.9);
 }
 .hero-cta {
   display: flex;
