@@ -20,200 +20,10 @@ import PackageCard from '@/components/site/PackageCard';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 import HeroImageSequence from '@/components/site/HeroImageSequence';
+import Curved3DSlider from '@/components/site/Curved3DSlider';
 
 import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
-
-function getSlideConnectionClass(list, i) {
-  if (!list || list.length <= 1) return '';
-  const item = list[i];
-  const prev = list[(i - 1 + list.length) % list.length];
-  
-  if (item?.connectNext && !prev?.connectNext) return 'gallery-connect-start';
-  if (item?.connectNext && prev?.connectNext) return 'gallery-connect-middle';
-  if (!item?.connectNext && prev?.connectNext) return 'gallery-connect-end';
-  return '';
-}
-
-function VideoMarqueeCard({ item, index, totalLength, conn, onSelect, canPlay = true }) {
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const containerRef = useRef(null);
-  const videoRef = useRef(null);
-
-  const rawSrc = item?.src || '';
-  const [currentSrc, setCurrentSrc] = useState(() => {
-    return getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
-  });
-  const fallbackPoster = `/images/gallery-${String((index % 17) + 1).padStart(2, '0')}.jpeg`;
-  const posterUrl = getVideoPosterUrl(rawSrc) || fallbackPoster;
-
-  useEffect(() => {
-    const nextSrc = getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
-    setCurrentSrc(nextSrc);
-  }, [rawSrc]);
-
-  // Viewport IntersectionObserver: Only decode and play videos when in or near viewport
-  useEffect(() => {
-    const node = containerRef.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      {
-        root: null,
-        rootMargin: '120px 20px 120px 20px',
-        threshold: 0.05,
-      }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  // Guaranteed DOM-level muted and playsInline setup for rock-solid autoplay
-  const setVideoNode = useCallback((node) => {
-    videoRef.current = node;
-    if (node) {
-      node.muted = true;
-      node.defaultMuted = true;
-      node.playsInline = true;
-      node.setAttribute('muted', '');
-      node.setAttribute('playsinline', '');
-      node.setAttribute('webkit-playsinline', 'true');
-    }
-  }, []);
-
-  // Intelligent playback: plays when in view and canPlay is true; pauses when off-screen to preserve GPU decoders
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-
-    vid.muted = true;
-    vid.defaultMuted = true;
-
-    if (canPlay && isInView) {
-      const playPromise = vid.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setVideoLoaded(true))
-          .catch(() => {
-            // Browser restricted autoplay - static poster remains crisp
-          });
-      }
-    } else {
-      vid.pause();
-    }
-  }, [currentSrc, canPlay, isInView]);
-
-  const handleVideoError = () => {
-    if (currentSrc !== rawSrc && rawSrc) {
-      setCurrentSrc(rawSrc);
-    }
-  };
-
-  const handleMouseEnter = () => {
-    const vid = videoRef.current;
-    if (vid) {
-      vid.muted = true;
-      vid.defaultMuted = true;
-      if (vid.paused) {
-        vid.play().then(() => setVideoLoaded(true)).catch(() => {});
-      }
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`gallery-slide gallery-video-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
-      aria-hidden={index >= totalLength}
-      onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      onMouseEnter={handleMouseEnter}
-      role="button"
-      tabIndex={0}
-      style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', background: '#050b26' }}
-    >
-      {/* 1. Instant Static Poster Layer (Visible immediately while video is loading/decoding) */}
-      {posterUrl && (
-        <img
-          src={posterUrl}
-          alt={`Video reel ${(index % totalLength) + 1}`}
-          loading="lazy"
-          decoding="async"
-          className="gallery-video-poster-img"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-            display: 'block',
-          }}
-        />
-      )}
-
-      {/* 2. Guaranteed Fast Autoplay Video Layer */}
-      {currentSrc && (
-        <video
-          ref={setVideoNode}
-          src={currentSrc}
-          autoPlay
-          muted
-          loop
-          playsInline
-          webkit-playsinline="true"
-          x5-playsinline="true"
-          preload="metadata"
-          onError={handleVideoError}
-          onLoadedData={() => setVideoLoaded(true)}
-          onCanPlay={() => {
-            if (isInView && canPlay && videoRef.current?.paused) {
-              videoRef.current.play().then(() => setVideoLoaded(true)).catch(() => {});
-            }
-          }}
-          onPlaying={() => setVideoLoaded(true)}
-          onTimeUpdate={() => {
-            if (!videoLoaded) setVideoLoaded(true);
-          }}
-          className="gallery-video-element"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 1,
-            opacity: videoLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {/* 3. Floating Overlay with Play Button & Tag */}
-      <div className="gallery-video-overlay" style={{ zIndex: 3 }}>
-        <div className="gallery-video-play-btn">
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </div>
-        <span className="gallery-video-tag">
-          {item.span === 3 ? 'Panorama Reel' : item.span === 2 ? 'Wide Reel' : 'Watch Reel'}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 function normalizeGalleryList(list = [], isVideo = false) {
   if (!Array.isArray(list)) return [];
@@ -233,12 +43,10 @@ function normalizeGalleryList(list = [], isVideo = false) {
 
       if (!raw) return null;
 
-      // Automatically filter out 403-blocked/dead mixkit preview URLs
       if (isVideo && raw.includes('mixkit.co')) {
         return null;
       }
 
-      // Ensure local gallery images only reference existing images (gallery-01 to gallery-17)
       if (!isVideo) {
         const localMatch = raw.match(/\/images\/gallery-(\d+)\.jpe?g$/i);
         if (localMatch) {
@@ -254,15 +62,6 @@ function normalizeGalleryList(list = [], isVideo = false) {
       return { src, rawSrc: raw, span, connectNext };
     })
     .filter(item => item && Boolean(item.src));
-}
-
-function createMarqueeItems(items, minCount = 8) {
-  if (!items || !items.length) return [];
-  let list = [...items];
-  while (list.length < minCount) {
-    list = [...list, ...items];
-  }
-  return [...list, ...list];
 }
 
 export default function HomePage() {
@@ -348,10 +147,6 @@ export default function HomePage() {
   const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
   const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos, true);
   const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images, false);
-
-  const marqueeGallery = createMarqueeItems(galleryStrip, 8);
-  const marqueeVideos = createMarqueeItems(videoStrip, 6);
-  const marqueeFeedbacks = createMarqueeItems(feedbackStrip, 8);
 
   return (
     <>
@@ -535,153 +330,56 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Gallery Strip ────────────────────────────────────────────── */}
-      <section className="gallery-strip">
-        <div className="container">
+      {/* ─── Gallery Strip (3D Curved Perspective Carousel) ──────────── */}
+      <section className="gallery-strip" style={{ overflow: 'hidden' }}>
+        <div className="container" style={{ marginBottom: '1.75rem' }}>
           <div className="gallery-head reveal">
             <span className="eyebrow royal">Our Gallery</span>
             <h2>Moments from<br /><em>our journey.</em></h2>
             <p>A glimpse inside our services, video highlights, banners, and the travellers we are proud to serve.</p>
           </div>
-
-          <div className="gallery-row-label">
-            <span className="gallery-row-badge">
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              Company Banners &amp; Updates
-            </span>
-            <span className="gallery-row-desc">Latest service announcements, packages &amp; posters</span>
-          </div>
         </div>
 
-        <div className="gallery-marquee">
-          <div className="gallery-marquee-track">
-            {marqueeGallery.map((item, i) => {
-              const conn = getSlideConnectionClass(marqueeGallery, i);
-              return (
-                <div
-                  className={`gallery-slide gallery-clickable-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
-                  key={`g1-${i}`}
-                  aria-hidden={i >= galleryStrip.length}
-                  onClick={() => setSelectedPhotoIndex(i % galleryStrip.length)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSelectedPhotoIndex(i % galleryStrip.length);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <img
-                    src={item.src}
-                    alt={`Zamani gallery ${(i % galleryStrip.length) + 1}`}
-                    loading={introFinished ? 'eager' : 'lazy'}
-                    decoding="async"
-                    onError={(e) => {
-                      const fallbackNum = ((i % 17) + 1);
-                      const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
-                      if (e.currentTarget.src !== fallbackSrc) {
-                        e.currentTarget.src = fallbackSrc;
-                      }
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Row 1: Company Banners & Updates (Curved 3D Slider) */}
+        <Curved3DSlider
+          items={galleryStrip}
+          isVideo={false}
+          direction="left"
+          speed={0.038}
+          onSelect={(idx) => setSelectedPhotoIndex(idx)}
+          badgeText="Company Banners & Updates"
+          rowSubtitle="Latest service announcements, packages & posters"
+        />
 
+        {/* Row 2: Video Highlights & Reels (Curved 3D Slider with selective playback) */}
         {videoStrip.length > 0 && (
-          <>
-            <div className="container" style={{ marginTop: '2.5rem' }}>
-              <div className="gallery-row-label">
-                <span className="gallery-row-badge video-badge">
-                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                  Video Highlights &amp; Reels
-                </span>
-                <span className="gallery-row-desc">Real glimpses of our tours, destinations &amp; experiences</span>
-              </div>
-            </div>
-
-            <div className="gallery-marquee">
-              <div className="gallery-marquee-track">
-                {marqueeVideos.map((item, i) => {
-                  const conn = getSlideConnectionClass(marqueeVideos, i);
-                  return (
-                    <VideoMarqueeCard
-                      key={`gv-${i}`}
-                      item={item}
-                      index={i}
-                      totalLength={videoStrip.length}
-                      conn={conn}
-                      canPlay={true}
-                      onSelect={() => setSelectedVideoIndex(i % videoStrip.length)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </>
+          <div style={{ marginTop: '2.5rem' }}>
+            <Curved3DSlider
+              items={videoStrip}
+              isVideo={true}
+              direction="right"
+              speed={0.034}
+              onSelect={(idx) => setSelectedVideoIndex(idx)}
+              badgeText="Video Highlights & Reels"
+              rowSubtitle="Real glimpses of our tours, destinations & experiences"
+            />
+          </div>
         )}
 
+        {/* Row 3: Customer Feedbacks & Reviews (Curved 3D Slider) */}
         {feedbackStrip.length > 0 && (
-          <>
-            <div className="container" style={{ marginTop: '2.5rem' }}>
-              <div className="gallery-row-label">
-                <span className="gallery-row-badge feedback-badge">
-                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                  </svg>
-                  Customer Feedbacks &amp; Reviews
-                </span>
-                <span className="gallery-row-desc">Real stories, reviews &amp; happy traveller memories</span>
-              </div>
-            </div>
-
-            <div className="gallery-marquee gallery-marquee-reverse">
-              <div className="gallery-marquee-track">
-                {marqueeFeedbacks.map((item, i) => {
-                  const conn = getSlideConnectionClass(marqueeFeedbacks, i);
-                  return (
-                    <div
-                      className={`gallery-slide gallery-clickable-slide ${conn} ${item.span === 2 ? 'gallery-slide-span-2' : item.span === 3 ? 'gallery-slide-span-3' : ''}`}
-                      key={`g2-${i}`}
-                      aria-hidden={i >= feedbackStrip.length}
-                      onClick={() => setSelectedFeedbackIndex(i % feedbackStrip.length)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setSelectedFeedbackIndex(i % feedbackStrip.length);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <img
-                        src={item.src}
-                        alt={`Customer review ${(i % feedbackStrip.length) + 1}`}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const fallbackNum = ((i % 17) + 1);
-                          const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
-                          if (e.currentTarget.src !== fallbackSrc) {
-                            e.currentTarget.src = fallbackSrc;
-                          }
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
+          <div style={{ marginTop: '2.5rem' }}>
+            <Curved3DSlider
+              items={feedbackStrip}
+              isVideo={false}
+              direction="left"
+              speed={0.038}
+              onSelect={(idx) => setSelectedFeedbackIndex(idx)}
+              badgeText="Customer Feedbacks & Reviews"
+              badgeColor="feedback-badge"
+              rowSubtitle="Real stories, reviews & happy traveller memories"
+            />
+          </div>
         )}
       </section>
 
