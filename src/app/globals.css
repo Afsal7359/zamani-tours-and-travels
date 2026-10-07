@@ -1579,6 +1579,25 @@ footer {
   border-color: rgba(200, 160, 90, 0.55);
   box-shadow: 0 22px 50px rgba(5, 11, 38, 0.28), 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+/* ─── Multi-Image Panorama Merged Slices in 3D ─── */
+.curved3d-card.curved3d-connect-start {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+  box-shadow: -4px 14px 28px rgba(5, 11, 38, 0.14) !important;
+}
+.curved3d-card.curved3d-connect-middle {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: 0 10px 20px rgba(5, 11, 38, 0.08) !important;
+}
+.curved3d-card.curved3d-connect-end {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-left: none !important;
+  box-shadow: 4px 14px 28px rgba(5, 11, 38, 0.14) !important;
+}
 .curved3d-card-img {
   position: absolute;
   inset: 0;
