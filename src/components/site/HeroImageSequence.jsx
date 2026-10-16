@@ -60,7 +60,9 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     const parent = canvas.parentElement;
     if (!parent) return;
 
-    const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2.5);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const maxDpr = isMobile ? 1.75 : 2.2;
+    const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, maxDpr);
     const rect = parent.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
@@ -127,7 +129,7 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
   const renderLoop = useCallback(() => {
     const diff = targetFrameRef.current - currentFrameRef.current;
     if (Math.abs(diff) > 0.001) {
-      currentFrameRef.current += diff * 0.08; // Continuous video-like smooth playback
+      currentFrameRef.current += diff * 0.09;
       drawFrame(Math.min(TOTAL_FRAMES - 1, Math.max(0, Math.round(currentFrameRef.current))));
       animFrameIdRef.current = requestAnimationFrame(renderLoop);
     } else {
@@ -143,34 +145,61 @@ export default function HeroImageSequence({ wrapperRef, fallbackImage }) {
     }
   }, [renderLoop]);
 
+  // Ambient playback on mobile when idle at the top of the page
+  useEffect(() => {
+    if (!imagesLoaded) return;
+    let ambientTimer = null;
+    let forward = true;
+
+    const ambientStep = () => {
+      const scrollY = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
+      if (scrollY < 50) {
+        if (forward) {
+          targetFrameRef.current = Math.min(TOTAL_FRAMES - 1, targetFrameRef.current + 0.35);
+          if (targetFrameRef.current >= TOTAL_FRAMES - 1.2) forward = false;
+        } else {
+          targetFrameRef.current = Math.max(0, targetFrameRef.current - 0.35);
+          if (targetFrameRef.current <= 0.8) forward = true;
+        }
+        triggerRender();
+      }
+    };
+
+    ambientTimer = setInterval(ambientStep, 80);
+    return () => {
+      if (ambientTimer) clearInterval(ambientTimer);
+    };
+  }, [imagesLoaded, triggerRender]);
+
   // Scroll handler with accurate progress mapping for desktop & mobile
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = typeof window !== 'undefined' ? window.scrollY || window.pageYOffset || 0 : 0;
-      
-      if (scrollY <= 5) {
-        targetFrameRef.current = 0;
-        triggerRender();
-        return;
-      }
 
       const wrapper = wrapperRef?.current;
+      const viewportH = typeof window !== 'undefined' ? window.innerHeight || document.documentElement.clientHeight : 800;
+
       if (!wrapper) {
-        const heroHeight = window.innerHeight * 1.8;
-        const progress = Math.min(1, Math.max(0, scrollY / heroHeight));
+        const progress = Math.min(1, Math.max(0, scrollY / (viewportH * 1.5)));
         targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
         triggerRender();
         return;
       }
 
       const rect = wrapper.getBoundingClientRect();
-      const viewportH = typeof window !== 'undefined' ? window.innerHeight || document.documentElement.clientHeight : 800;
       const scrollableHeight = wrapper.clientHeight - viewportH;
-      if (scrollableHeight <= 0) return;
+
+      if (scrollableHeight <= 20) {
+        // Mobile / unpinned mode: map current scroll up to 1 screen height
+        const progress = Math.min(1, Math.max(0, scrollY / viewportH));
+        targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
+        triggerRender();
+        return;
+      }
 
       const currentScroll = Math.max(0, -rect.top);
       const progress = Math.min(1, Math.max(0, currentScroll / scrollableHeight));
-      
+
       targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
       triggerRender();
     };

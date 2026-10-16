@@ -7,7 +7,7 @@ import {
   updateVideoLikes,
   getCleanVideoId,
 } from '@/lib/firestore';
-import { getVideoPosterUrl, getOptimizedVideoUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
@@ -30,9 +30,18 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   const [isLiked, setIsLiked] = useState(false);
   const [heartAnimation, setHeartAnimation] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Playback & Scrubber State
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubTime, setScrubTime] = useState(0);
+  const [isHoveringScrubber, setIsHoveringScrubber] = useState(false);
+  const [soundToast, setSoundToast] = useState(null);
 
   const videoRefs = useRef({});
+  const scrubberContainerRef = useRef(null);
   const touchStartY = useRef(0);
   const touchEndY = useRef(0);
   const isScrolling = useRef(false);
@@ -42,10 +51,16 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
   // Load saved user name from localStorage if available
   useEffect(() => {
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
     try {
       const savedName = localStorage.getItem('zamani_user_name');
       if (savedName) setCommentName(savedName);
     } catch (e) {}
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    };
   }, []);
 
   // Update like status for current video from localStorage
@@ -77,13 +92,24 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     return () => unsub();
   }, [activeVideoUrl]);
 
-  // Handle active video playback
+  // Track last active reel index to only reset currentTime on slide change
+  const lastIndexRef = useRef(currentIndex);
+
+  // Handle active video playback & mute synchronization
   useEffect(() => {
+    const isNewSlide = lastIndexRef.current !== currentIndex;
+    lastIndexRef.current = currentIndex;
+
     Object.entries(videoRefs.current).forEach(([idx, vidEl]) => {
       if (!vidEl) return;
       if (parseInt(idx, 10) === currentIndex) {
-        vidEl.currentTime = 0;
+        if (isNewSlide) {
+          vidEl.currentTime = 0;
+        }
         vidEl.muted = isMuted;
+        if (!isMuted) {
+          vidEl.volume = 1.0;
+        }
         const playPromise = vidEl.play();
         if (playPromise !== undefined) {
           playPromise
@@ -102,10 +128,40 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     });
   }, [currentIndex, isMuted]);
 
+  const toggleSound = useCallback((e) => {
+    if (e) e.stopPropagation();
+    setIsMuted(prev => {
+      const next = !prev;
+      const vid = videoRefs.current[currentIndex];
+      if (vid) {
+        vid.muted = next;
+        if (!next) {
+          vid.volume = 1.0;
+        }
+      }
+      setSoundToast({
+        muted: next,
+        text: next ? 'Sound Muted' : 'Sound On',
+      });
+      return next;
+    });
+  }, [currentIndex]);
+
+  // Auto-dismiss sound toast
+  useEffect(() => {
+    if (!soundToast) return;
+    const t = setTimeout(() => setSoundToast(null), 1300);
+    return () => clearTimeout(t);
+  }, [soundToast]);
+
   const goToIndex = useCallback((nextIdx) => {
     if (nextIdx < 0 || nextIdx >= normalizedVideos.length) return;
     setCurrentIndex(nextIdx);
     setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
+    setScrubTime(0);
+    setIsScrubbing(false);
   }, [normalizedVideos.length]);
 
   const goNext = useCallback(() => {
@@ -127,8 +183,8 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   // Mouse wheel scroll navigation (debounced)
   useEffect(() => {
     const handleWheel = (e) => {
-      if (showComments && window.innerWidth <= 768) return; // allow scrolling inside comments modal on mobile
-      if (isScrolling.current) return;
+      if (showComments && window.innerWidth <= 768) return;
+      if (isScrolling.current || isScrubbing) return;
       if (Math.abs(e.deltaY) > 35) {
         isScrolling.current = true;
         if (e.deltaY > 0) {
@@ -147,7 +203,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       node.addEventListener('wheel', handleWheel, { passive: true });
       return () => node.removeEventListener('wheel', handleWheel);
     }
-  }, [goNext, goPrev, showComments]);
+  }, [goNext, goPrev, showComments, isScrubbing]);
 
   const isLikedRef = useRef(isLiked);
   useEffect(() => {
@@ -155,6 +211,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   }, [isLiked]);
 
   const togglePlayPause = useCallback(() => {
+    if (isScrubbing) return;
     const vid = videoRefs.current[currentIndex];
     if (!vid) return;
     if (vid.paused) {
@@ -164,7 +221,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       vid.pause();
       setIsPlaying(false);
     }
-  }, [currentIndex]);
+  }, [currentIndex, isScrubbing]);
 
   const handleLikeToggle = useCallback(async () => {
     if (!activeVideoUrl) return;
@@ -198,17 +255,29 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       } else if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault();
         goPrev();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const vid = videoRefs.current[currentIndex];
+        if (vid) {
+          vid.currentTime = Math.max(0, vid.currentTime - 5);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const vid = videoRefs.current[currentIndex];
+        if (vid && vid.duration) {
+          vid.currentTime = Math.min(vid.duration, vid.currentTime + 5);
+        }
       } else if (e.key === 'Escape') {
         if (showComments) {
           setShowComments(false);
         } else {
           onClose();
         }
-      } else if (e.key === ' ' || e.key === 'k') {
+      } else if (e.key === ' ') {
         e.preventDefault();
         togglePlayPause();
       } else if (e.key === 'm' || e.key === 'M') {
-        setIsMuted(prev => !prev);
+        toggleSound();
       } else if (e.key === 'l' || e.key === 'L') {
         handleLikeToggle();
       }
@@ -216,7 +285,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goNext, goPrev, showComments, onClose, togglePlayPause, handleLikeToggle]);
+  }, [goNext, goPrev, showComments, onClose, togglePlayPause, handleLikeToggle, toggleSound, currentIndex]);
 
   // Lock background body scroll
   useEffect(() => {
@@ -226,16 +295,19 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     };
   }, []);
 
-  // Touch Swipe Handlers for Mobile
+  // Touch Swipe Handlers for Mobile (only when not scrubbing)
   const handleTouchStart = (e) => {
+    if (isScrubbing) return;
     touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e) => {
+    if (isScrubbing) return;
     touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = () => {
+    if (isScrubbing) return;
     const diff = touchStartY.current - touchEndY.current;
     if (Math.abs(diff) > 55) {
       if (diff > 0) {
@@ -297,12 +369,78 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   };
 
+  // Scrubber & Seeking Helpers
+  const formatTime = (secs) => {
+    if (!secs || isNaN(secs) || secs < 0) return '0:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   const handleTimeUpdate = (e) => {
+    if (isScrubbing) return;
     const vid = e.currentTarget;
     if (vid && vid.duration) {
+      setCurrentTime(vid.currentTime);
+      setDuration(vid.duration);
       setProgress((vid.currentTime / vid.duration) * 100);
     }
   };
+
+  const handleLoadedMetadata = (e) => {
+    const vid = e.currentTarget;
+    if (vid && vid.duration) {
+      setDuration(vid.duration);
+    }
+  };
+
+  const updateSeekFromPointer = (e) => {
+    const vid = videoRefs.current[currentIndex];
+    if (!scrubberContainerRef.current || !vid || !vid.duration) return;
+    const rect = scrubberContainerRef.current.getBoundingClientRect();
+    const clientX = e.clientX;
+    const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const pct = (offsetX / rect.width) * 100;
+    const targetTime = (pct / 100) * vid.duration;
+
+    setScrubTime(targetTime);
+    setCurrentTime(targetTime);
+    setProgress(pct);
+    vid.currentTime = targetTime;
+  };
+
+  const handleScrubberPointerDown = (e) => {
+    e.stopPropagation();
+    const vid = videoRefs.current[currentIndex];
+    if (!vid || !vid.duration) return;
+
+    setIsScrubbing(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
+    updateSeekFromPointer(e);
+  };
+
+  const handleScrubberPointerMove = (e) => {
+    if (!isScrubbing) return;
+    e.stopPropagation();
+    updateSeekFromPointer(e);
+  };
+
+  const handleScrubberPointerUp = (e) => {
+    if (!isScrubbing) return;
+    e.stopPropagation();
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    setIsScrubbing(false);
+    const vid = videoRefs.current[currentIndex];
+    if (vid && isPlaying) {
+      vid.play().catch(() => {});
+    }
+  };
+
+  const displayProgress = Math.max(0, Math.min(100, progress || 0));
 
   return (
     <div
@@ -315,7 +453,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       {/* Background blur overlay */}
       <div className="reel-backdrop-overlay" onClick={onClose} />
 
-      {/* Top Bar: Brand, counter, and Close */}
+      {/* Top Bar: Brand, counter, Sound and Close */}
       <div className="reel-top-bar">
         <div className="reel-brand-info">
           <div className="reel-avatar">
@@ -334,7 +472,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           <button
             type="button"
             className="reel-icon-btn"
-            onClick={() => setIsMuted(prev => !prev)}
+            onClick={toggleSound}
             aria-label={isMuted ? 'Unmute' : 'Mute'}
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
@@ -392,63 +530,122 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
         {/* Video Card Container */}
         <div className="reel-card-wrapper">
+          {/* Quick Floating Sound Button directly on Reel Card */}
+          <button
+            type="button"
+            className="reel-floating-sound-btn"
+            onClick={toggleSound}
+            aria-label={isMuted ? 'Unmute video sound' : 'Mute video sound'}
+            title={isMuted ? 'Unmute sound (M)' : 'Mute sound (M)'}
+          >
+            {isMuted ? (
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            )}
+          </button>
+
+          {/* Animated Sound Toast Overlay */}
+          {soundToast && (
+            <div className="reel-sound-toast" key={soundToast.text}>
+              {soundToast.muted ? (
+                <>
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                    <line x1="23" y1="9" x2="17" y2="15"/>
+                    <line x1="17" y1="9" x2="23" y2="15"/>
+                  </svg>
+                  <span>Sound Muted</span>
+                </>
+              ) : (
+                <>
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  </svg>
+                  <span>Sound On</span>
+                </>
+              )}
+            </div>
+          )}
+
           <div
             className="reel-slider-track"
             style={{ transform: `translateY(-${currentIndex * 100}%)` }}
           >
-            {normalizedVideos.map((src, idx) => (
-              <div
-                className="reel-slide-item"
-                key={`${src}-${idx}`}
-                onDoubleClick={handleDoubleTap}
-                onClick={togglePlayPause}
-              >
-                {getVideoPosterUrl(src) ? (
-                  <img
-                    src={getVideoPosterUrl(src)}
-                    alt={`Reel ${idx + 1}`}
-                    loading="eager"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      zIndex: 0,
-                    }}
-                  />
-                ) : null}
+            {normalizedVideos.map((src, idx) => {
+              const isNearActive = Math.abs(currentIndex - idx) <= 1;
+              return (
+                <div
+                  className="reel-slide-item"
+                  key={`${src}-${idx}`}
+                  onDoubleClick={handleDoubleTap}
+                  onClick={togglePlayPause}
+                >
+                  {getVideoPosterUrl(src) ? (
+                    <img
+                      src={getVideoPosterUrl(src)}
+                      alt={`Reel ${idx + 1}`}
+                      loading={isNearActive ? 'eager' : 'lazy'}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        zIndex: 0,
+                      }}
+                    />
+                  ) : null}
 
-                <video
-                  ref={el => (videoRefs.current[idx] = el)}
-                  src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
-                  poster={getVideoPosterUrl(src) || undefined}
-                  loop
-                  playsInline
-                  webkit-playsinline="true"
-                  x5-playsinline="true"
-                  preload={Math.abs(currentIndex - idx) <= 1 ? 'auto' : 'none'}
-                  onError={(e) => {
-                    if (e.currentTarget.src !== src && src) {
-                      e.currentTarget.src = src;
-                      e.currentTarget.play().catch(() => {});
-                    }
-                  }}
-                  onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
-                  className="reel-video-element"
-                  style={{ position: 'relative', zIndex: 1 }}
-                />
+                  {isNearActive && (
+                    <video
+                      ref={el => {
+                        if (el) {
+                          videoRefs.current[idx] = el;
+                        } else {
+                          delete videoRefs.current[idx];
+                        }
+                      }}
+                      src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
+                      poster={getVideoPosterUrl(src) || undefined}
+                      loop
+                      playsInline
+                      webkit-playsinline="true"
+                      x5-playsinline="true"
+                      preload={idx === currentIndex ? 'auto' : 'metadata'}
+                      onError={(e) => {
+                        if (e.currentTarget.src !== src && src) {
+                          e.currentTarget.src = src;
+                          e.currentTarget.play().catch(() => {});
+                        }
+                      }}
+                      onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
+                      onLoadedMetadata={idx === currentIndex ? handleLoadedMetadata : undefined}
+                      onDurationChange={idx === currentIndex ? handleLoadedMetadata : undefined}
+                      className="reel-video-element"
+                      style={{ position: 'relative', zIndex: 1 }}
+                    />
+                  )}
 
-                {/* Big play icon overlay when paused */}
-                {!isPlaying && idx === currentIndex && (
-                  <div className="reel-play-indicator">
-                    <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* Big play icon overlay when paused */}
+                  {!isPlaying && idx === currentIndex && (
+                    <div className="reel-play-indicator">
+                      <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Floating Heart burst animation on double tap */}
@@ -460,21 +657,90 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             </div>
           )}
 
-          {/* Progress Bar on active video */}
-          <div className="reel-progress-bar">
-            <div className="reel-progress-fill" style={{ width: `${progress}%` }} />
-          </div>
-
-          {/* Reel Bottom Caption Overlay */}
+          {/* Reel Bottom Caption Overlay with Live Time Badge */}
           <div className="reel-caption-overlay">
             <div className="reel-caption-text">
-              <span className="reel-tag">✦ Zamani Travel Experience</span>
+              <div className="reel-caption-meta-row">
+                <span className="reel-tag">✦ Zamani Travel Experience</span>
+                {duration > 0 && (
+                  <span className="reel-time-badge">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                )}
+              </div>
               <p>Explore breathtaking destinations, premium holiday packages &amp; seamless visa journeys.</p>
+            </div>
+          </div>
+
+          {/* Interactive Video Scrubber with Draggable Pointer */}
+          <div
+            className={`reel-scrubber-container ${isScrubbing ? 'is-scrubbing' : ''}`}
+            ref={scrubberContainerRef}
+            onPointerDown={handleScrubberPointerDown}
+            onPointerMove={handleScrubberPointerMove}
+            onPointerUp={handleScrubberPointerUp}
+            onPointerCancel={handleScrubberPointerUp}
+            onMouseEnter={() => setIsHoveringScrubber(true)}
+            onMouseLeave={() => setIsHoveringScrubber(false)}
+            onClick={(e) => e.stopPropagation()}
+            title="Drag pointer to seek forward or backward"
+          >
+            {/* Live seeking time tooltip */}
+            {(isScrubbing || isHoveringScrubber) && duration > 0 && (
+              <div
+                className="reel-scrubber-tooltip"
+                style={{
+                  left: `${Math.max(6, Math.min(94, displayProgress))}%`,
+                }}
+              >
+                <span>{formatTime(isScrubbing ? scrubTime : currentTime)} / {formatTime(duration)}</span>
+              </div>
+            )}
+
+            <div className="reel-scrubber-track">
+              <div
+                className="reel-scrubber-fill"
+                style={{ width: `${displayProgress}%` }}
+              />
+              <div
+                className="reel-scrubber-thumb"
+                style={{ left: `${displayProgress}%` }}
+                role="slider"
+                aria-label="Video seek pointer"
+                aria-valuenow={Math.round(displayProgress)}
+                aria-valuemin="0"
+                aria-valuemax="100"
+              />
             </div>
           </div>
 
           {/* Side Interaction Actions (Instagram Reels Style) */}
           <div className="reel-actions-panel" onClick={e => e.stopPropagation()}>
+            {/* Sound Toggle Action */}
+            <div className="reel-action-group">
+              <button
+                type="button"
+                className={`reel-action-btn ${!isMuted ? 'active-sound' : ''}`}
+                onClick={toggleSound}
+                aria-label={isMuted ? 'Unmute video sound' : 'Mute video sound'}
+                title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
+              >
+                {isMuted ? (
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#ffffff" strokeWidth="2">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                    <line x1="23" y1="9" x2="17" y2="15"/>
+                    <line x1="17" y1="9" x2="23" y2="15"/>
+                  </svg>
+                ) : (
+                  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#d4af37" strokeWidth="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="rgba(212,175,55,0.2)"/>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  </svg>
+                )}
+              </button>
+              <span className="reel-action-count">{isMuted ? 'Muted' : 'Sound'}</span>
+            </div>
+
             {/* Like Button */}
             <div className="reel-action-group">
               <button

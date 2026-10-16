@@ -190,6 +190,8 @@ export default memo(function Curved3DSlider({
   const velocityRef = useRef(0);
   const isPointerDownRef = useRef(false);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const hasCapturedRef = useRef(false);
   const lastXRef = useRef(0);
   const lastTimeRef = useRef(0);
   const dragDistanceRef = useRef(0);
@@ -197,6 +199,14 @@ export default memo(function Curved3DSlider({
   const isInViewRef = useRef(true);
   const rafIdRef = useRef(null);
   const baseSpeedRef = useRef(direction === 'right' ? speed : -speed);
+
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+  useEffect(() => {
+    const checkMob = () => setIsMobileScreen(typeof window !== 'undefined' && window.innerWidth <= 768);
+    checkMob();
+    window.addEventListener('resize', checkMob);
+    return () => window.removeEventListener('resize', checkMob);
+  }, []);
 
   useEffect(() => {
     baseSpeedRef.current = direction === 'right' ? Math.abs(speed) : -Math.abs(speed);
@@ -206,8 +216,8 @@ export default memo(function Curved3DSlider({
   const cleanItems = items.filter(Boolean);
   const origLen = cleanItems.length;
 
-  // Determine repeat count so that the 3D cylinder has enough density (~24 to 28 cards)
-  const targetSlots = 26;
+  // Determine repeat count: 16 slots on mobile for fast 60fps rendering, 26 on desktop
+  const targetSlots = isMobileScreen ? 16 : 26;
   const repeatCount = origLen > 0 ? Math.max(1, Math.ceil(targetSlots / origLen)) : 1;
 
   // Build the ring items with merged connection metadata
@@ -239,20 +249,20 @@ export default memo(function Curved3DSlider({
     let baseWidth, cardHeight, normalGap, stageHeight, maxAngle;
 
     if (w < 480) {
-      baseWidth = 160;
-      cardHeight = 225;
-      normalGap = 18;
-      stageHeight = 285;
-      maxAngle = 54;
+      baseWidth = 175;
+      cardHeight = 245;
+      normalGap = 16;
+      stageHeight = 295;
+      maxAngle = 50;
     } else if (w < 768) {
-      baseWidth = 180;
-      cardHeight = 255;
-      normalGap = 22;
-      stageHeight = 320;
-      maxAngle = 58;
+      baseWidth = 195;
+      cardHeight = 270;
+      normalGap = 20;
+      stageHeight = 330;
+      maxAngle = 55;
     } else if (w < 1024) {
-      baseWidth = 205;
-      cardHeight = 290;
+      baseWidth = 210;
+      cardHeight = 295;
       normalGap = 26;
       stageHeight = 360;
       maxAngle = 62;
@@ -352,10 +362,12 @@ export default memo(function Curved3DSlider({
         return;
       }
 
+      const isModalOpen = typeof document !== 'undefined' && document.body.classList.contains('modal-open');
+
       // Physics update
       if (isPointerDownRef.current) {
         // Dragging: controlled by pointer
-      } else {
+      } else if (!isModalOpen) {
         if (Math.abs(velocityRef.current) > 0.002) {
           angleRef.current += velocityRef.current;
           velocityRef.current *= 0.94; // inertia decay
@@ -386,6 +398,7 @@ export default memo(function Curved3DSlider({
           if (isVideo) {
             const vid = videoElementsRef.current[i];
             if (vid && !vid.paused) {
+              vid.__playPending = false;
               vid.pause();
             }
           }
@@ -418,11 +431,25 @@ export default memo(function Curved3DSlider({
           cardEl.style.pointerEvents = 'auto';
         }
 
-        // Keep visible video playing smoothly
+        // Keep visible video playing smoothly (pause if modal is open to free decoders)
         if (isVideo) {
           const vid = videoElementsRef.current[i];
-          if (vid && vid.paused) {
-            vid.play().catch(() => {});
+          if (vid) {
+            if (isModalOpen) {
+              if (!vid.paused) {
+                vid.__playPending = false;
+                vid.pause();
+              }
+            } else if (vid.paused && !vid.__playPending) {
+              vid.__playPending = true;
+              const p = vid.play();
+              if (p !== undefined) {
+                p.then(() => { vid.__playPending = false; })
+                  .catch(() => { vid.__playPending = false; });
+              } else {
+                vid.__playPending = false;
+              }
+            }
           }
         }
       }
@@ -437,22 +464,40 @@ export default memo(function Curved3DSlider({
     };
   }, [totalSlots, isVideo]);
 
-  // Unified Pointer Handlers
+  // Unified Pointer Handlers (Smart Gesture Separation for 100% Fluid Mobile Scroll)
   const handlePointerDown = (e) => {
     isPointerDownRef.current = true;
     startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
     lastXRef.current = e.clientX;
     lastTimeRef.current = performance.now();
     dragDistanceRef.current = 0;
     velocityRef.current = 0;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
+    hasCapturedRef.current = false;
   };
 
   const handlePointerMove = (e) => {
     if (!isPointerDownRef.current) return;
     const currentX = e.clientX;
+    const currentY = e.clientY;
+    const totalDx = currentX - startXRef.current;
+    const totalDy = currentY - startYRef.current;
+
+    // Smart vertical vs horizontal gesture detection on touch screens
+    if (!hasCapturedRef.current) {
+      if (Math.abs(totalDy) > Math.abs(totalDx) && Math.abs(totalDy) > 6) {
+        // User wants to scroll the page vertically! Cancel slider capture
+        isPointerDownRef.current = false;
+        return;
+      }
+      if (Math.abs(totalDx) > 7 && Math.abs(totalDx) >= Math.abs(totalDy)) {
+        hasCapturedRef.current = true;
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_) {}
+      }
+    }
+
     const dx = currentX - lastXRef.current;
     dragDistanceRef.current += Math.abs(dx);
 
@@ -470,8 +515,9 @@ export default memo(function Curved3DSlider({
   };
 
   const handlePointerUp = (e) => {
-    if (!isPointerDownRef.current) return;
+    if (!isPointerDownRef.current && !hasCapturedRef.current) return;
     isPointerDownRef.current = false;
+    hasCapturedRef.current = false;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch (_) {}

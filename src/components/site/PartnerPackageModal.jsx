@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { savePackageRequest } from '@/lib/firestore';
 import { uploadToCloudinary } from '@/lib/upload';
 
@@ -8,6 +8,20 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [requestId, setRequestId] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Form State
   const [formData, setFormData] = useState({

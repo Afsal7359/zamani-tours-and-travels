@@ -86,10 +86,11 @@ export default function LoadingScreen({ onFinished }) {
       document.body.classList.add('intro-scroll-lock');
     }
 
-    // Maximum safety timeout (video is 8s; max wait 9.5s)
+    // Maximum safety timeout (4.5s on mobile, 9s on desktop)
+    const maxWait = typeof window !== 'undefined' && window.innerWidth <= 768 ? 4500 : 9000;
     fallbackTimerRef.current = setTimeout(() => {
       dismiss();
-    }, 9500);
+    }, maxWait);
 
     return () => {
       if (fallbackTimerRef.current) {
@@ -99,7 +100,7 @@ export default function LoadingScreen({ onFinished }) {
     };
   }, [dismiss, unlockScroll]);
 
-  // Skip immediately on any scroll, wheel, or swipe gesture
+  // Skip immediately on any tap, scroll, wheel, or swipe gesture
   useEffect(() => {
     if (!mounted || removed || isExiting) return;
 
@@ -109,10 +110,12 @@ export default function LoadingScreen({ onFinished }) {
 
     window.addEventListener('wheel', handleScrollOrSwipe, { passive: true });
     window.addEventListener('touchmove', handleScrollOrSwipe, { passive: true });
+    window.addEventListener('touchstart', handleScrollOrSwipe, { passive: true });
 
     return () => {
       window.removeEventListener('wheel', handleScrollOrSwipe);
       window.removeEventListener('touchmove', handleScrollOrSwipe);
+      window.removeEventListener('touchstart', handleScrollOrSwipe);
     };
   }, [mounted, removed, isExiting, dismiss]);
 

@@ -12,8 +12,8 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
   const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-
-
+  const touchStartY = useRef(0);
+  const touchEndY = useRef(0);
 
   // Auto-slide every 5 seconds when card has multiple photos and user is not hovering
   useEffect(() => {
@@ -43,17 +43,25 @@ export default function PackageCard({ pkg, index = 0, className = '' }) {
   };
 
   const handleTouchStart = (e) => {
+    if (images.length <= 1) return;
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e) => {
+    if (images.length <= 1) return;
     touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 35) {
-      if (diff > 0) {
+    if (images.length <= 1) return;
+    const diffX = touchStartX.current - touchEndX.current;
+    const diffY = touchStartY.current - touchEndY.current;
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      if (diffX > 0) {
         // swipe left -> next
         setCurrentIdx(prev => (prev + 1) % images.length);
       } else {

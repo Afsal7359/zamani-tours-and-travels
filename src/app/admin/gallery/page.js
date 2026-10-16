@@ -29,8 +29,14 @@ function normalizeItems(list = []) {
       }
       if (!raw) return null;
 
-      // Filter out 403-dead mixkit preview URLs
-      if (raw.includes('mixkit.co')) {
+      // Filter out 403-dead mixkit preview URLs and demo videos
+      if (
+        raw.includes('mixkit.co') ||
+        raw.includes('dog.mp4') ||
+        raw.includes('sea_turtle.mp4') ||
+        raw.includes('elephants.mp4') ||
+        raw.includes('ship.mp4')
+      ) {
         return null;
       }
 

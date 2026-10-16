@@ -38,6 +38,15 @@ export default function PhotoReelModal({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+
+  useEffect(() => {
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    };
+  }, []);
   const [heartAnimation, setHeartAnimation] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 

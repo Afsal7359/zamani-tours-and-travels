@@ -43,7 +43,14 @@ function normalizeGalleryList(list = [], isVideo = false) {
 
       if (!raw) return null;
 
-      if (isVideo && raw.includes('mixkit.co')) {
+      if (
+        isVideo &&
+        (raw.includes('mixkit.co') ||
+          raw.includes('dog.mp4') ||
+          raw.includes('sea_turtle.mp4') ||
+          raw.includes('elephants.mp4') ||
+          raw.includes('ship.mp4'))
+      ) {
         return null;
       }
 
@@ -145,7 +152,17 @@ export default function HomePage() {
   const marqueeItems = home?.marqueeItems || [];
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
   const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
-  const videoStrip = videoGallery.length ? videoGallery : normalizeGalleryList(defaultVideoGallery.videos, true);
+  const cleanDefaultVideos = normalizeGalleryList(defaultVideoGallery.videos, true);
+  const combinedVideos = [...videoGallery];
+  const seenVideoKeys = new Set(videoGallery.map(v => v.rawSrc || v.src));
+  cleanDefaultVideos.forEach(v => {
+    const key = v.rawSrc || v.src;
+    if (!seenVideoKeys.has(key)) {
+      seenVideoKeys.add(key);
+      combinedVideos.push(v);
+    }
+  });
+  const videoStrip = combinedVideos.length > 0 ? combinedVideos : cleanDefaultVideos;
   const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images, false);
 
   return (

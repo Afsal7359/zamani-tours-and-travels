@@ -12,12 +12,12 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchEndY = useRef(0);
   const thumbsRef = useRef(null);
   const videoRefs = useRef([]);
 
   const cleanMedia = images.filter(Boolean);
-
-
 
   // Auto slide every 4.5 seconds when not hovered and active item is not a video
   useEffect(() => {
@@ -67,16 +67,21 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) {
+    const diffX = touchStartX.current - touchEndX.current;
+    const diffY = touchStartY.current - touchEndY.current;
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      if (diffX > 0) {
         handleNext();
       } else {
         handlePrev();

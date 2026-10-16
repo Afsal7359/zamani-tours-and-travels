@@ -705,8 +705,39 @@ export async function getVideoGallery(forceFresh = false) {
       data = defaultVideoGallery;
     } else {
       const d = snap.data();
+      const rawList = Array.isArray(d?.videos) ? d.videos : [];
+      // Filter out demo videos and dead preview links
+      const cleanList = rawList.filter(item => {
+        const u = typeof item === 'string' ? item : (item?.src || item?.url || '');
+        if (!u) return false;
+        if (
+          u.includes('mixkit.co') ||
+          u.includes('dog.mp4') ||
+          u.includes('sea_turtle.mp4') ||
+          u.includes('elephants.mp4') ||
+          u.includes('ship.mp4')
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+      // If user has saved videos in Firestore, respect them; otherwise fallback to defaults
+      const sourceList = cleanList.length > 0 ? cleanList : defaultVideoGallery.videos;
+      const seen = new Set();
+      const formatted = [];
+      for (const item of sourceList) {
+        const u = (typeof item === 'string' ? item : (item?.src || item?.url || '')).trim();
+        if (!u || seen.has(u)) continue;
+        seen.add(u);
+        const obj = typeof item === 'object' && item !== null
+          ? { src: u, span: item.span || 1, connectNext: Boolean(item.connectNext) }
+          : { src: u, span: 1, connectNext: false };
+        formatted.push(obj);
+      }
+
       data = {
-        videos: Array.isArray(d?.videos) ? d.videos : defaultVideoGallery.videos,
+        videos: formatted.length > 0 ? formatted : defaultVideoGallery.videos,
       };
     }
     setCachedData('video_gallery', data);
