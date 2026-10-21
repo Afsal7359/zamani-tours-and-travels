@@ -11,7 +11,7 @@ import {
 } from '@/lib/firestore';
 import { defaultGallery, defaultFeedbackGallery, defaultVideoGallery } from '@/lib/defaultData';
 import { uploadToCloudinary } from '@/lib/upload';
-import { getVideoPosterUrl, isVideoUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl, isVideoUrl, isYouTubeUrl, parseYouTubeUrl } from '@/lib/videoUtils';
 
 function normalizeItems(list = []) {
   if (!Array.isArray(list)) return [];
@@ -495,6 +495,31 @@ export default function AdminGalleryPage() {
             style={{ display: 'none' }}
             onChange={handleFiles}
           />
+          {activeTab === 'videos' && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(245,158,11,0.08))',
+                border: '1.5px solid rgba(239,68,68,0.25)',
+                borderRadius: '12px',
+                padding: '0.85rem 1.1rem',
+                marginBottom: '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.8rem',
+              }}
+            >
+              <span style={{ fontSize: '1.6rem' }}>▶️</span>
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontSize: '0.88rem', color: '#991b1b', display: 'block', marginBottom: '2px' }}>
+                  YouTube Videos &amp; Shorts Supported (Free Unlimited Storage)
+                </strong>
+                <div style={{ fontSize: '0.8rem', color: '#7f1d1d', lineHeight: '1.4' }}>
+                  Cloudinary storage limit full? You can paste any <strong>YouTube video or Shorts link</strong> (e.g. <code>https://youtube.com/shorts/...</code> or <code>https://youtu.be/...</code>) into the box below and click <strong>Add URL</strong>. They load fast with zero Cloudinary cost!
+                </div>
+              </div>
+            </div>
+          )}
+
           <div
             style={{
               display: 'flex',
@@ -529,7 +554,7 @@ export default function AdminGalleryPage() {
                   addUrl();
                 }
               }}
-              placeholder={activeTab === 'videos' ? 'or paste direct video URL (.mp4)...' : 'or paste image URL(s)...'}
+              placeholder={activeTab === 'videos' ? 'Paste YouTube video / Shorts link (or .mp4 URL)...' : 'or paste image URL(s)...'}
               style={{ flex: 1, minWidth: '240px' }}
             />
             <button type="button" className="admin-btn admin-btn-secondary" onClick={addUrl}>
@@ -564,7 +589,61 @@ export default function AdminGalleryPage() {
                     </button>
                   </div>
 
-                  {activeTab === 'videos' || isVideoUrl(item.src) ? (
+                  {isYouTubeUrl(item.src) ? (
+                    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000', overflow: 'hidden' }}>
+                      <img
+                        src={getVideoPosterUrl(item.src)}
+                        alt={`YouTube ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '8px',
+                          left: '8px',
+                          right: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                          }}
+                        >
+                          ▶ YouTube
+                        </span>
+                        <a
+                          href={item.src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            background: 'rgba(0,0,0,0.75)',
+                            color: '#ffffff',
+                            fontSize: '0.7rem',
+                            padding: '3px 7px',
+                            borderRadius: '4px',
+                            textDecoration: 'none',
+                            fontWeight: 500,
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          Test ↗
+                        </a>
+                      </div>
+                    </div>
+                  ) : activeTab === 'videos' || isVideoUrl(item.src) ? (
                     <video
                       src={item.src || ''}
                       poster={getVideoPosterUrl(item.src) || undefined}

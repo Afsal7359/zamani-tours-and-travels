@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
-import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl, isYouTubeUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function DetailGallerySlider({ images = [], title = 'Gallery' }) {
@@ -137,6 +137,7 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
         >
           {cleanMedia.map((mediaUrl, i) => {
             const isVid = isVideoUrl(mediaUrl);
+            const isYt = isYouTubeUrl(mediaUrl);
             const isActive = activeIdx === i;
             return (
               <div
@@ -147,35 +148,46 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
               >
                 {isVid ? (
                   <>
-                    <video
-                      ref={(el) => {
-                        videoRefs.current[i] = el;
-                      }}
-                      src={mediaUrl ? getAdaptiveVideoUrl(mediaUrl, 'reel') : ''}
-                      poster={getVideoPosterUrl(mediaUrl) || undefined}
-                      autoPlay={isActive}
-                      muted
-                      loop
-                      playsInline
-                      webkit-playsinline="true"
-                      x5-playsinline="true"
-                      preload={isActive ? 'auto' : 'metadata'}
-                      onError={(e) => {
-                        if (e.currentTarget.src !== mediaUrl && mediaUrl) {
-                          e.currentTarget.src = mediaUrl;
-                          if (isActive) e.currentTarget.play().catch(() => {});
-                        }
-                      }}
-                      className="svc-gallery-video-element"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#050b26' }}
-                    />
+                    {isYt ? (
+                      <img
+                        src={getVideoPosterUrl(mediaUrl)}
+                        alt={`${title} video ${i + 1}`}
+                        className="svc-gallery-video-element"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          videoRefs.current[i] = el;
+                        }}
+                        src={mediaUrl ? getAdaptiveVideoUrl(mediaUrl, 'reel') : ''}
+                        poster={getVideoPosterUrl(mediaUrl) || undefined}
+                        autoPlay={isActive}
+                        muted
+                        loop
+                        playsInline
+                        webkit-playsinline="true"
+                        x5-playsinline="true"
+                        preload={isActive ? 'auto' : 'metadata'}
+                        onError={(e) => {
+                          if (e.currentTarget.src !== mediaUrl && mediaUrl) {
+                            e.currentTarget.src = mediaUrl;
+                            if (isActive) e.currentTarget.play().catch(() => {});
+                          }
+                        }}
+                        className="svc-gallery-video-element"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#050b26' }}
+                      />
+                    )}
                     <div className="svc-gallery-video-overlay">
-                      <div className="svc-gallery-play-btn">
+                      <div className="svc-gallery-play-btn" style={isYt ? { background: '#ef4444' } : undefined}>
                         <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
                         </svg>
                       </div>
-                      <span className="svc-gallery-fullscreen-tag">✦ Watch Full Reel</span>
+                      <span className="svc-gallery-fullscreen-tag">
+                        {isYt ? '▶ Watch YouTube Reel' : '✦ Watch Full Reel'}
+                      </span>
                     </div>
                   </>
                 ) : (

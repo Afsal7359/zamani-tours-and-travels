@@ -793,6 +793,14 @@ export function getCleanVideoId(videoUrl) {
   let url = typeof videoUrl === 'string' ? videoUrl : (videoUrl?.src || videoUrl?.url || '');
   if (!url) return 'default_media';
 
+  // Extract YouTube video ID directly (before query string stripping)
+  const ytMatch = url.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  );
+  if (ytMatch && ytMatch[1]) {
+    return `reel_yt_${ytMatch[1]}`;
+  }
+
   // 1. Remove query parameters and hashes
   url = url.split('?')[0].split('#')[0].trim();
 

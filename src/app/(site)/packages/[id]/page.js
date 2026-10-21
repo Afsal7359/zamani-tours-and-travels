@@ -7,7 +7,7 @@ import Footer from '@/components/site/Footer';
 import { getPackageBySlug, getPackage, getSiteSettings } from '@/lib/firestore';
 import DetailGallerySlider from '@/components/site/DetailGallerySlider';
 import PartnerPackageModal from '@/components/site/PartnerPackageModal';
-import { getOptimizedImageUrl, getItineraryMedia, isVideoUrl, getVideoPosterUrl } from '@/lib/videoUtils';
+import { getOptimizedImageUrl, getItineraryMedia, isVideoUrl, getVideoPosterUrl, isYouTubeUrl, parseYouTubeUrl } from '@/lib/videoUtils';
 
 export default function PackageDetailPage() {
   const { id } = useParams();
@@ -194,6 +194,8 @@ export default function PackageDetailPage() {
                       const stepDesc = step.description || step.desc || step.details || '';
                       const stepImg = getItineraryMedia(step);
                       const isVid = isVideoUrl(stepImg);
+                      const isYt = isYouTubeUrl(stepImg);
+                      const ytInfo = isYt ? parseYouTubeUrl(stepImg) : null;
 
                       return (
                         <div className="pkg-itin-item" key={i}>
@@ -207,15 +209,43 @@ export default function PackageDetailPage() {
                             {stepImg && (
                               <div className="pkg-itin-photo">
                                 {isVid ? (
-                                  <video
-                                    src={stepImg}
-                                    poster={getVideoPosterUrl(stepImg) || undefined}
-                                    controls
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                    className="pkg-itin-video"
-                                  />
+                                  isYt ? (
+                                    <div
+                                      style={{
+                                        position: 'relative',
+                                        width: '100%',
+                                        paddingBottom: '56.25%',
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        background: '#000',
+                                      }}
+                                    >
+                                      <iframe
+                                        src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?rel=0&playsinline=1`}
+                                        title={step.title || `Day ${i + 1}`}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        style={{
+                                          position: 'absolute',
+                                          top: 0,
+                                          left: 0,
+                                          width: '100%',
+                                          height: '100%',
+                                          border: 'none',
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <video
+                                      src={stepImg}
+                                      poster={getVideoPosterUrl(stepImg) || undefined}
+                                      controls
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                      className="pkg-itin-video"
+                                    />
+                                  )
                                 ) : (
                                   <img
                                     src={stepImg}

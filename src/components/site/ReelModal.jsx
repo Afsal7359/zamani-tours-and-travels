@@ -7,7 +7,7 @@ import {
   updateVideoLikes,
   getCleanVideoId,
 } from '@/lib/firestore';
-import { getVideoPosterUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl, isYouTubeUrl, parseYouTubeUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
@@ -41,6 +41,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   const [soundToast, setSoundToast] = useState(null);
 
   const videoRefs = useRef({});
+  const ytIframeRefs = useRef({});
   const scrubberContainerRef = useRef(null);
   const touchStartY = useRef(0);
   const touchEndY = useRef(0);
@@ -126,6 +127,21 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         vidEl.currentTime = 0;
       }
     });
+
+    // YouTube iframe audio sync
+    const ifr = ytIframeRefs.current[currentIndex];
+    if (ifr && ifr.contentWindow) {
+      try {
+        ifr.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: isMuted ? 'mute' : 'unMute',
+            args: [],
+          }),
+          '*'
+        );
+      } catch (_) {}
+    }
   }, [currentIndex, isMuted]);
 
   const toggleSound = useCallback((e) => {
@@ -138,6 +154,19 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         if (!next) {
           vid.volume = 1.0;
         }
+      }
+      const ifr = ytIframeRefs.current[currentIndex];
+      if (ifr && ifr.contentWindow) {
+        try {
+          ifr.contentWindow.postMessage(
+            JSON.stringify({
+              event: 'command',
+              func: next ? 'mute' : 'unMute',
+              args: [],
+            }),
+            '*'
+          );
+        } catch (_) {}
       }
       setSoundToast({
         muted: next,
@@ -212,6 +241,25 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
   const togglePlayPause = useCallback(() => {
     if (isScrubbing) return;
+    const isYt = isYouTubeUrl(activeVideoUrl);
+    if (isYt) {
+      const ifr = ytIframeRefs.current[currentIndex];
+      if (ifr && ifr.contentWindow) {
+        const nextPlay = !isPlaying;
+        try {
+          ifr.contentWindow.postMessage(
+            JSON.stringify({
+              event: 'command',
+              func: nextPlay ? 'playVideo' : 'pauseVideo',
+              args: [],
+            }),
+            '*'
+          );
+        } catch (_) {}
+        setIsPlaying(nextPlay);
+      }
+      return;
+    }
     const vid = videoRefs.current[currentIndex];
     if (!vid) return;
     if (vid.paused) {
@@ -221,7 +269,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       vid.pause();
       setIsPlaying(false);
     }
-  }, [currentIndex, isScrubbing]);
+  }, [currentIndex, isScrubbing, activeVideoUrl, isPlaying]);
 
   const handleLikeToggle = useCallback(async () => {
     if (!activeVideoUrl) return;
@@ -582,12 +630,16 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           >
             {normalizedVideos.map((src, idx) => {
               const isNearActive = Math.abs(currentIndex - idx) <= 1;
+              const ytInfo = parseYouTubeUrl(src);
+              const isYt = Boolean(ytInfo);
+
               return (
                 <div
                   className="reel-slide-item"
                   key={`${src}-${idx}`}
                   onDoubleClick={handleDoubleTap}
-                  onClick={togglePlayPause}
+                  onClick={!isYt ? togglePlayPause : undefined}
+                  style={isYt ? { background: '#000' } : undefined}
                 >
                   {getVideoPosterUrl(src) ? (
                     <img
@@ -606,37 +658,61 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   ) : null}
 
                   {isNearActive && (
-                    <video
-                      ref={el => {
-                        if (el) {
-                          videoRefs.current[idx] = el;
-                        } else {
-                          delete videoRefs.current[idx];
-                        }
-                      }}
-                      src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
-                      poster={getVideoPosterUrl(src) || undefined}
-                      loop
-                      playsInline
-                      webkit-playsinline="true"
-                      x5-playsinline="true"
-                      preload={idx === currentIndex ? 'auto' : 'metadata'}
-                      onError={(e) => {
-                        if (e.currentTarget.src !== src && src) {
-                          e.currentTarget.src = src;
-                          e.currentTarget.play().catch(() => {});
-                        }
-                      }}
-                      onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
-                      onLoadedMetadata={idx === currentIndex ? handleLoadedMetadata : undefined}
-                      onDurationChange={idx === currentIndex ? handleLoadedMetadata : undefined}
-                      className="reel-video-element"
-                      style={{ position: 'relative', zIndex: 1 }}
-                    />
+                    isYt ? (
+                      idx === currentIndex ? (
+                        <iframe
+                          ref={el => {
+                            if (el) ytIframeRefs.current[idx] = el;
+                            else delete ytIframeRefs.current[idx];
+                          }}
+                          src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&controls=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${ytInfo.videoId}`}
+                          title={`YouTube Reel ${idx + 1}`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          className="reel-video-element"
+                          style={{
+                            position: 'relative',
+                            zIndex: 1,
+                            width: '100%',
+                            height: '100%',
+                            border: 'none',
+                            display: 'block',
+                          }}
+                        />
+                      ) : null
+                    ) : (
+                      <video
+                        ref={el => {
+                          if (el) {
+                            videoRefs.current[idx] = el;
+                          } else {
+                            delete videoRefs.current[idx];
+                          }
+                        }}
+                        src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
+                        poster={getVideoPosterUrl(src) || undefined}
+                        loop
+                        playsInline
+                        webkit-playsinline="true"
+                        x5-playsinline="true"
+                        preload={idx === currentIndex ? 'auto' : 'metadata'}
+                        onError={(e) => {
+                          if (e.currentTarget.src !== src && src) {
+                            e.currentTarget.src = src;
+                            e.currentTarget.play().catch(() => {});
+                          }
+                        }}
+                        onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
+                        onLoadedMetadata={idx === currentIndex ? handleLoadedMetadata : undefined}
+                        onDurationChange={idx === currentIndex ? handleLoadedMetadata : undefined}
+                        className="reel-video-element"
+                        style={{ position: 'relative', zIndex: 1 }}
+                      />
+                    )
                   )}
 
                   {/* Big play icon overlay when paused */}
-                  {!isPlaying && idx === currentIndex && (
+                  {!isYt && !isPlaying && idx === currentIndex && (
                     <div className="reel-play-indicator">
                       <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
@@ -661,8 +737,10 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           <div className="reel-caption-overlay">
             <div className="reel-caption-text">
               <div className="reel-caption-meta-row">
-                <span className="reel-tag">✦ Zamani Travel Experience</span>
-                {duration > 0 && (
+                <span className="reel-tag">
+                  {isYouTubeUrl(activeVideoUrl) ? '▶ YouTube Reel' : '✦ Zamani Travel Experience'}
+                </span>
+                {duration > 0 && !isYouTubeUrl(activeVideoUrl) && (
                   <span className="reel-time-badge">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
@@ -672,47 +750,49 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             </div>
           </div>
 
-          {/* Interactive Video Scrubber with Draggable Pointer */}
-          <div
-            className={`reel-scrubber-container ${isScrubbing ? 'is-scrubbing' : ''}`}
-            ref={scrubberContainerRef}
-            onPointerDown={handleScrubberPointerDown}
-            onPointerMove={handleScrubberPointerMove}
-            onPointerUp={handleScrubberPointerUp}
-            onPointerCancel={handleScrubberPointerUp}
-            onMouseEnter={() => setIsHoveringScrubber(true)}
-            onMouseLeave={() => setIsHoveringScrubber(false)}
-            onClick={(e) => e.stopPropagation()}
-            title="Drag pointer to seek forward or backward"
-          >
-            {/* Live seeking time tooltip */}
-            {(isScrubbing || isHoveringScrubber) && duration > 0 && (
-              <div
-                className="reel-scrubber-tooltip"
-                style={{
-                  left: `${Math.max(6, Math.min(94, displayProgress))}%`,
-                }}
-              >
-                <span>{formatTime(isScrubbing ? scrubTime : currentTime)} / {formatTime(duration)}</span>
-              </div>
-            )}
+          {/* Interactive Video Scrubber with Draggable Pointer (For direct HTML5 videos) */}
+          {!isYouTubeUrl(activeVideoUrl) && (
+            <div
+              className={`reel-scrubber-container ${isScrubbing ? 'is-scrubbing' : ''}`}
+              ref={scrubberContainerRef}
+              onPointerDown={handleScrubberPointerDown}
+              onPointerMove={handleScrubberPointerMove}
+              onPointerUp={handleScrubberPointerUp}
+              onPointerCancel={handleScrubberPointerUp}
+              onMouseEnter={() => setIsHoveringScrubber(true)}
+              onMouseLeave={() => setIsHoveringScrubber(false)}
+              onClick={(e) => e.stopPropagation()}
+              title="Drag pointer to seek forward or backward"
+            >
+              {/* Live seeking time tooltip */}
+              {(isScrubbing || isHoveringScrubber) && duration > 0 && (
+                <div
+                  className="reel-scrubber-tooltip"
+                  style={{
+                    left: `${Math.max(6, Math.min(94, displayProgress))}%`,
+                  }}
+                >
+                  <span>{formatTime(isScrubbing ? scrubTime : currentTime)} / {formatTime(duration)}</span>
+                </div>
+              )}
 
-            <div className="reel-scrubber-track">
-              <div
-                className="reel-scrubber-fill"
-                style={{ width: `${displayProgress}%` }}
-              />
-              <div
-                className="reel-scrubber-thumb"
-                style={{ left: `${displayProgress}%` }}
-                role="slider"
-                aria-label="Video seek pointer"
-                aria-valuenow={Math.round(displayProgress)}
-                aria-valuemin="0"
-                aria-valuemax="100"
-              />
+              <div className="reel-scrubber-track">
+                <div
+                  className="reel-scrubber-fill"
+                  style={{ width: `${displayProgress}%` }}
+                />
+                <div
+                  className="reel-scrubber-thumb"
+                  style={{ left: `${displayProgress}%` }}
+                  role="slider"
+                  aria-label="Video seek pointer"
+                  aria-valuenow={Math.round(displayProgress)}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Side Interaction Actions (Instagram Reels Style) */}
           <div className="reel-actions-panel" onClick={e => e.stopPropagation()}>

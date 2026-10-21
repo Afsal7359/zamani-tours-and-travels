@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useUpload } from './UploadContext';
 import { uploadToCloudinary } from '@/lib/upload';
-import { isVideoUrl, getVideoPosterUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedImageUrl, isYouTubeUrl } from '@/lib/videoUtils';
 
 export default function ImageUpload({
   value,
@@ -84,6 +84,7 @@ export default function ImageUpload({
   }
 
   const isVid = isVideoUrl(value);
+  const isYt = isYouTubeUrl(value);
 
   return (
     <div className="admin-form-group">
@@ -97,13 +98,13 @@ export default function ImageUpload({
                 fontWeight: 700,
                 padding: '0.15rem 0.5rem',
                 borderRadius: '4px',
-                background: isVid ? '#e0e7ff' : '#ecfdf5',
-                color: isVid ? '#3730a3' : '#065f46',
+                background: isYt ? '#fee2e2' : isVid ? '#e0e7ff' : '#ecfdf5',
+                color: isYt ? '#b91c1c' : isVid ? '#3730a3' : '#065f46',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
               }}
             >
-              {isVid ? '🎬 Video' : '📷 Image'}
+              {isYt ? '▶ YouTube' : isVid ? '🎬 Video' : '📷 Image'}
             </span>
           )}
         </div>
@@ -153,7 +154,7 @@ export default function ImageUpload({
             setLoadError(false);
             onChange(e.target.value);
           }}
-          placeholder="or paste image / video URL..."
+          placeholder="or paste image / YouTube / video URL..."
           style={{ flex: 1 }}
         />
 
@@ -220,6 +221,57 @@ export default function ImageUpload({
               >
                 Upload New
               </button>
+            </div>
+          ) : isYt ? (
+            <div
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                maxWidth: '100%',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                border: '1px solid #e2e8f0',
+                background: '#000',
+              }}
+            >
+              <img
+                src={getVideoPosterUrl(value)}
+                alt="YouTube Preview"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '180px',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.3)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
             </div>
           ) : isVid ? (
             <video

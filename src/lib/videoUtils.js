@@ -5,12 +5,54 @@
  */
 
 /**
- * Accurately detects if a URL points to a video file or video stream.
+ * Parses and extracts YouTube video metadata (ID, embed URL, poster thumbnails, Shorts detection)
+ * Supports all YouTube formats:
+ * - https://www.youtube.com/watch?v=ID
+ * - https://youtu.be/ID
+ * - https://www.youtube.com/shorts/ID
+ * - https://www.youtube.com/embed/ID
+ * - https://m.youtube.com/watch?v=ID
+ */
+export function parseYouTubeUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  const match = trimmed.match(
+    /(?:youtube(?:-nocookie)?\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  );
+  if (match && match[1]) {
+    const videoId = match[1];
+    const isShort = trimmed.toLowerCase().includes('/shorts/');
+    return {
+      videoId,
+      isShort,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+      posterUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+      maxResPosterUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      cleanUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Checks if a URL is a YouTube video or Shorts link.
+ */
+export function isYouTubeUrl(url) {
+  return Boolean(parseYouTubeUrl(url));
+}
+
+/**
+ * Accurately detects if a URL points to a video file, video stream, or YouTube video.
  * Handles encoded URLs, query params (Firebase Storage tokens, Cloudinary resource_type),
- * and all common video formats (MP4, MOV, WebM, M4V, etc.).
+ * YouTube links (Shorts & Videos), and all common video formats (MP4, MOV, WebM, M4V, etc.).
  */
 export function isVideoUrl(url) {
   if (!url || typeof url !== 'string') return false;
+
+  // Direct YouTube check
+  if (isYouTubeUrl(url)) {
+    return true;
+  }
   
   try {
     const decoded = decodeURIComponent(url).toLowerCase().trim();
@@ -134,6 +176,12 @@ export function getVideoPosterUrl(url) {
   const trimmed = url.trim();
   if (!trimmed) return '';
   
+  // YouTube poster thumbnail
+  const yt = parseYouTubeUrl(trimmed);
+  if (yt) {
+    return yt.posterUrl;
+  }
+
   if (trimmed.includes('cloudinary.com')) {
     const parsed = parseCloudinaryUrl(trimmed, 'video');
     if (parsed) {
@@ -161,6 +209,12 @@ export function getOptimizedImageUrl(url, width = 800) {
   if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
   if (!trimmed) return '';
+
+  // YouTube thumbnails
+  const yt = parseYouTubeUrl(trimmed);
+  if (yt) {
+    return yt.posterUrl;
+  }
 
   // If passed a video URL, automatically get its static poster frame
   if (isVideoUrl(trimmed)) {
@@ -202,6 +256,10 @@ export function getOptimizedVideoUrl(url, mode = 'preview') {
   if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
   if (!trimmed) return '';
+
+  if (isYouTubeUrl(trimmed)) {
+    return trimmed;
+  }
   
   if (trimmed.includes('mixkit.co') && trimmed.includes('-large.mp4') && (mode === 'preview' || mode === 'marquee')) {
     return trimmed.replace('-large.mp4', '-small.mp4');

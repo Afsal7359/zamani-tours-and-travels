@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { getVideoPosterUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl, isYouTubeUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 /**
@@ -20,8 +20,10 @@ const Curved3DCard = memo(function Curved3DCard({
 }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const rawSrc = item.src || item.rawSrc || '';
+  const isYt = isYouTubeUrl(rawSrc);
   const [videoSrc, setVideoSrc] = useState(() => {
-    return isVideo ? (getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc) : '';
+    if (!isVideo || isYt) return '';
+    return getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
   });
 
   const poster = isVideo
@@ -122,12 +124,14 @@ const Curved3DCard = memo(function Curved3DCard({
       {/* 3. Floating Interactive Overlay */}
       {isVideo ? (
         <div className="curved3d-card-overlay" style={{ zIndex: 3 }}>
-          <div className="curved3d-play-btn">
+          <div className="curved3d-play-btn" style={isYt ? { background: '#ef4444' } : undefined}>
             <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <span className="curved3d-tag">Watch Reel</span>
+          <span className="curved3d-tag" style={isYt ? { background: 'rgba(220, 38, 38, 0.92)' } : undefined}>
+            {isYt ? '▶ YouTube' : 'Watch Reel'}
+          </span>
         </div>
       ) : (
         <div className="curved3d-card-photo-hover" style={{ zIndex: 2 }}>
