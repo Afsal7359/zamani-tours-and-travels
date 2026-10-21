@@ -80,12 +80,9 @@ const Curved3DCard = memo(function Curved3DCard({
         width: `${cardWidth}px`,
         height: `${cardHeight}px`,
         cursor: 'pointer',
+        pointerEvents: 'auto',
       }}
       onClick={(e) => {
-        e.stopPropagation();
-        onCardClick(item.originalIndex);
-      }}
-      onPointerUp={(e) => {
         e.stopPropagation();
         onCardClick(item.originalIndex);
       }}
@@ -181,7 +178,7 @@ const Curved3DCard = memo(function Curved3DCard({
         />
       )}
 
-      {/* 3. Floating Interactive Overlay */}
+      {/* 3. Floating Interactive Visual Overlay */}
       {isVideo ? (
         <div className="curved3d-card-overlay" style={{ zIndex: 3, pointerEvents: 'none' }}>
           <div className="curved3d-play-btn" style={isYt ? { background: '#ef4444', color: '#ffffff', pointerEvents: 'none' } : { pointerEvents: 'none' }}>
@@ -205,6 +202,16 @@ const Curved3DCard = memo(function Curved3DCard({
           </span>
         </div>
       )}
+
+      {/* 4. Top Transparent Click Shield: guarantees 100% reliable click capture over iframes and media */}
+      <div
+        className="curved3d-click-shield"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCardClick(item.originalIndex);
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 });
@@ -254,18 +261,43 @@ export default memo(function Curved3DSlider({
   const angleRef = useRef(0);
   const velocityRef = useRef(0);
   const isPointerDownRef = useRef(false);
-  const pointerStartTimeRef = useRef(0);
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const hasCapturedRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const justDraggedRef = useRef(false);
+  const justDraggedTimeoutRef = useRef(null);
+  const dragStartPosRef = useRef({ x: 0, y: 0 });
   const lastXRef = useRef(0);
   const lastTimeRef = useRef(0);
-  const dragDistanceRef = useRef(0);
+  const hasCapturedRef = useRef(false);
   const lastSelectTimeRef = useRef(0);
   const isHoveredRef = useRef(false);
   const isInViewRef = useRef(true);
   const rafIdRef = useRef(null);
   const baseSpeedRef = useRef(direction === 'right' ? speed : -speed);
+
+  // Global window pointer safety: prevents stuck drag state if user releases pointer outside container
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      if (isPointerDownRef.current) {
+        if (isDraggingRef.current) {
+          justDraggedRef.current = true;
+          if (justDraggedTimeoutRef.current) clearTimeout(justDraggedTimeoutRef.current);
+          justDraggedTimeoutRef.current = setTimeout(() => {
+            justDraggedRef.current = false;
+          }, 160);
+        }
+        isPointerDownRef.current = false;
+        isDraggingRef.current = false;
+        hasCapturedRef.current = false;
+      }
+    };
+    window.addEventListener('pointerup', handleGlobalPointerUp, { passive: true });
+    window.addEventListener('pointercancel', handleGlobalPointerUp, { passive: true });
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+      if (justDraggedTimeoutRef.current) clearTimeout(justDraggedTimeoutRef.current);
+    };
+  }, []);
 
   const [isMobileScreen, setIsMobileScreen] = useState(false);
   useEffect(() => {
@@ -561,13 +593,13 @@ export default memo(function Curved3DSlider({
 
   // Unified Pointer Handlers (Smart Gesture Separation for 100% Fluid Mobile Scroll)
   const handlePointerDown = (e) => {
+    // Only accept left mouse click or touch
+    if (e.button !== undefined && e.button !== 0) return;
     isPointerDownRef.current = true;
-    pointerStartTimeRef.current = performance.now();
-    startXRef.current = e.clientX;
-    startYRef.current = e.clientY;
+    isDraggingRef.current = false;
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
     lastXRef.current = e.clientX;
     lastTimeRef.current = performance.now();
-    dragDistanceRef.current = 0;
     velocityRef.current = 0;
     hasCapturedRef.current = false;
   };
@@ -576,23 +608,25 @@ export default memo(function Curved3DSlider({
     if (!isPointerDownRef.current) return;
     const currentX = e.clientX;
     const currentY = e.clientY;
-    const totalDx = currentX - startXRef.current;
-    const totalDy = currentY - startYRef.current;
-    const totalDist = Math.hypot(totalDx, totalDy);
-    dragDistanceRef.current = Math.max(dragDistanceRef.current, totalDist);
+    const totalDx = currentX - dragStartPosRef.current.x;
+    const totalDy = currentY - dragStartPosRef.current.y;
 
     // Smart vertical vs horizontal gesture detection on touch screens
     if (!hasCapturedRef.current) {
       if (Math.abs(totalDy) > Math.abs(totalDx) && Math.abs(totalDy) > 8) {
         // User wants to scroll the page vertically! Cancel slider capture
         isPointerDownRef.current = false;
+        isDraggingRef.current = false;
         return;
       }
-      if (Math.abs(totalDx) > 12 && Math.abs(totalDx) >= Math.abs(totalDy)) {
+      if (Math.abs(totalDx) > 10 && Math.abs(totalDx) >= Math.abs(totalDy)) {
         hasCapturedRef.current = true;
+        isDraggingRef.current = true;
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch (_) {}
+      } else {
+        return;
       }
     }
 
@@ -611,18 +645,30 @@ export default memo(function Curved3DSlider({
   };
 
   const handlePointerUp = (e) => {
-    if (!isPointerDownRef.current && !hasCapturedRef.current) return;
+    if (isDraggingRef.current) {
+      justDraggedRef.current = true;
+      if (justDraggedTimeoutRef.current) clearTimeout(justDraggedTimeoutRef.current);
+      justDraggedTimeoutRef.current = setTimeout(() => {
+        justDraggedRef.current = false;
+      }, 160);
+    }
     isPointerDownRef.current = false;
+    isDraggingRef.current = false;
     hasCapturedRef.current = false;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
+    if (e?.currentTarget && e?.pointerId !== undefined) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
   };
 
   const handleCardClick = useCallback((origIdx) => {
-    if (dragDistanceRef.current > 18) return;
+    // If the user was dragging or just completed a drag, ignore click
+    if (isDraggingRef.current || justDraggedRef.current) {
+      return;
+    }
     const now = performance.now();
-    if (now - lastSelectTimeRef.current < 350) return;
+    if (now - lastSelectTimeRef.current < 250) return;
     lastSelectTimeRef.current = now;
     if (typeof onSelect === 'function') {
       onSelect(origIdx);
@@ -695,6 +741,7 @@ export default memo(function Curved3DSlider({
         <button
           type="button"
           className="curved3d-nav-btn curved3d-nav-prev"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); handleNudge('left'); }}
           aria-label="Previous items"
         >
@@ -706,6 +753,7 @@ export default memo(function Curved3DSlider({
         <button
           type="button"
           className="curved3d-nav-btn curved3d-nav-next"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); handleNudge('right'); }}
           aria-label="Next items"
         >
