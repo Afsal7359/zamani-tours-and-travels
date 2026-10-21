@@ -702,7 +702,7 @@ export async function getVideoGallery(forceFresh = false) {
     const snap = await getDoc(doc(db, 'site_data', 'video_gallery'));
     let data;
     if (!snap.exists()) {
-      data = defaultVideoGallery;
+      data = { videos: [] };
     } else {
       const d = snap.data();
       const rawList = Array.isArray(d?.videos) ? d.videos : [];
@@ -722,11 +722,9 @@ export async function getVideoGallery(forceFresh = false) {
         return true;
       });
 
-      // If user has saved videos in Firestore, respect them; otherwise fallback to defaults
-      const sourceList = cleanList.length > 0 ? cleanList : defaultVideoGallery.videos;
       const seen = new Set();
       const formatted = [];
-      for (const item of sourceList) {
+      for (const item of cleanList) {
         const u = (typeof item === 'string' ? item : (item?.src || item?.url || '')).trim();
         if (!u || seen.has(u)) continue;
         seen.add(u);
@@ -737,7 +735,7 @@ export async function getVideoGallery(forceFresh = false) {
       }
 
       data = {
-        videos: formatted.length > 0 ? formatted : defaultVideoGallery.videos,
+        videos: formatted,
       };
     }
     setCachedData('video_gallery', data);

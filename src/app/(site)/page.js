@@ -153,16 +153,7 @@ export default function HomePage() {
   const doubled = marqueeItems.length ? [...marqueeItems, ...marqueeItems] : [];
   const galleryStrip = gallery.length ? gallery : normalizeGalleryList(defaultGallery.images, false);
   const cleanDefaultVideos = normalizeGalleryList(defaultVideoGallery.videos, true);
-  const combinedVideos = [...videoGallery];
-  const seenVideoKeys = new Set(videoGallery.map(v => v.rawSrc || v.src));
-  cleanDefaultVideos.forEach(v => {
-    const key = v.rawSrc || v.src;
-    if (!seenVideoKeys.has(key)) {
-      seenVideoKeys.add(key);
-      combinedVideos.push(v);
-    }
-  });
-  const videoStrip = combinedVideos.length > 0 ? combinedVideos : cleanDefaultVideos;
+  const videoStrip = videoGallery.length > 0 ? videoGallery : cleanDefaultVideos;
   const feedbackStrip = feedbackGallery.length ? feedbackGallery : normalizeGalleryList(defaultFeedbackGallery.images, false);
 
   return (

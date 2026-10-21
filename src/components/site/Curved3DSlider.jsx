@@ -102,61 +102,29 @@ const Curved3DCard = memo(function Curved3DCard({
         }}
       />
 
-      {/* 2. Fast Autoplay Video Layer (HTML5 or YouTube iframe embed with smooth fade-in) */}
-      {isVideo && (
-        isYt && ytInfo ? (
-          <div
-            className="curved3d-card-video-el"
-            style={{
-              zIndex: 1,
-              overflow: 'hidden',
-              background: '#000',
-              pointerEvents: 'none',
-            }}
-          >
-            <iframe
-              ref={handleYtRef}
-              src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytInfo.videoId}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0`}
-              title={`YouTube Reel ${item.originalIndex + 1}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              loading="lazy"
-              onLoad={() => setVideoLoaded(true)}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                pointerEvents: 'none',
-                opacity: videoLoaded ? 1 : 0,
-                transition: 'opacity 0.45s ease',
-              }}
-            />
-          </div>
-        ) : videoSrc ? (
-          <video
-            ref={handleVideoRef}
-            src={videoSrc}
-            autoPlay
-            muted
-            loop
-            playsInline
-            webkit-playsinline="true"
-            x5-playsinline="true"
-            preload="metadata"
-            onError={handleVideoError}
-            onLoadedData={() => setVideoLoaded(true)}
-            onCanPlay={() => setVideoLoaded(true)}
-            onPlaying={() => setVideoLoaded(true)}
-            className="curved3d-card-video-el"
-            style={{
-              zIndex: 1,
-              opacity: videoLoaded ? 1 : 0,
-              transition: 'opacity 0.35s ease',
-            }}
-          />
-        ) : null
+      {/* 2. Fast Autoplay Video Layer for direct HTML5 videos */}
+      {isVideo && !isYt && videoSrc && (
+        <video
+          ref={handleVideoRef}
+          src={videoSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+          webkit-playsinline="true"
+          x5-playsinline="true"
+          preload="metadata"
+          onError={handleVideoError}
+          onLoadedData={() => setVideoLoaded(true)}
+          onCanPlay={() => setVideoLoaded(true)}
+          onPlaying={() => setVideoLoaded(true)}
+          className="curved3d-card-video-el"
+          style={{
+            zIndex: 1,
+            opacity: videoLoaded ? 1 : 0,
+            transition: 'opacity 0.35s ease',
+          }}
+        />
       )}
 
       {/* 3. Floating Interactive Overlay */}
