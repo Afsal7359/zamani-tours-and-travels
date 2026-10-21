@@ -2106,7 +2106,7 @@ footer {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* ─── Full-Screen Instagram Reels Modal ─── */
+/* ─── Pop-up Video Reels Modal with Soft Frosted Blur ─── */
 .reel-backdrop {
   position: fixed;
   inset: 0;
@@ -2114,18 +2114,20 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(3, 7, 24, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* Translucent soft dark tint allowing website's background to remain visible & blurred */
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
   overflow: hidden;
   user-select: none;
-  animation: reelFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: reelBackdropFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .reel-backdrop-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
+  cursor: pointer;
 }
 
 /* Top bar with Zamani info & controls */
@@ -2273,16 +2275,21 @@ footer {
   transform: scale(1.1);
 }
 
-/* Video Card in Reel format (9:16 aspect ratio) */
+/* Video Card in Reel Pop-up format (9:16 aspect ratio) */
 .reel-card-wrapper {
   position: relative;
-  width: clamp(290px, 86vw, 420px);
-  height: min(86vh, 740px);
+  width: clamp(290px, 86vw, 415px);
+  height: min(84vh, 715px);
   aspect-ratio: 9 / 16;
-  border-radius: 26px;
+  border-radius: 28px;
   overflow: hidden;
   background: #000000;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 25px 70px -10px rgba(0, 0, 0, 0.55),
+    0 12px 30px -10px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
+  animation: reelPopupZoom 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
 }
 
 .reel-slider-track {
@@ -2316,8 +2323,16 @@ footer {
 /* ─── Photo Reels Specific Styling ─── */
 .photo-reel-card-wrapper {
   width: clamp(300px, 90vw, 560px);
-  height: min(88vh, 760px);
+  height: min(84vh, 730px);
   max-width: 95vw;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow:
+    0 25px 70px -10px rgba(0, 0, 0, 0.55),
+    0 12px 30px -10px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
+  animation: reelPopupZoom 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
 }
 
 .photo-reel-slide-item {
@@ -2393,6 +2408,17 @@ footer {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes reelPopupZoom {
+  0% {
+    opacity: 0;
+    transform: scale(0.86) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 /* Quick Floating Sound Button directly on Reel Card */
 .reel-floating-sound-btn {
   position: absolute;
@@ -2415,13 +2441,37 @@ footer {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
-.reel-floating-sound-btn:hover {
-  background: #ffffff;
-  color: #050b26;
-  transform: scale(1.08);
+/* Quick Floating Close Button directly on Reel Card */
+.reel-floating-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 28;
+  font-size: 1.15rem;
+  font-weight: 700;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
-.reel-floating-sound-btn:active {
+.reel-floating-close-btn:hover {
+  background: #ffffff;
+  color: #050b26;
+  transform: scale(1.1);
+}
+
+.reel-floating-close-btn:active {
   transform: scale(0.92);
 }
 

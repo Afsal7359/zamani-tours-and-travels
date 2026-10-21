@@ -345,6 +345,17 @@ export default function PhotoReelModal({
 
         {/* Photo Card Container */}
         <div className="reel-card-wrapper photo-reel-card-wrapper">
+          {/* Quick Floating Close Button directly on Photo Card */}
+          <button
+            type="button"
+            className="reel-floating-close-btn"
+            onClick={onClose}
+            aria-label="Close popup"
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
+
           <div
             className="reel-slider-track"
             style={{ transform: `translateY(-${currentIndex * 100}%)` }}

@@ -600,6 +600,17 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             )}
           </button>
 
+          {/* Quick Floating Close Button directly on Reel Card */}
+          <button
+            type="button"
+            className="reel-floating-close-btn"
+            onClick={onClose}
+            aria-label="Close popup"
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
+
           {/* Animated Sound Toast Overlay */}
           {soundToast && (
             <div className="reel-sound-toast" key={soundToast.text}>
