@@ -19,7 +19,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(
     initialIndex >= 0 && initialIndex < normalizedVideos.length ? initialIndex : 0
   );
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -128,10 +128,18 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       }
     });
 
-    // YouTube iframe audio sync
+    // YouTube iframe play & audio sync
     const ifr = ytIframeRefs.current[currentIndex];
     if (ifr && ifr.contentWindow) {
       try {
+        ifr.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'playVideo',
+            args: [],
+          }),
+          '*'
+        );
         ifr.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -140,6 +148,16 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           }),
           '*'
         );
+        if (!isMuted) {
+          ifr.contentWindow.postMessage(
+            JSON.stringify({
+              event: 'command',
+              func: 'setVolume',
+              args: [100],
+            }),
+            '*'
+          );
+        }
       } catch (_) {}
     }
   }, [currentIndex, isMuted]);
@@ -166,6 +184,16 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             }),
             '*'
           );
+          if (!next) {
+            ifr.contentWindow.postMessage(
+              JSON.stringify({
+                event: 'command',
+                func: 'setVolume',
+                args: [100],
+              }),
+              '*'
+            );
+          }
         } catch (_) {}
       }
       setSoundToast({
@@ -649,7 +677,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   className="reel-slide-item"
                   key={`${src}-${idx}`}
                   onDoubleClick={handleDoubleTap}
-                  onClick={!isYt ? togglePlayPause : undefined}
+                  onClick={togglePlayPause}
                   style={isYt ? { background: '#000' } : undefined}
                 >
                   {getVideoPosterUrl(src) ? (
@@ -671,25 +699,40 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   {isNearActive && (
                     isYt ? (
                       idx === currentIndex ? (
-                        <iframe
-                          ref={el => {
-                            if (el) ytIframeRefs.current[idx] = el;
-                            else delete ytIframeRefs.current[idx];
-                          }}
-                          src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&controls=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${ytInfo.videoId}`}
-                          title={`YouTube Reel ${idx + 1}`}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          className="reel-video-element"
-                          style={{
-                            position: 'relative',
-                            zIndex: 1,
-                            width: '100%',
-                            height: '100%',
-                            border: 'none',
-                            display: 'block',
-                          }}
-                        />
+                        <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+                          <iframe
+                            ref={el => {
+                              if (el) ytIframeRefs.current[idx] = el;
+                              else delete ytIframeRefs.current[idx];
+                            }}
+                            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1&fs=0&loop=1&playlist=${ytInfo.videoId}`}
+                            title={`YouTube Reel ${idx + 1}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            className="reel-video-element"
+                            style={{
+                              position: 'relative',
+                              zIndex: 1,
+                              width: '100%',
+                              height: '100%',
+                              border: 'none',
+                              display: 'block',
+                            }}
+                          />
+                          {/* Click shield: tapping card pauses/plays without YouTube opening native fullscreen */}
+                          <div
+                            className="reel-yt-click-shield"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePlayPause();
+                            }}
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              zIndex: 2,
+                              cursor: 'pointer',
+                            }}
+                          />
+                        </div>
                       ) : null
                     ) : (
                       <video
