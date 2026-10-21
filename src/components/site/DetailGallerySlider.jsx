@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
-import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl, isYouTubeUrl } from '@/lib/videoUtils';
+import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl, isYouTubeUrl, parseYouTubeUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 export default function DetailGallerySlider({ images = [], title = 'Gallery' }) {
@@ -149,12 +149,37 @@ export default function DetailGallerySlider({ images = [], title = 'Gallery' }) 
                 {isVid ? (
                   <>
                     {isYt ? (
-                      <img
-                        src={getVideoPosterUrl(mediaUrl)}
-                        alt={`${title} video ${i + 1}`}
-                        className="svc-gallery-video-element"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+                      isActive ? (
+                        <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none', background: '#000' }}>
+                          <img
+                            src={getVideoPosterUrl(mediaUrl)}
+                            alt={`${title} video ${i + 1}`}
+                            className="svc-gallery-video-element"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <iframe
+                            src={`https://www.youtube-nocookie.com/embed/${parseYouTubeUrl(mediaUrl)?.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${parseYouTubeUrl(mediaUrl)?.videoId}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`}
+                            title={`${title} video ${i + 1}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            className="svc-gallery-video-element"
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              width: '100%',
+                              height: '100%',
+                              border: 'none',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <img
+                          src={getVideoPosterUrl(mediaUrl)}
+                          alt={`${title} video ${i + 1}`}
+                          className="svc-gallery-video-element"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      )
                     ) : (
                       <video
                         ref={(el) => {

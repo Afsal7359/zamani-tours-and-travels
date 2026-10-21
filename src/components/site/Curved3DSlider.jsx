@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
-import { getVideoPosterUrl, isYouTubeUrl } from '@/lib/videoUtils';
+import { getVideoPosterUrl, isYouTubeUrl, parseYouTubeUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
 
 /**
  * Curved3DCard
- * Individual card supporting instant poster display, fast autoplay video with metadata preload,
+ * Individual card supporting instant poster display, fast autoplay video (HTML5 and YouTube) with metadata preload,
  * seamless multi-image panorama merge styling (connectNext), and click handling.
  */
 const Curved3DCard = memo(function Curved3DCard({
@@ -15,12 +15,14 @@ const Curved3DCard = memo(function Curved3DCard({
   onCardClick,
   setCardEl,
   setVideoEl,
+  setYtEl,
   cardWidth,
   cardHeight,
 }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const rawSrc = item.src || item.rawSrc || '';
   const isYt = isYouTubeUrl(rawSrc);
+  const ytInfo = isYt ? parseYouTubeUrl(rawSrc) : null;
   const [videoSrc, setVideoSrc] = useState(() => {
     if (!isVideo || isYt) return '';
     return getAdaptiveVideoUrl(rawSrc, 'preview') || rawSrc;
@@ -37,7 +39,7 @@ const Curved3DCard = memo(function Curved3DCard({
   };
 
   const handleVideoRef = (node) => {
-    setVideoEl(idx, node);
+    if (setVideoEl) setVideoEl(idx, node);
     if (node) {
       node.muted = true;
       node.defaultMuted = true;
@@ -50,6 +52,10 @@ const Curved3DCard = memo(function Curved3DCard({
         p.then(() => setVideoLoaded(true)).catch(() => {});
       }
     }
+  };
+
+  const handleYtRef = (node) => {
+    if (setYtEl) setYtEl(idx, node);
   };
 
   const connClass = item.isConnStart
@@ -96,29 +102,61 @@ const Curved3DCard = memo(function Curved3DCard({
         }}
       />
 
-      {/* 2. Fast Autoplay Video Layer with Metadata Preload & Smooth Fade-in */}
-      {isVideo && videoSrc && (
-        <video
-          ref={handleVideoRef}
-          src={videoSrc}
-          autoPlay
-          muted
-          loop
-          playsInline
-          webkit-playsinline="true"
-          x5-playsinline="true"
-          preload="metadata"
-          onError={handleVideoError}
-          onLoadedData={() => setVideoLoaded(true)}
-          onCanPlay={() => setVideoLoaded(true)}
-          onPlaying={() => setVideoLoaded(true)}
-          className="curved3d-card-video-el"
-          style={{
-            zIndex: 1,
-            opacity: videoLoaded ? 1 : 0,
-            transition: 'opacity 0.35s ease',
-          }}
-        />
+      {/* 2. Fast Autoplay Video Layer (HTML5 or YouTube iframe embed with smooth fade-in) */}
+      {isVideo && (
+        isYt && ytInfo ? (
+          <div
+            className="curved3d-card-video-el"
+            style={{
+              zIndex: 1,
+              overflow: 'hidden',
+              background: '#000',
+              pointerEvents: 'none',
+            }}
+          >
+            <iframe
+              ref={handleYtRef}
+              src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytInfo.videoId}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0`}
+              title={`YouTube Reel ${item.originalIndex + 1}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              loading="lazy"
+              onLoad={() => setVideoLoaded(true)}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                pointerEvents: 'none',
+                opacity: videoLoaded ? 1 : 0,
+                transition: 'opacity 0.45s ease',
+              }}
+            />
+          </div>
+        ) : videoSrc ? (
+          <video
+            ref={handleVideoRef}
+            src={videoSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+            webkit-playsinline="true"
+            x5-playsinline="true"
+            preload="metadata"
+            onError={handleVideoError}
+            onLoadedData={() => setVideoLoaded(true)}
+            onCanPlay={() => setVideoLoaded(true)}
+            onPlaying={() => setVideoLoaded(true)}
+            className="curved3d-card-video-el"
+            style={{
+              zIndex: 1,
+              opacity: videoLoaded ? 1 : 0,
+              transition: 'opacity 0.35s ease',
+            }}
+          />
+        ) : null
       )}
 
       {/* 3. Floating Interactive Overlay */}
@@ -174,6 +212,7 @@ export default memo(function Curved3DSlider({
   const stageRef = useRef(null);
   const cardElementsRef = useRef([]);
   const videoElementsRef = useRef([]);
+  const ytElementsRef = useRef([]);
 
   // Responsive dimensions & spacing state
   const dimsRef = useRef({
@@ -220,8 +259,11 @@ export default memo(function Curved3DSlider({
   const cleanItems = items.filter(Boolean);
   const origLen = cleanItems.length;
 
-  // Determine repeat count: 16 slots on mobile for fast 60fps rendering, 26 on desktop
-  const targetSlots = isMobileScreen ? 16 : 26;
+  // Determine repeat count: 16 slots on mobile for fast 60fps rendering, 26 on desktop.
+  // For videos (HTML5 or YouTube), use optimal 8-12 slots to keep GPU at 100% smooth 60-120 FPS
+  const targetSlots = isVideo
+    ? (isMobileScreen ? Math.min(10, Math.max(origLen, 8)) : Math.min(14, Math.max(origLen, 10)))
+    : (isMobileScreen ? 16 : 26);
   const repeatCount = origLen > 0 ? Math.max(1, Math.ceil(targetSlots / origLen)) : 1;
 
   // Build the ring items with merged connection metadata
@@ -398,12 +440,19 @@ export default memo(function Curved3DSlider({
             cardEl.style.visibility = 'hidden';
             cardEl.style.pointerEvents = 'none';
           }
-          // Pause offscreen video decoders to free GPU
+          // Pause offscreen video decoders / YouTube iframes to free GPU
           if (isVideo) {
             const vid = videoElementsRef.current[i];
             if (vid && !vid.paused) {
               vid.__playPending = false;
               vid.pause();
+            }
+            const yt = ytElementsRef.current[i];
+            if (yt && yt.contentWindow && !yt.__isPaused) {
+              yt.__isPaused = true;
+              try {
+                yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+              } catch (_) {}
             }
           }
           continue;
@@ -453,6 +502,23 @@ export default memo(function Curved3DSlider({
               } else {
                 vid.__playPending = false;
               }
+            }
+          }
+
+          const yt = ytElementsRef.current[i];
+          if (yt && yt.contentWindow) {
+            if (isModalOpen) {
+              if (!yt.__isPaused) {
+                yt.__isPaused = true;
+                try {
+                  yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                } catch (_) {}
+              }
+            } else if (yt.__isPaused) {
+              yt.__isPaused = false;
+              try {
+                yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+              } catch (_) {}
             }
           }
         }
@@ -547,6 +613,10 @@ export default memo(function Curved3DSlider({
     videoElementsRef.current[idx] = el;
   }, []);
 
+  const setYtEl = useCallback((idx, el) => {
+    ytElementsRef.current[idx] = el;
+  }, []);
+
   if (!cleanItems.length) return null;
 
   return (
@@ -626,6 +696,7 @@ export default memo(function Curved3DSlider({
               onCardClick={handleCardClick}
               setCardEl={setCardEl}
               setVideoEl={setVideoEl}
+              setYtEl={setYtEl}
               cardWidth={dimsRef.current.cardWidths[idx] || dimsRef.current.baseCardWidth}
               cardHeight={dimsRef.current.cardHeight}
             />
