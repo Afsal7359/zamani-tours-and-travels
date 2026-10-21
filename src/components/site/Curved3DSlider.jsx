@@ -54,9 +54,15 @@ const Curved3DCard = memo(function Curved3DCard({
     }
   };
 
-  const handleYtRef = (node) => {
+  const handleYtRef = useCallback((node) => {
     if (setYtEl) setYtEl(idx, node);
-  };
+    if (node && node.contentWindow) {
+      try {
+        node.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+        node.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+      } catch (_) {}
+    }
+  }, [idx, setYtEl]);
 
   const connClass = item.isConnStart
     ? 'curved3d-connect-start'
@@ -73,8 +79,16 @@ const Curved3DCard = memo(function Curved3DCard({
       style={{
         width: `${cardWidth}px`,
         height: `${cardHeight}px`,
+        cursor: 'pointer',
       }}
-      onClick={() => onCardClick(item.originalIndex)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onCardClick(item.originalIndex);
+      }}
+      onPointerUp={(e) => {
+        e.stopPropagation();
+        onCardClick(item.originalIndex);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -102,7 +116,47 @@ const Curved3DCard = memo(function Curved3DCard({
         }}
       />
 
-      {/* 2. Fast Autoplay Video Layer for direct HTML5 videos */}
+      {/* 2a. Autoplay Layer for YouTube videos and Shorts */}
+      {isVideo && isYt && ytInfo?.videoId && (
+        <div
+          className="curved3d-card-video-el"
+          style={{
+            zIndex: 1,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            background: '#000',
+            opacity: videoLoaded ? 1 : 0,
+            transition: 'opacity 0.4s ease',
+          }}
+        >
+          <iframe
+            ref={handleYtRef}
+            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytInfo.videoId}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0`}
+            title={`YouTube Reel ${item.originalIndex + 1}`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            loading="lazy"
+            onLoad={(e) => {
+              setVideoLoaded(true);
+              try {
+                e.currentTarget.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                e.currentTarget.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+              } catch (_) {}
+            }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '180%',
+              height: '180%',
+              transform: 'translate(-50%, -50%)',
+              border: 'none',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+      )}
+
+      {/* 2b. Fast Autoplay Video Layer for direct HTML5 videos */}
       {isVideo && !isYt && videoSrc && (
         <video
           ref={handleVideoRef}
@@ -129,19 +183,19 @@ const Curved3DCard = memo(function Curved3DCard({
 
       {/* 3. Floating Interactive Overlay */}
       {isVideo ? (
-        <div className="curved3d-card-overlay" style={{ zIndex: 3 }}>
-          <div className="curved3d-play-btn" style={isYt ? { background: '#ef4444' } : undefined}>
+        <div className="curved3d-card-overlay" style={{ zIndex: 3, pointerEvents: 'none' }}>
+          <div className="curved3d-play-btn" style={isYt ? { background: '#ef4444', color: '#ffffff', pointerEvents: 'none' } : { pointerEvents: 'none' }}>
             <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <span className="curved3d-tag" style={isYt ? { background: 'rgba(220, 38, 38, 0.92)' } : undefined}>
+          <span className="curved3d-tag" style={isYt ? { background: 'rgba(220, 38, 38, 0.92)', pointerEvents: 'none' } : { pointerEvents: 'none' }}>
             {isYt ? '▶ YouTube' : 'Watch Reel'}
           </span>
         </div>
       ) : (
-        <div className="curved3d-card-photo-hover" style={{ zIndex: 2 }}>
-          <span className="curved3d-expand-icon">
+        <div className="curved3d-card-photo-hover" style={{ zIndex: 2, pointerEvents: 'none' }}>
+          <span className="curved3d-expand-icon" style={{ pointerEvents: 'none' }}>
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <polyline points="15 3 21 3 21 9" />
               <polyline points="9 21 3 21 3 15" />
@@ -200,12 +254,14 @@ export default memo(function Curved3DSlider({
   const angleRef = useRef(0);
   const velocityRef = useRef(0);
   const isPointerDownRef = useRef(false);
+  const pointerStartTimeRef = useRef(0);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const hasCapturedRef = useRef(false);
   const lastXRef = useRef(0);
   const lastTimeRef = useRef(0);
   const dragDistanceRef = useRef(0);
+  const lastSelectTimeRef = useRef(0);
   const isHoveredRef = useRef(false);
   const isInViewRef = useRef(true);
   const rafIdRef = useRef(null);
@@ -482,10 +538,11 @@ export default memo(function Curved3DSlider({
                   yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
                 } catch (_) {}
               }
-            } else if (yt.__isPaused) {
+            } else if (yt.__isPaused !== false) {
               yt.__isPaused = false;
               try {
                 yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
               } catch (_) {}
             }
           }
@@ -505,6 +562,7 @@ export default memo(function Curved3DSlider({
   // Unified Pointer Handlers (Smart Gesture Separation for 100% Fluid Mobile Scroll)
   const handlePointerDown = (e) => {
     isPointerDownRef.current = true;
+    pointerStartTimeRef.current = performance.now();
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
     lastXRef.current = e.clientX;
@@ -520,15 +578,17 @@ export default memo(function Curved3DSlider({
     const currentY = e.clientY;
     const totalDx = currentX - startXRef.current;
     const totalDy = currentY - startYRef.current;
+    const totalDist = Math.hypot(totalDx, totalDy);
+    dragDistanceRef.current = Math.max(dragDistanceRef.current, totalDist);
 
     // Smart vertical vs horizontal gesture detection on touch screens
     if (!hasCapturedRef.current) {
-      if (Math.abs(totalDy) > Math.abs(totalDx) && Math.abs(totalDy) > 6) {
+      if (Math.abs(totalDy) > Math.abs(totalDx) && Math.abs(totalDy) > 8) {
         // User wants to scroll the page vertically! Cancel slider capture
         isPointerDownRef.current = false;
         return;
       }
-      if (Math.abs(totalDx) > 7 && Math.abs(totalDx) >= Math.abs(totalDy)) {
+      if (Math.abs(totalDx) > 12 && Math.abs(totalDx) >= Math.abs(totalDy)) {
         hasCapturedRef.current = true;
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -537,8 +597,6 @@ export default memo(function Curved3DSlider({
     }
 
     const dx = currentX - lastXRef.current;
-    dragDistanceRef.current += Math.abs(dx);
-
     const radius = dimsRef.current.radius || 1000;
     const deltaAngle = (dx / radius) * (180 / Math.PI) * 1.15;
     angleRef.current += deltaAngle;
@@ -561,12 +619,15 @@ export default memo(function Curved3DSlider({
     } catch (_) {}
   };
 
-  const handleCardClick = (origIdx) => {
-    if (dragDistanceRef.current > 6) return;
+  const handleCardClick = useCallback((origIdx) => {
+    if (dragDistanceRef.current > 18) return;
+    const now = performance.now();
+    if (now - lastSelectTimeRef.current < 350) return;
+    lastSelectTimeRef.current = now;
     if (typeof onSelect === 'function') {
       onSelect(origIdx);
     }
-  };
+  }, [onSelect]);
 
   const handleNudge = (dir) => {
     const step = 14 * (dir === 'left' ? 1 : -1);

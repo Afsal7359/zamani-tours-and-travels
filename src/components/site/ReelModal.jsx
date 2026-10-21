@@ -705,10 +705,22 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                               if (el) ytIframeRefs.current[idx] = el;
                               else delete ytIframeRefs.current[idx];
                             }}
-                            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1&fs=0&loop=1&playlist=${ytInfo.videoId}`}
+                            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1&fs=0&loop=1&playlist=${ytInfo.videoId}`}
                             title={`YouTube Reel ${idx + 1}`}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             className="reel-video-element"
+                            onLoad={(e) => {
+                              try {
+                                e.currentTarget.contentWindow.postMessage(
+                                  JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
+                                  '*'
+                                );
+                                e.currentTarget.contentWindow.postMessage(
+                                  JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }),
+                                  '*'
+                                );
+                              } catch (_) {}
+                            }}
                             style={{
                               position: 'relative',
                               zIndex: 1,

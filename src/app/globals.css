@@ -2237,8 +2237,9 @@ footer {
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
+  width: 100%;
   height: 100%;
-  max-height: 92vh;
+  max-height: 96vh;
   padding: 1rem;
 }
 
@@ -2275,18 +2276,19 @@ footer {
   transform: scale(1.1);
 }
 
-/* Video Card in Reel Pop-up format (9:16 aspect ratio) */
+/* Video Card in Reel Pop-up format (Enlarged 9:16 aspect ratio) */
 .reel-card-wrapper {
   position: relative;
-  width: clamp(290px, 86vw, 415px);
-  height: min(84vh, 715px);
+  width: min(92vw, 490px);
+  height: min(92vh, 870px);
+  max-height: 92vh;
   aspect-ratio: 9 / 16;
   border-radius: 28px;
   overflow: hidden;
   background: #000000;
   box-shadow:
-    0 25px 70px -10px rgba(0, 0, 0, 0.55),
-    0 12px 30px -10px rgba(0, 0, 0, 0.35),
+    0 30px 80px -10px rgba(0, 0, 0, 0.75),
+    0 16px 40px -10px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.22);
   animation: reelPopupZoom 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: center center;
@@ -2322,14 +2324,14 @@ footer {
 
 /* ─── Photo Reels Specific Styling ─── */
 .photo-reel-card-wrapper {
-  width: clamp(300px, 90vw, 560px);
-  height: min(84vh, 730px);
+  width: clamp(340px, 45vw, 680px);
+  height: min(88vh, 800px);
   max-width: 95vw;
   border-radius: 28px;
   overflow: hidden;
   box-shadow:
-    0 25px 70px -10px rgba(0, 0, 0, 0.55),
-    0 12px 30px -10px rgba(0, 0, 0, 0.35),
+    0 30px 80px -10px rgba(0, 0, 0, 0.65),
+    0 16px 40px -10px rgba(0, 0, 0, 0.45),
     0 0 0 1px rgba(255, 255, 255, 0.22);
   animation: reelPopupZoom 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: center center;
@@ -2971,7 +2973,7 @@ footer {
   }
 
   .reel-viewport {
-    padding: 1.2rem 1rem;
+    padding: 0.6rem 0.5rem;
     width: 100%;
     height: 100%;
     display: flex;
@@ -2981,18 +2983,19 @@ footer {
   }
 
   .reel-card-wrapper {
-    width: min(86vw, 360px);
-    height: min(78vh, 620px);
-    max-height: 78vh;
+    width: min(96vw, 430px);
+    height: min(90vh, 765px);
+    max-height: 90vh;
+    aspect-ratio: 9 / 16;
     border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 25px 70px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.22);
   }
 
   .photo-reel-card-wrapper {
-    width: min(90vw, 420px);
-    height: min(80vh, 640px);
-    max-height: 80vh;
+    width: min(96vw, 480px);
+    height: min(88vh, 740px);
+    max-height: 88vh;
     border-radius: 24px;
   }
 
