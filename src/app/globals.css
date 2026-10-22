@@ -1882,7 +1882,9 @@ footer {
   inset: 0;
   z-index: 10;
   cursor: pointer;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.001);
+  touch-action: manipulation;
+  pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
 }
 .curved3d-nav-btn {

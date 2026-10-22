@@ -468,9 +468,17 @@ export const defaultFeedbackGallery = {
   ],
 };
 
-// Video gallery row for journey reels & video highlights (empty default; managed via Admin Panel)
+// Video gallery row for journey reels & video highlights (rich instant defaults, syncs with Admin Panel / Firestore)
 export const defaultVideoGallery = {
-  videos: [],
+  videos: [
+    { src: 'https://www.youtube.com/watch?v=GISoFxnbb7I', span: 1, connectNext: false },
+    { src: 'https://www.youtube.com/watch?v=fJDlIbV3zKY', span: 1, connectNext: false },
+    { src: 'https://www.youtube.com/watch?v=2b9txcAt4e0', span: 1, connectNext: false },
+    { src: 'https://www.youtube.com/watch?v=ScMzIvxBSi4', span: 1, connectNext: false },
+    { src: 'https://www.youtube.com/watch?v=07d2dXHYb94', span: 1, connectNext: false },
+    { src: 'https://www.youtube.com/watch?v=V-_O7nl0Ii0', span: 1, connectNext: false },
+    { src: '/logoloading.mp4', span: 1, connectNext: false },
+  ],
 };
 
 

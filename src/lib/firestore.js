@@ -702,7 +702,7 @@ export async function getVideoGallery(forceFresh = false) {
     const snap = await getDoc(doc(db, 'site_data', 'video_gallery'));
     let data;
     if (!snap.exists()) {
-      data = { videos: [] };
+      data = defaultVideoGallery;
     } else {
       const d = snap.data();
       const rawList = Array.isArray(d?.videos) ? d.videos : [];
@@ -735,7 +735,7 @@ export async function getVideoGallery(forceFresh = false) {
       }
 
       data = {
-        videos: formatted,
+        videos: formatted.length > 0 ? formatted : defaultVideoGallery.videos,
       };
     }
     setCachedData('video_gallery', data);

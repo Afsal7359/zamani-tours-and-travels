@@ -353,7 +353,7 @@ export default function HomePage() {
           items={galleryStrip}
           isVideo={false}
           direction="left"
-          speed={0.038}
+          speed={0.046}
           onSelect={(idx) => setSelectedPhotoIndex(idx)}
           badgeText="Company Banners & Updates"
           rowSubtitle="Latest service announcements, packages & posters"
@@ -366,7 +366,7 @@ export default function HomePage() {
               items={videoStrip}
               isVideo={true}
               direction="right"
-              speed={0.034}
+              speed={0.052}
               onSelect={(idx) => setSelectedVideoIndex(idx)}
               badgeText="Video Highlights & Reels"
               rowSubtitle="Real glimpses of our tours, destinations & experiences"
@@ -381,7 +381,7 @@ export default function HomePage() {
               items={feedbackStrip}
               isVideo={false}
               direction="left"
-              speed={0.038}
+              speed={0.046}
               onSelect={(idx) => setSelectedFeedbackIndex(idx)}
               badgeText="Customer Feedbacks & Reviews"
               badgeColor="feedback-badge"

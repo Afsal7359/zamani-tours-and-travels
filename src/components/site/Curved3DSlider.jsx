@@ -72,6 +72,28 @@ const Curved3DCard = memo(function Curved3DCard({
     ? 'curved3d-connect-end'
     : '';
 
+  const pointerDownRef = useRef({ x: 0, y: 0, time: 0 });
+
+  const handleCardPointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    pointerDownRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: performance.now(),
+    };
+  };
+
+  const handleCardPointerUp = (e) => {
+    const dx = Math.abs(e.clientX - pointerDownRef.current.x);
+    const dy = Math.abs(e.clientY - pointerDownRef.current.y);
+    const dt = performance.now() - pointerDownRef.current.time;
+    // Movement under 14px within 600ms is a genuine tap or click
+    if (dx < 14 && dy < 14 && dt < 600) {
+      e.stopPropagation();
+      onCardClick(item.originalIndex);
+    }
+  };
+
   return (
     <div
       ref={(el) => setCardEl(idx, el)}
@@ -82,6 +104,8 @@ const Curved3DCard = memo(function Curved3DCard({
         cursor: 'pointer',
         pointerEvents: 'auto',
       }}
+      onPointerDown={handleCardPointerDown}
+      onPointerUp={handleCardPointerUp}
       onClick={(e) => {
         e.stopPropagation();
         onCardClick(item.originalIndex);
@@ -206,6 +230,8 @@ const Curved3DCard = memo(function Curved3DCard({
       {/* 4. Top Transparent Click Shield: guarantees 100% reliable click capture over iframes and media */}
       <div
         className="curved3d-click-shield"
+        onPointerDown={handleCardPointerDown}
+        onPointerUp={handleCardPointerUp}
         onClick={(e) => {
           e.stopPropagation();
           onCardClick(item.originalIndex);
@@ -473,8 +499,10 @@ export default memo(function Curved3DSlider({
         if (Math.abs(velocityRef.current) > 0.002) {
           angleRef.current += velocityRef.current;
           velocityRef.current *= 0.94; // inertia decay
-        } else if (!isHoveredRef.current) {
-          angleRef.current += baseSpeedRef.current;
+        } else {
+          // Smooth continuous motion: on desktop mouse hover, glide gently at 40% speed; otherwise full speed
+          const speedFactor = isHoveredRef.current ? 0.4 : 1.0;
+          angleRef.current += baseSpeedRef.current * speedFactor;
         }
       }
 
@@ -619,7 +647,7 @@ export default memo(function Curved3DSlider({
         isDraggingRef.current = false;
         return;
       }
-      if (Math.abs(totalDx) > 10 && Math.abs(totalDx) >= Math.abs(totalDy)) {
+      if (Math.abs(totalDx) > 14 && Math.abs(totalDx) >= Math.abs(totalDy)) {
         hasCapturedRef.current = true;
         isDraggingRef.current = true;
         try {
@@ -663,10 +691,6 @@ export default memo(function Curved3DSlider({
   };
 
   const handleCardClick = useCallback((origIdx) => {
-    // If the user was dragging or just completed a drag, ignore click
-    if (isDraggingRef.current || justDraggedRef.current) {
-      return;
-    }
     const now = performance.now();
     if (now - lastSelectTimeRef.current < 250) return;
     lastSelectTimeRef.current = now;
@@ -731,7 +755,11 @@ export default memo(function Curved3DSlider({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onMouseEnter={() => { isHoveredRef.current = true; }}
+        onMouseEnter={(e) => {
+          if (e.pointerType !== 'touch') {
+            isHoveredRef.current = true;
+          }
+        }}
         onMouseLeave={() => { isHoveredRef.current = false; }}
         tabIndex={0}
         role="region"
