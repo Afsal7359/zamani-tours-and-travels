@@ -152,7 +152,8 @@ export function parseCloudinaryVideoUrl(url) {
 export function getItineraryMedia(step) {
   if (!step) return '';
   if (typeof step === 'string') return step.trim();
-  return (
+  if (typeof step !== 'object') return '';
+  const val =
     step.image ||
     step.photo ||
     step.img ||
@@ -162,8 +163,12 @@ export function getItineraryMedia(step) {
     step.url ||
     step.media ||
     step.picture ||
-    ''
-  ).trim();
+    '';
+  if (typeof val === 'string') return val.trim();
+  if (val && typeof val === 'object') {
+    return (val.url || val.src || val.secure_url || val.image || val.photo || '').trim();
+  }
+  return '';
 }
 
 /**

@@ -29,7 +29,9 @@ const Curved3DCard = memo(function Curved3DCard({
   });
 
   const poster = isVideo
-    ? (getVideoPosterUrl(rawSrc) || `/images/gallery-${String((item.originalIndex % 17) + 1).padStart(2, '0')}.jpeg`)
+    ? (isYt && ytInfo?.maxResPosterUrl
+        ? ytInfo.maxResPosterUrl
+        : (getVideoPosterUrl(rawSrc) || `/images/gallery-${String((item.originalIndex % 17) + 1).padStart(2, '0')}.jpeg`))
     : item.src;
 
   const handleVideoError = () => {
@@ -54,16 +56,6 @@ const Curved3DCard = memo(function Curved3DCard({
     }
   };
 
-  const handleYtRef = useCallback((node) => {
-    if (setYtEl) setYtEl(idx, node);
-    if (node && node.contentWindow) {
-      try {
-        node.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-        node.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
-      } catch (_) {}
-    }
-  }, [idx, setYtEl]);
-
   const connClass = item.isConnStart
     ? 'curved3d-connect-start'
     : item.isConnMiddle
@@ -87,9 +79,8 @@ const Curved3DCard = memo(function Curved3DCard({
     const dx = Math.abs(e.clientX - pointerDownRef.current.x);
     const dy = Math.abs(e.clientY - pointerDownRef.current.y);
     const dt = performance.now() - pointerDownRef.current.time;
-    // Movement under 14px within 600ms is a genuine tap or click
-    if (dx < 14 && dy < 14 && dt < 600) {
-      e.stopPropagation();
+    // Movement under 16px within 700ms is a genuine tap or click
+    if (dx < 16 && dy < 16 && dt < 700) {
       onCardClick(item.originalIndex);
     }
   };
@@ -106,8 +97,7 @@ const Curved3DCard = memo(function Curved3DCard({
       }}
       onPointerDown={handleCardPointerDown}
       onPointerUp={handleCardPointerUp}
-      onClick={(e) => {
-        e.stopPropagation();
+      onClick={() => {
         onCardClick(item.originalIndex);
       }}
       onKeyDown={(e) => {
@@ -129,6 +119,10 @@ const Curved3DCard = memo(function Curved3DCard({
         className="curved3d-card-img"
         style={{ zIndex: 0 }}
         onError={(e) => {
+          if (isYt && ytInfo?.posterUrl && e.currentTarget.src !== ytInfo.posterUrl) {
+            e.currentTarget.src = ytInfo.posterUrl;
+            return;
+          }
           const fallbackNum = (item.originalIndex % 17) + 1;
           const fallbackSrc = `/images/gallery-${String(fallbackNum).padStart(2, '0')}.jpeg`;
           if (e.currentTarget.src !== fallbackSrc) {
@@ -137,47 +131,7 @@ const Curved3DCard = memo(function Curved3DCard({
         }}
       />
 
-      {/* 2a. Autoplay Layer for YouTube videos and Shorts */}
-      {isVideo && isYt && ytInfo?.videoId && (
-        <div
-          className="curved3d-card-video-el"
-          style={{
-            zIndex: 1,
-            pointerEvents: 'none',
-            overflow: 'hidden',
-            background: '#000',
-            opacity: videoLoaded ? 1 : 0,
-            transition: 'opacity 0.4s ease',
-          }}
-        >
-          <iframe
-            ref={handleYtRef}
-            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytInfo.videoId}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0`}
-            title={`YouTube Reel ${item.originalIndex + 1}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            loading="lazy"
-            onLoad={(e) => {
-              setVideoLoaded(true);
-              try {
-                e.currentTarget.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                e.currentTarget.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
-              } catch (_) {}
-            }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: '180%',
-              height: '180%',
-              transform: 'translate(-50%, -50%)',
-              border: 'none',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-      )}
-
-      {/* 2b. Fast Autoplay Video Layer for direct HTML5 videos */}
+      {/* 2. Fast Autoplay Video Layer for direct HTML5 videos */}
       {isVideo && !isYt && videoSrc && (
         <video
           ref={handleVideoRef}
@@ -211,7 +165,7 @@ const Curved3DCard = memo(function Curved3DCard({
             </svg>
           </div>
           <span className="curved3d-tag" style={isYt ? { background: 'rgba(220, 38, 38, 0.92)', pointerEvents: 'none' } : { pointerEvents: 'none' }}>
-            {isYt ? '▶ YouTube' : 'Watch Reel'}
+            {isYt ? '▶ YouTube Reel' : 'Watch Reel'}
           </span>
         </div>
       ) : (
@@ -227,13 +181,12 @@ const Curved3DCard = memo(function Curved3DCard({
         </div>
       )}
 
-      {/* 4. Top Transparent Click Shield: guarantees 100% reliable click capture over iframes and media */}
+      {/* 4. Top Transparent Click Shield: guarantees 100% reliable click capture over all layers */}
       <div
         className="curved3d-click-shield"
         onPointerDown={handleCardPointerDown}
         onPointerUp={handleCardPointerUp}
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           onCardClick(item.originalIndex);
         }}
         aria-hidden="true"
@@ -589,23 +542,6 @@ export default memo(function Curved3DSlider({
             }
           }
 
-          const yt = ytElementsRef.current[i];
-          if (yt && yt.contentWindow) {
-            if (isModalOpen) {
-              if (!yt.__isPaused) {
-                yt.__isPaused = true;
-                try {
-                  yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-                } catch (_) {}
-              }
-            } else if (yt.__isPaused !== false) {
-              yt.__isPaused = false;
-              try {
-                yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-                yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
-              } catch (_) {}
-            }
-          }
         }
       }
 
@@ -691,8 +627,9 @@ export default memo(function Curved3DSlider({
   };
 
   const handleCardClick = useCallback((origIdx) => {
+    if (isDraggingRef.current || justDraggedRef.current) return;
     const now = performance.now();
-    if (now - lastSelectTimeRef.current < 250) return;
+    if (now - lastSelectTimeRef.current < 200) return;
     lastSelectTimeRef.current = now;
     if (typeof onSelect === 'function') {
       onSelect(origIdx);

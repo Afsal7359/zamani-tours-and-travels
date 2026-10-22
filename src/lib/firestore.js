@@ -242,6 +242,7 @@ export async function getPackages() {
 }
 
 export async function getPackage(id) {
+  if (!id) return null;
   const cacheKey = `package_${id}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
@@ -249,9 +250,21 @@ export async function getPackage(id) {
   try {
     const db = getFirebaseDb();
     if (db) {
+      // 1. Direct doc lookup by ID
       const snap = await getDoc(doc(db, 'packages', id));
       if (snap.exists()) {
         const item = { id: snap.id, ...snap.data() };
+        setCachedData(cacheKey, item);
+        return item;
+      }
+
+      // 2. Lookup by slug if id was a slug or default_* ID
+      const cleanSlug = id.startsWith('default_') ? id.replace('default_', '') : id;
+      const q = query(collection(db, 'packages'), where('slug', '==', cleanSlug));
+      const slugSnap = await getDocs(q);
+      if (!slugSnap.empty) {
+        const d = slugSnap.docs[0];
+        const item = { id: d.id, ...d.data() };
         setCachedData(cacheKey, item);
         return item;
       }
@@ -259,20 +272,24 @@ export async function getPackage(id) {
   } catch (e) {
     console.warn('Error fetching package:', e);
   }
-  const fallback = defaultPackages.find(p => p.id === id || p.slug === id || `default_${p.slug}` === id || String(p.order) === id) || null;
+  const cleanId = id.startsWith('default_') ? id.replace('default_', '') : id;
+  const fallback = defaultPackages.find(p => p.id === id || p.slug === id || p.slug === cleanId || `default_${p.slug}` === id || String(p.order) === id) || null;
   if (fallback) setCachedData(cacheKey, { id: fallback.id || `default_${fallback.slug}`, ...fallback });
   return fallback;
 }
 
 export async function getPackageBySlug(slug) {
-  const cacheKey = `package_slug_${slug}`;
+  if (!slug) return null;
+  const cleanSlug = slug.startsWith('default_') ? slug.replace('default_', '') : slug;
+  const cacheKey = `package_slug_${cleanSlug}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
 
   try {
     const db = getFirebaseDb();
     if (db) {
-      const q = query(collection(db, 'packages'), where('slug', '==', slug));
+      // 1. Query by slug
+      const q = query(collection(db, 'packages'), where('slug', '==', cleanSlug));
       const snap = await getDocs(q);
       if (!snap.empty) {
         const d = snap.docs[0];
@@ -280,11 +297,19 @@ export async function getPackageBySlug(slug) {
         setCachedData(cacheKey, item);
         return item;
       }
+
+      // 2. Try doc ID directly in case slug parameter was a doc ID
+      const docSnap = await getDoc(doc(db, 'packages', slug));
+      if (docSnap.exists()) {
+        const item = { id: docSnap.id, ...docSnap.data() };
+        setCachedData(cacheKey, item);
+        return item;
+      }
     }
   } catch (e) {
     console.warn('Error fetching package by slug:', e);
   }
-  const fallback = defaultPackages.find(p => p.slug === slug || p.id === slug) || null;
+  const fallback = defaultPackages.find(p => p.slug === cleanSlug || p.slug === slug || p.id === slug || `default_${p.slug}` === slug) || null;
   if (fallback) setCachedData(cacheKey, { id: fallback.id || `default_${fallback.slug}`, ...fallback });
   return fallback;
 }
@@ -297,22 +322,55 @@ export async function savePackage(id, data) {
   const payload = cleanDocData({ ...data });
   delete payload.id; // ensure id is not embedded inside document fields
 
-  // If id starts with default_, generate a new clean document or use slug as doc id
+  // If valid existing firestore document ID (not default_*)
   if (id && !id.startsWith('default_')) {
     await setDoc(doc(db, 'packages', id), payload, { merge: true });
     return id;
-  } else {
-    const ref = await addDoc(collection(db, 'packages'), payload);
-    return ref.id;
   }
+
+  // If saving a default package or newly created package with slug
+  const targetSlug = payload.slug || (id ? id.replace('default_', '') : '');
+  if (targetSlug) {
+    try {
+      const q = query(collection(db, 'packages'), where('slug', '==', targetSlug));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const existingDocId = snap.docs[0].id;
+        await setDoc(doc(db, 'packages', existingDocId), payload, { merge: true });
+        return existingDocId;
+      }
+    } catch (e) {
+      console.warn('Error checking existing slug in packages:', e);
+    }
+
+    // Use clean slug as doc id for clean, predictable URLs & queries
+    await setDoc(doc(db, 'packages', targetSlug), payload, { merge: true });
+    return targetSlug;
+  }
+
+  const ref = await addDoc(collection(db, 'packages'), payload);
+  return ref.id;
 }
 
 export async function deletePackage(id) {
   const db = getFirebaseDb();
   if (!db) throw new Error('Firebase is not configured');
   clearFirestoreCache('package');
-  if (id && !id.startsWith('default_')) {
-    await deleteDoc(doc(db, 'packages', id));
+  if (id) {
+    if (!id.startsWith('default_')) {
+      await deleteDoc(doc(db, 'packages', id));
+    } else {
+      const cleanSlug = id.replace('default_', '');
+      try {
+        const q = query(collection(db, 'packages'), where('slug', '==', cleanSlug));
+        const snap = await getDocs(q);
+        const batch = [];
+        snap.forEach(d => batch.push(deleteDoc(d.ref)));
+        await Promise.all(batch);
+      } catch (e) {
+        console.warn('Error deleting default package from firestore:', e);
+      }
+    }
   }
 }
 

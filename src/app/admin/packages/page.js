@@ -124,7 +124,7 @@ export default function AdminPackagesPage() {
             day: s.day?.trim() || `Day ${idx + 1}`,
             title: s.title?.trim() || '',
             description: s.description?.trim() || s.desc?.trim() || '',
-            image: (typeof s.image === 'string' ? s.image : (getItineraryMedia(s) || '')).trim(),
+            image: getItineraryMedia(s) || (typeof s.image === 'string' ? s.image.trim() : ''),
           }))
           .filter(s => s.title || s.description || s.image),
       };

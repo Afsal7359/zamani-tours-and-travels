@@ -16,10 +16,11 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     .map(v => (typeof v === 'string' ? v : (v?.src || v?.url || '')))
     .filter(Boolean);
 
-  const [currentIndex, setCurrentIndex] = useState(
-    initialIndex >= 0 && initialIndex < normalizedVideos.length ? initialIndex : 0
-  );
-  const [isMuted, setIsMuted] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    return initialIndex >= 0 && initialIndex < normalizedVideos.length ? initialIndex : 0;
+  });
+
+  const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -39,25 +40,43 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   const [scrubTime, setScrubTime] = useState(0);
   const [isHoveringScrubber, setIsHoveringScrubber] = useState(false);
   const [soundToast, setSoundToast] = useState(null);
+  const [skipToast, setSkipToast] = useState(null);
+  const [rippleEffect, setRippleEffect] = useState(null);
+  const [playIndicator, setPlayIndicator] = useState(null);
+
+  // Touch & Mouse Vertical Drag State (Instagram Reels Swipe)
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isDraggingReel, setIsDraggingReel] = useState(false);
 
   const videoRefs = useRef({});
   const ytIframeRefs = useRef({});
+  const ytPlayersRef = useRef({});
   const scrubberContainerRef = useRef(null);
-  const touchStartY = useRef(0);
-  const touchEndY = useRef(0);
-  const isScrolling = useRef(false);
   const containerRef = useRef(null);
+  const isScrubbingRef = useRef(false);
+  const isWheelLockedRef = useRef(false);
+  const isLikedRef = useRef(isLiked);
+  const singleTapTimerRef = useRef(null);
+  const lastTapRef = useRef({ time: 0, x: 0, y: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0, time: 0, active: false });
 
   const activeVideoUrl = normalizedVideos[currentIndex] || '';
+  const isYt = isYouTubeUrl(activeVideoUrl);
+  const ytInfo = isYt ? parseYouTubeUrl(activeVideoUrl) : null;
 
-  // Load saved user name from localStorage if available
+  // Sync isLikedRef
+  useEffect(() => {
+    isLikedRef.current = isLiked;
+  }, [isLiked]);
+
+  // Lock background body scroll
   useEffect(() => {
     document.body.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
     try {
       const savedName = localStorage.getItem('zamani_user_name');
       if (savedName) setCommentName(savedName);
-    } catch (e) {}
+    } catch (_) {}
     return () => {
       document.body.classList.remove('modal-open');
       document.body.style.overflow = '';
@@ -70,7 +89,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     try {
       const vidKey = `liked_${getCleanVideoId(activeVideoUrl)}`;
       setIsLiked(localStorage.getItem(vidKey) === 'true');
-    } catch (e) {
+    } catch (_) {
       setIsLiked(false);
     }
   }, [activeVideoUrl]);
@@ -93,34 +112,156 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     return () => unsub();
   }, [activeVideoUrl]);
 
-  // Track last active reel index to only reset currentTime on slide change
-  const lastIndexRef = useRef(currentIndex);
+  // Auto-dismiss toasts
+  useEffect(() => {
+    if (!soundToast) return;
+    const t = setTimeout(() => setSoundToast(null), 1200);
+    return () => clearTimeout(t);
+  }, [soundToast]);
 
-  // Handle active video playback & mute synchronization
+  useEffect(() => {
+    if (!skipToast) return;
+    const t = setTimeout(() => setSkipToast(null), 900);
+    return () => clearTimeout(t);
+  }, [skipToast]);
+
+  useEffect(() => {
+    if (!rippleEffect) return;
+    const t = setTimeout(() => setRippleEffect(null), 700);
+    return () => clearTimeout(t);
+  }, [rippleEffect]);
+
+  // YouTube postMessage Helper
+  const postToYt = useCallback((func, args = [], idx = currentIndex) => {
+    const ifr = ytIframeRefs.current[idx];
+    if (ifr && ifr.contentWindow) {
+      try {
+        ifr.contentWindow.postMessage(
+          JSON.stringify({ event: 'command', func, args }),
+          '*'
+        );
+      } catch (_) {}
+    }
+  }, [currentIndex]);
+
+  // Load YouTube IFrame API script once if not already present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.async = true;
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      } else {
+        document.head.appendChild(tag);
+      }
+    }
+  }, []);
+
+  // Listen to YouTube postMessage events (infoDelivery)
+  useEffect(() => {
+    const handleWindowMessage = (e) => {
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (!data) return;
+
+        if (data.event === 'infoDelivery' && data.info) {
+          const info = data.info;
+          if (typeof info.duration === 'number' && info.duration > 0) {
+            setDuration(info.duration);
+          }
+          if (typeof info.currentTime === 'number' && !isScrubbingRef.current) {
+            setCurrentTime(info.currentTime);
+            if (info.duration > 0) {
+              setProgress((info.currentTime / info.duration) * 100);
+            }
+          }
+          if (typeof info.playerState === 'number') {
+            // 1 = playing, 2 = paused, 0 = ended
+            if (info.playerState === 1) setIsPlaying(true);
+            else if (info.playerState === 2) setIsPlaying(false);
+          }
+        }
+      } catch (_) {}
+    };
+
+    window.addEventListener('message', handleWindowMessage);
+    return () => window.removeEventListener('message', handleWindowMessage);
+  }, []);
+
+  // Periodic active playback sync for YouTube & HTML5
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isScrubbingRef.current) return;
+
+      if (isYt) {
+        // Poll YouTube current time & duration
+        postToYt('getCurrentTime', []);
+        postToYt('getDuration', []);
+
+        // Also check if YT.Player instance exists
+        const player = ytPlayersRef.current[currentIndex];
+        if (player && typeof player.getCurrentTime === 'function') {
+          try {
+            const ct = player.getCurrentTime();
+            const dur = player.getDuration();
+            if (typeof dur === 'number' && dur > 0) {
+              setDuration(dur);
+            }
+            if (typeof ct === 'number') {
+              setCurrentTime(ct);
+              if (dur > 0) {
+                setProgress((ct / dur) * 100);
+              }
+            }
+          } catch (_) {}
+        }
+      } else {
+        const vid = videoRefs.current[currentIndex];
+        if (vid && vid.duration) {
+          setCurrentTime(vid.currentTime);
+          setDuration(vid.duration);
+          setProgress((vid.currentTime / vid.duration) * 100);
+        }
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [isYt, currentIndex, postToYt]);
+
+  // Handle active video playback & mute synchronization when changing slides
+  const lastIndexRef = useRef(currentIndex);
   useEffect(() => {
     const isNewSlide = lastIndexRef.current !== currentIndex;
     lastIndexRef.current = currentIndex;
 
+    // Reset progress on slide change
+    if (isNewSlide) {
+      setProgress(0);
+      setCurrentTime(0);
+      setDuration(0);
+      setScrubTime(0);
+      setIsScrubbing(false);
+      isScrubbingRef.current = false;
+    }
+
+    // HTML5 Video Playback
     Object.entries(videoRefs.current).forEach(([idx, vidEl]) => {
       if (!vidEl) return;
       if (parseInt(idx, 10) === currentIndex) {
-        if (isNewSlide) {
-          vidEl.currentTime = 0;
-        }
+        if (isNewSlide) vidEl.currentTime = 0;
         vidEl.muted = isMuted;
-        if (!isMuted) {
-          vidEl.volume = 1.0;
-        }
-        const playPromise = vidEl.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => setIsPlaying(true))
-            .catch(() => {
-              // Autoplay policy fallback: mute and play
-              vidEl.muted = true;
-              setIsMuted(true);
-              vidEl.play().catch(() => {});
-            });
+        if (!isMuted) vidEl.volume = 1.0;
+        const p = vidEl.play();
+        if (p !== undefined) {
+          p.then(() => setIsPlaying(true)).catch(() => {
+            // Autoplay fallback: mute and play
+            vidEl.muted = true;
+            setIsMuted(true);
+            vidEl.play().catch(() => {});
+          });
         }
       } else {
         vidEl.pause();
@@ -128,104 +269,41 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       }
     });
 
-    // YouTube iframe play & audio sync
-    const ifr = ytIframeRefs.current[currentIndex];
-    if (ifr && ifr.contentWindow) {
-      try {
-        ifr.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'playVideo',
-            args: [],
-          }),
-          '*'
-        );
-        ifr.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: isMuted ? 'mute' : 'unMute',
-            args: [],
-          }),
-          '*'
-        );
-        if (!isMuted) {
-          ifr.contentWindow.postMessage(
-            JSON.stringify({
-              event: 'command',
-              func: 'setVolume',
-              args: [100],
-            }),
-            '*'
-          );
-        }
-      } catch (_) {}
-    }
-  }, [currentIndex, isMuted]);
-
-  const toggleSound = useCallback((e) => {
-    if (e) e.stopPropagation();
-    setIsMuted(prev => {
-      const next = !prev;
-      const vid = videoRefs.current[currentIndex];
-      if (vid) {
-        vid.muted = next;
-        if (!next) {
-          vid.volume = 1.0;
-        }
-      }
-      const ifr = ytIframeRefs.current[currentIndex];
-      if (ifr && ifr.contentWindow) {
+    // YouTube Video Playback
+    Object.entries(ytIframeRefs.current).forEach(([idx, ifrEl]) => {
+      if (!ifrEl || !ifrEl.contentWindow) return;
+      const i = parseInt(idx, 10);
+      if (i === currentIndex) {
         try {
-          ifr.contentWindow.postMessage(
-            JSON.stringify({
-              event: 'command',
-              func: next ? 'mute' : 'unMute',
-              args: [],
-            }),
-            '*'
-          );
-          if (!next) {
-            ifr.contentWindow.postMessage(
-              JSON.stringify({
-                event: 'command',
-                func: 'setVolume',
-                args: [100],
-              }),
-              '*'
-            );
+          ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+          ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+          ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }), '*');
+          if (!isMuted) {
+            ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
           }
         } catch (_) {}
+      } else {
+        try {
+          ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+          ifrEl.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [0, true] }), '*');
+        } catch (_) {}
       }
-      setSoundToast({
-        muted: next,
-        text: next ? 'Sound Muted' : 'Sound On',
-      });
-      return next;
     });
-  }, [currentIndex]);
+  }, [currentIndex, isMuted]);
 
-  // Auto-dismiss sound toast
-  useEffect(() => {
-    if (!soundToast) return;
-    const t = setTimeout(() => setSoundToast(null), 1300);
-    return () => clearTimeout(t);
-  }, [soundToast]);
-
+  // Navigate to slide
   const goToIndex = useCallback((nextIdx) => {
     if (nextIdx < 0 || nextIdx >= normalizedVideos.length) return;
     setCurrentIndex(nextIdx);
-    setProgress(0);
-    setCurrentTime(0);
-    setDuration(0);
-    setScrubTime(0);
-    setIsScrubbing(false);
+    setDragOffsetY(0);
+    setIsDraggingReel(false);
   }, [normalizedVideos.length]);
 
   const goNext = useCallback(() => {
     if (currentIndex < normalizedVideos.length - 1) {
       goToIndex(currentIndex + 1);
     } else {
-      goToIndex(0); // loop back to first
+      goToIndex(0); // loop back
     }
   }, [currentIndex, normalizedVideos.length, goToIndex]);
 
@@ -233,72 +311,92 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     if (currentIndex > 0) {
       goToIndex(currentIndex - 1);
     } else {
-      goToIndex(normalizedVideos.length - 1); // loop to last
+      goToIndex(normalizedVideos.length - 1); // loop to end
     }
   }, [currentIndex, normalizedVideos.length, goToIndex]);
 
-  // Mouse wheel scroll navigation (debounced)
-  useEffect(() => {
-    const handleWheel = (e) => {
-      if (showComments && window.innerWidth <= 768) return;
-      if (isScrolling.current || isScrubbing) return;
-      if (Math.abs(e.deltaY) > 35) {
-        isScrolling.current = true;
-        if (e.deltaY > 0) {
-          goNext();
-        } else {
-          goPrev();
-        }
-        setTimeout(() => {
-          isScrolling.current = false;
-        }, 550);
+  // Toggle Sound (HTML5 + YouTube)
+  const toggleSound = useCallback((e) => {
+    if (e) e.stopPropagation();
+    setIsMuted(prev => {
+      const next = !prev;
+      // HTML5 video
+      const vid = videoRefs.current[currentIndex];
+      if (vid) {
+        vid.muted = next;
+        if (!next) vid.volume = 1.0;
       }
-    };
+      // YouTube
+      postToYt(next ? 'mute' : 'unMute', []);
+      if (!next) {
+        postToYt('setVolume', [100]);
+      }
+      setSoundToast({
+        muted: next,
+        text: next ? 'Sound Muted' : 'Sound On',
+      });
+      return next;
+    });
+  }, [currentIndex, postToYt]);
 
-    const node = containerRef.current;
-    if (node) {
-      node.addEventListener('wheel', handleWheel, { passive: true });
-      return () => node.removeEventListener('wheel', handleWheel);
-    }
-  }, [goNext, goPrev, showComments, isScrubbing]);
-
-  const isLikedRef = useRef(isLiked);
-  useEffect(() => {
-    isLikedRef.current = isLiked;
-  }, [isLiked]);
-
-  const togglePlayPause = useCallback(() => {
-    if (isScrubbing) return;
-    const isYt = isYouTubeUrl(activeVideoUrl);
+  // Seek video helper (HTML5 + YouTube)
+  const seekToTime = useCallback((targetSec) => {
     if (isYt) {
-      const ifr = ytIframeRefs.current[currentIndex];
-      if (ifr && ifr.contentWindow) {
-        const nextPlay = !isPlaying;
-        try {
-          ifr.contentWindow.postMessage(
-            JSON.stringify({
-              event: 'command',
-              func: nextPlay ? 'playVideo' : 'pauseVideo',
-              args: [],
-            }),
-            '*'
-          );
-        } catch (_) {}
-        setIsPlaying(nextPlay);
+      postToYt('seekTo', [targetSec, true]);
+      const player = ytPlayersRef.current[currentIndex];
+      if (player && typeof player.seekTo === 'function') {
+        try { player.seekTo(targetSec, true); } catch (_) {}
       }
-      return;
-    }
-    const vid = videoRefs.current[currentIndex];
-    if (!vid) return;
-    if (vid.paused) {
-      vid.play().catch(() => {});
-      setIsPlaying(true);
     } else {
-      vid.pause();
-      setIsPlaying(false);
+      const vid = videoRefs.current[currentIndex];
+      if (vid) {
+        vid.currentTime = targetSec;
+      }
     }
-  }, [currentIndex, isScrubbing, activeVideoUrl, isPlaying]);
+  }, [isYt, currentIndex, postToYt]);
 
+  // Skip seconds helper (+10s or -10s)
+  const skipSeconds = useCallback((delta) => {
+    const effDur = duration > 0 ? duration : 60;
+    const newTime = Math.max(0, Math.min(effDur, currentTime + delta));
+
+    setCurrentTime(newTime);
+    if (effDur > 0) {
+      setProgress((newTime / effDur) * 100);
+    }
+    seekToTime(newTime);
+
+    setSkipToast({
+      delta,
+      text: delta > 0 ? `+${delta}s` : `${delta}s`,
+    });
+    setRippleEffect({
+      side: delta > 0 ? 'right' : 'left',
+      id: Date.now(),
+    });
+  }, [currentTime, duration, seekToTime]);
+
+  // Toggle Play / Pause
+  const togglePlayPause = useCallback(() => {
+    if (isScrubbingRef.current) return;
+    const nextPlay = !isPlaying;
+    setIsPlaying(nextPlay);
+
+    if (isYt) {
+      postToYt(nextPlay ? 'playVideo' : 'pauseVideo', []);
+    } else {
+      const vid = videoRefs.current[currentIndex];
+      if (vid) {
+        if (nextPlay) vid.play().catch(() => {});
+        else vid.pause();
+      }
+    }
+
+    setPlayIndicator(nextPlay ? 'play' : 'pause');
+    setTimeout(() => setPlayIndicator(null), 550);
+  }, [isPlaying, isYt, postToYt, currentIndex]);
+
+  // Like video toggle
   const handleLikeToggle = useCallback(async () => {
     if (!activeVideoUrl) return;
     const vidKey = `liked_${getCleanVideoId(activeVideoUrl)}`;
@@ -306,12 +404,10 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     setIsLiked(nextState);
     try {
       localStorage.setItem(vidKey, String(nextState));
-    } catch (e) {}
+    } catch (_) {}
 
-    // Optimistic UI update
     setLikesCount(prev => (nextState ? prev + 1 : Math.max(0, prev - 1)));
 
-    // Firestore sync
     try {
       await updateVideoLikes(activeVideoUrl, nextState ? 1 : -1);
     } catch (err) {
@@ -319,100 +415,34 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   }, [activeVideoUrl]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Don't intercept typing in inputs
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-
-      if (e.key === 'ArrowDown' || e.key === 'j') {
-        e.preventDefault();
-        goNext();
-      } else if (e.key === 'ArrowUp' || e.key === 'k') {
-        e.preventDefault();
-        goPrev();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        const vid = videoRefs.current[currentIndex];
-        if (vid) {
-          vid.currentTime = Math.max(0, vid.currentTime - 5);
-        }
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        const vid = videoRefs.current[currentIndex];
-        if (vid && vid.duration) {
-          vid.currentTime = Math.min(vid.duration, vid.currentTime + 5);
-        }
-      } else if (e.key === 'Escape') {
-        if (showComments) {
-          setShowComments(false);
-        } else {
-          onClose();
-        }
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        togglePlayPause();
-      } else if (e.key === 'm' || e.key === 'M') {
-        toggleSound();
-      } else if (e.key === 'l' || e.key === 'L') {
-        handleLikeToggle();
-      }
+  // Share video handler
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Zamani Tours & Travels — Travel Reel',
+      text: 'Watch this stunning travel highlight from Zamani Tours & Travels!',
+      url: window.location.href,
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goNext, goPrev, showComments, onClose, togglePlayPause, handleLikeToggle, toggleSound, currentIndex]);
-
-  // Lock background body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
-  // Touch Swipe Handlers for Mobile (only when not scrubbing)
-  const handleTouchStart = (e) => {
-    if (isScrubbing) return;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e) => {
-    if (isScrubbing) return;
-    touchEndY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = () => {
-    if (isScrubbing) return;
-    const diff = touchStartY.current - touchEndY.current;
-    if (Math.abs(diff) > 55) {
-      if (diff > 0) {
-        goNext();
-      } else {
-        goPrev();
-      }
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (_) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2400);
+      } catch (_) {}
     }
   };
 
-  const handleDoubleTap = (e) => {
-    e.stopPropagation();
-    if (!isLikedRef.current) {
-      handleLikeToggle();
-    }
-    setHeartAnimation(true);
-    setTimeout(() => setHeartAnimation(false), 900);
-  };
-
+  // Submit comment
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentText.trim() || !activeVideoUrl) return;
     setSubmittingComment(true);
     const authorName = commentName.trim() || 'Travel Enthusiast';
     try {
-      try {
-        localStorage.setItem('zamani_user_name', authorName);
-      } catch (e) {}
-
+      try { localStorage.setItem('zamani_user_name', authorName); } catch (_) {}
       await addVideoComment(activeVideoUrl, {
         name: authorName,
         text: commentText.trim(),
@@ -426,26 +456,160 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   };
 
-  const handleShare = async () => {
-    const shareData = {
-      title: 'Zamani Tours & Travels — Journey Highlight',
-      text: 'Check out this travel reel from Zamani Tours & Travels!',
-      url: window.location.href,
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        skipSeconds(-10);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        skipSeconds(10);
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        toggleSound();
+      } else if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        handleLikeToggle();
+      } else if (e.key === 'Escape') {
+        if (showComments) setShowComments(false);
+        else onClose();
+      }
     };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2500);
-      } catch (err) {}
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goNext, goPrev, skipSeconds, togglePlayPause, toggleSound, handleLikeToggle, showComments, onClose]);
+
+  // Mouse wheel scroll navigation (Instagram Reels snap scroll)
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (showComments && window.innerWidth <= 768) return;
+      if (isScrubbingRef.current) return;
+      if (isWheelLockedRef.current) return;
+
+      if (Math.abs(e.deltaY) > 28) {
+        isWheelLockedRef.current = true;
+        if (e.deltaY > 0) {
+          goNext();
+        } else {
+          goPrev();
+        }
+        setTimeout(() => {
+          isWheelLockedRef.current = false;
+        }, 460);
+      }
+    };
+
+    const node = containerRef.current;
+    if (node) {
+      node.addEventListener('wheel', handleWheel, { passive: true });
+      return () => node.removeEventListener('wheel', handleWheel);
+    }
+  }, [goNext, goPrev, showComments]);
+
+  // Card Pointer Gestures: Tactile Vertical Drag + Tap/Double-Tap
+  const handleCardPointerDown = (e) => {
+    if (isScrubbingRef.current) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: performance.now(),
+      active: true,
+    };
+    setIsDraggingReel(false);
+  };
+
+  const handleCardPointerMove = (e) => {
+    if (!dragStartRef.current.active || isScrubbingRef.current) return;
+    const dy = e.clientY - dragStartRef.current.y;
+    const dx = e.clientX - dragStartRef.current.x;
+
+    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+      setIsDraggingReel(true);
+      // Smooth rubber-band resistance
+      setDragOffsetY(dy * 0.7);
     }
   };
 
-  // Scrubber & Seeking Helpers
+  const handleCardPointerUp = (e) => {
+    if (!dragStartRef.current.active || isScrubbingRef.current) return;
+    dragStartRef.current.active = false;
+
+    const dy = e.clientY - dragStartRef.current.y;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dt = performance.now() - dragStartRef.current.time;
+
+    setDragOffsetY(0);
+
+    // If it was a vertical swipe:
+    if (isDraggingReel || Math.abs(dy) > 45) {
+      setIsDraggingReel(false);
+      if (dy < -45) {
+        goNext();
+      } else if (dy > 45) {
+        goPrev();
+      }
+      return;
+    }
+
+    setIsDraggingReel(false);
+
+    // If movement was small, it's a tap or double-tap!
+    if (Math.abs(dx) < 14 && Math.abs(dy) < 14 && dt < 450) {
+      const now = performance.now();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const isDouble = (now - lastTapRef.current.time) < 320;
+
+      lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+
+      if (isDouble) {
+        // Cancel pending single tap play/pause
+        if (singleTapTimerRef.current) {
+          clearTimeout(singleTapTimerRef.current);
+          singleTapTimerRef.current = null;
+        }
+
+        // Left 33% = -10s rewind
+        if (clickX < rect.width * 0.32) {
+          skipSeconds(-10);
+        }
+        // Right 33% = +10s forward
+        else if (clickX > rect.width * 0.68) {
+          skipSeconds(10);
+        }
+        // Center = Like video + Heart burst
+        else {
+          if (!isLikedRef.current) {
+            handleLikeToggle();
+          }
+          setHeartAnimation(true);
+          setTimeout(() => setHeartAnimation(false), 850);
+        }
+      } else {
+        // Single tap: toggle play/pause after brief double-tap window
+        singleTapTimerRef.current = setTimeout(() => {
+          togglePlayPause();
+          singleTapTimerRef.current = null;
+        }, 220);
+      }
+    }
+  };
+
+  // Scrubber Pointer & Drag Helpers
   const formatTime = (secs) => {
     if (!secs || isNaN(secs) || secs < 0) return '0:00';
     const m = Math.floor(secs / 60);
@@ -453,44 +617,26 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleTimeUpdate = (e) => {
-    if (isScrubbing) return;
-    const vid = e.currentTarget;
-    if (vid && vid.duration) {
-      setCurrentTime(vid.currentTime);
-      setDuration(vid.duration);
-      setProgress((vid.currentTime / vid.duration) * 100);
-    }
-  };
-
-  const handleLoadedMetadata = (e) => {
-    const vid = e.currentTarget;
-    if (vid && vid.duration) {
-      setDuration(vid.duration);
-    }
-  };
-
-  const updateSeekFromPointer = (e) => {
-    const vid = videoRefs.current[currentIndex];
-    if (!scrubberContainerRef.current || !vid || !vid.duration) return;
+  const updateSeekFromPointer = useCallback((e) => {
+    if (!scrubberContainerRef.current) return;
     const rect = scrubberContainerRef.current.getBoundingClientRect();
     const clientX = e.clientX;
     const offsetX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-    const pct = (offsetX / rect.width) * 100;
-    const targetTime = (pct / 100) * vid.duration;
+    const pct = Math.max(0, Math.min(100, (offsetX / rect.width) * 100));
+
+    const effDuration = duration > 0 ? duration : (currentTime > 0 ? currentTime + 15 : 60);
+    const targetTime = (pct / 100) * effDuration;
 
     setScrubTime(targetTime);
     setCurrentTime(targetTime);
     setProgress(pct);
-    vid.currentTime = targetTime;
-  };
+    seekToTime(targetTime);
+  }, [duration, currentTime, seekToTime]);
 
   const handleScrubberPointerDown = (e) => {
     e.stopPropagation();
-    const vid = videoRefs.current[currentIndex];
-    if (!vid || !vid.duration) return;
-
     setIsScrubbing(true);
+    isScrubbingRef.current = true;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch (_) {}
@@ -498,35 +644,42 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
   };
 
   const handleScrubberPointerMove = (e) => {
-    if (!isScrubbing) return;
+    if (!isScrubbingRef.current) return;
     e.stopPropagation();
     updateSeekFromPointer(e);
   };
 
   const handleScrubberPointerUp = (e) => {
-    if (!isScrubbing) return;
+    if (!isScrubbingRef.current) return;
     e.stopPropagation();
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch (_) {}
     setIsScrubbing(false);
-    const vid = videoRefs.current[currentIndex];
-    if (vid && isPlaying) {
-      vid.play().catch(() => {});
+    isScrubbingRef.current = false;
+
+    // Resume video playback
+    if (isPlaying) {
+      if (isYt) postToYt('playVideo', []);
+      else {
+        const vid = videoRefs.current[currentIndex];
+        if (vid) vid.play().catch(() => {});
+      }
     }
   };
 
   const displayProgress = Math.max(0, Math.min(100, progress || 0));
+  const activeDuration = duration > 0 ? duration : (currentTime > 0 ? currentTime + 10 : 0);
 
   return (
     <div
       className="reel-backdrop"
       ref={containerRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Instagram Reels Viewer"
     >
-      {/* Background blur overlay */}
+      {/* Background blur overlay - Click to close */}
       <div className="reel-backdrop-overlay" onClick={onClose} />
 
       {/* Top Bar: Brand, counter, Sound and Close */}
@@ -544,12 +697,13 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             <span>Reel {currentIndex + 1} of {normalizedVideos.length}</span>
           </div>
         </div>
+
         <div className="reel-top-actions">
           <button
             type="button"
-            className="reel-icon-btn"
+            className={`reel-icon-btn ${!isMuted ? 'active-audio' : ''}`}
             onClick={toggleSound}
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
+            aria-label={isMuted ? 'Unmute video sound' : 'Mute video sound'}
             title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
             {isMuted ? (
@@ -569,7 +723,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             type="button"
             className="reel-close-btn"
             onClick={onClose}
-            aria-label="Close reels"
+            aria-label="Close reels viewer"
             title="Close (Esc)"
           >
             ✕
@@ -585,7 +739,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           className="reel-nav-btn reel-nav-prev"
           onClick={goPrev}
           aria-label="Previous reel"
-          title="Previous (Up Arrow)"
+          title="Previous (Up Arrow / K)"
         >
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <polyline points="18 15 12 9 6 15" />
@@ -597,7 +751,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           className="reel-nav-btn reel-nav-next"
           onClick={goNext}
           aria-label="Next reel"
-          title="Next (Down Arrow)"
+          title="Next (Down Arrow / J)"
         >
           <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <polyline points="6 9 12 15 18 9" />
@@ -605,14 +759,24 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         </button>
 
         {/* Video Card Container */}
-        <div className="reel-card-wrapper">
+        <div
+          className="reel-card-wrapper"
+          onPointerDown={handleCardPointerDown}
+          onPointerMove={handleCardPointerMove}
+          onPointerUp={handleCardPointerUp}
+          onPointerCancel={handleCardPointerUp}
+          style={{
+            touchAction: 'none',
+            userSelect: 'none',
+          }}
+        >
           {/* Quick Floating Sound Button directly on Reel Card */}
           <button
             type="button"
-            className="reel-floating-sound-btn"
+            className={`reel-floating-sound-btn ${!isMuted ? 'active-audio' : ''}`}
             onClick={toggleSound}
             aria-label={isMuted ? 'Unmute video sound' : 'Mute video sound'}
-            title={isMuted ? 'Unmute sound (M)' : 'Mute sound (M)'}
+            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
           >
             {isMuted ? (
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
@@ -663,26 +827,61 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             </div>
           )}
 
+          {/* Animated Skip Toast Overlay */}
+          {skipToast && (
+            <div className="reel-skip-toast" key={`${skipToast.text}-${Date.now()}`}>
+              <span>{skipToast.text}</span>
+            </div>
+          )}
+
+          {/* Double-tap side ripple indicator */}
+          {rippleEffect && (
+            <div className={`reel-side-ripple ${rippleEffect.side}`} key={rippleEffect.id}>
+              <div className="reel-ripple-icon">
+                {rippleEffect.side === 'left' ? '⏪ -10s' : '+10s ⏩'}
+              </div>
+            </div>
+          )}
+
+          {/* Center Play / Pause indicator flash */}
+          {playIndicator && (
+            <div className="reel-play-indicator">
+              {playIndicator === 'play' ? (
+                <svg width="42" height="42" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : (
+                <svg width="42" height="42" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              )}
+            </div>
+          )}
+
+          {/* Vertical Reel Slider Track (Instagram smooth transitions) */}
           <div
             className="reel-slider-track"
-            style={{ transform: `translateY(-${currentIndex * 100}%)` }}
+            style={{
+              transform: `translateY(calc(-${currentIndex * 100}% + ${dragOffsetY}px))`,
+              transition: isDraggingReel ? 'none' : 'transform 0.42s cubic-bezier(0.18, 0.9, 0.28, 1)',
+            }}
           >
             {normalizedVideos.map((src, idx) => {
               const isNearActive = Math.abs(currentIndex - idx) <= 1;
-              const ytInfo = parseYouTubeUrl(src);
-              const isYt = Boolean(ytInfo);
+              const yt = parseYouTubeUrl(src);
+              const isThisYt = Boolean(yt);
+              const poster = getVideoPosterUrl(src) || (yt?.posterUrl || '');
 
               return (
                 <div
                   className="reel-slide-item"
                   key={`${src}-${idx}`}
-                  onDoubleClick={handleDoubleTap}
-                  onClick={togglePlayPause}
-                  style={isYt ? { background: '#000' } : undefined}
+                  style={isThisYt ? { background: '#000000' } : undefined}
                 >
-                  {getVideoPosterUrl(src) ? (
+                  {/* Poster Thumbnail Layer (Zero black frames) */}
+                  {poster ? (
                     <img
-                      src={getVideoPosterUrl(src)}
+                      src={poster}
                       alt={`Reel ${idx + 1}`}
                       loading={isNearActive ? 'eager' : 'lazy'}
                       style={{
@@ -697,20 +896,25 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                   ) : null}
 
                   {isNearActive && (
-                    isYt ? (
+                    isThisYt ? (
                       idx === currentIndex ? (
                         <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
                           <iframe
+                            id={`yt-player-${idx}`}
                             ref={el => {
                               if (el) ytIframeRefs.current[idx] = el;
                               else delete ytIframeRefs.current[idx];
                             }}
-                            src={`https://www.youtube-nocookie.com/embed/${ytInfo.videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1&fs=0&loop=1&playlist=${ytInfo.videoId}`}
+                            src={`https://www.youtube-nocookie.com/embed/${yt.videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${yt.videoId}&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                             title={`YouTube Reel ${idx + 1}`}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             className="reel-video-element"
                             onLoad={(e) => {
                               try {
+                                e.currentTarget.contentWindow.postMessage(
+                                  JSON.stringify({ event: 'listening' }),
+                                  '*'
+                                );
                                 e.currentTarget.contentWindow.postMessage(
                                   JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
                                   '*'
@@ -730,33 +934,16 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                               display: 'block',
                             }}
                           />
-                          {/* Click shield: tapping card pauses/plays without YouTube opening native fullscreen */}
-                          <div
-                            className="reel-yt-click-shield"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              togglePlayPause();
-                            }}
-                            style={{
-                              position: 'absolute',
-                              inset: 0,
-                              zIndex: 2,
-                              cursor: 'pointer',
-                            }}
-                          />
                         </div>
                       ) : null
                     ) : (
                       <video
                         ref={el => {
-                          if (el) {
-                            videoRefs.current[idx] = el;
-                          } else {
-                            delete videoRefs.current[idx];
-                          }
+                          if (el) videoRefs.current[idx] = el;
+                          else delete videoRefs.current[idx];
                         }}
                         src={src ? getAdaptiveVideoUrl(src, 'reel') : ''}
-                        poster={getVideoPosterUrl(src) || undefined}
+                        poster={poster || undefined}
                         loop
                         playsInline
                         webkit-playsinline="true"
@@ -768,22 +955,10 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                             e.currentTarget.play().catch(() => {});
                           }
                         }}
-                        onTimeUpdate={idx === currentIndex ? handleTimeUpdate : undefined}
-                        onLoadedMetadata={idx === currentIndex ? handleLoadedMetadata : undefined}
-                        onDurationChange={idx === currentIndex ? handleLoadedMetadata : undefined}
                         className="reel-video-element"
                         style={{ position: 'relative', zIndex: 1 }}
                       />
                     )
-                  )}
-
-                  {/* Big play icon overlay when paused */}
-                  {!isYt && !isPlaying && idx === currentIndex && (
-                    <div className="reel-play-indicator">
-                      <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
                   )}
                 </div>
               );
@@ -793,72 +968,98 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           {/* Floating Heart burst animation on double tap */}
           {heartAnimation && (
             <div className="reel-heart-burst">
-              <svg width="90" height="90" viewBox="0 0 24 24" fill="#ef4444" stroke="#ffffff" strokeWidth="1">
+              <svg width="96" height="96" viewBox="0 0 24 24" fill="#ef4444" stroke="#ffffff" strokeWidth="1">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
             </div>
           )}
 
-          {/* Reel Bottom Caption Overlay with Live Time Badge */}
-          <div className="reel-caption-overlay">
+          {/* Reel Caption & Time Meta Overlay */}
+          <div className="reel-caption-overlay" onClick={e => e.stopPropagation()}>
             <div className="reel-caption-text">
               <div className="reel-caption-meta-row">
                 <span className="reel-tag">
-                  {isYouTubeUrl(activeVideoUrl) ? '▶ YouTube Reel' : '✦ Zamani Travel Experience'}
+                  {isYt ? '▶ YouTube Reel' : '✦ Zamani Experience'}
                 </span>
-                {duration > 0 && !isYouTubeUrl(activeVideoUrl) && (
+
+                {/* Live Playback Time Badge + Quick 10s Skips */}
+                <div className="reel-time-controls-row">
+                  <button
+                    type="button"
+                    className="reel-mini-skip-btn"
+                    onClick={(e) => { e.stopPropagation(); skipSeconds(-10); }}
+                    title="Rewind 10s (Left Arrow)"
+                    aria-label="Rewind 10 seconds"
+                  >
+                    ⏪ -10s
+                  </button>
+
                   <span className="reel-time-badge">
-                    {formatTime(currentTime)} / {formatTime(duration)}
+                    {formatTime(currentTime)} / {formatTime(activeDuration)}
                   </span>
-                )}
+
+                  <button
+                    type="button"
+                    className="reel-mini-skip-btn"
+                    onClick={(e) => { e.stopPropagation(); skipSeconds(10); }}
+                    title="Forward 10s (Right Arrow)"
+                    aria-label="Forward 10 seconds"
+                  >
+                    +10s ⏩
+                  </button>
+                </div>
               </div>
               <p>Explore breathtaking destinations, premium holiday packages &amp; seamless visa journeys.</p>
             </div>
           </div>
 
-          {/* Interactive Video Scrubber with Draggable Pointer (For direct HTML5 videos) */}
-          {!isYouTubeUrl(activeVideoUrl) && (
-            <div
-              className={`reel-scrubber-container ${isScrubbing ? 'is-scrubbing' : ''}`}
-              ref={scrubberContainerRef}
-              onPointerDown={handleScrubberPointerDown}
-              onPointerMove={handleScrubberPointerMove}
-              onPointerUp={handleScrubberPointerUp}
-              onPointerCancel={handleScrubberPointerUp}
-              onMouseEnter={() => setIsHoveringScrubber(true)}
-              onMouseLeave={() => setIsHoveringScrubber(false)}
-              onClick={(e) => e.stopPropagation()}
-              title="Drag pointer to seek forward or backward"
-            >
-              {/* Live seeking time tooltip */}
-              {(isScrubbing || isHoveringScrubber) && duration > 0 && (
-                <div
-                  className="reel-scrubber-tooltip"
-                  style={{
-                    left: `${Math.max(6, Math.min(94, displayProgress))}%`,
-                  }}
-                >
-                  <span>{formatTime(isScrubbing ? scrubTime : currentTime)} / {formatTime(duration)}</span>
-                </div>
-              )}
-
-              <div className="reel-scrubber-track">
-                <div
-                  className="reel-scrubber-fill"
-                  style={{ width: `${displayProgress}%` }}
-                />
-                <div
-                  className="reel-scrubber-thumb"
-                  style={{ left: `${displayProgress}%` }}
-                  role="slider"
-                  aria-label="Video seek pointer"
-                  aria-valuenow={Math.round(displayProgress)}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                />
+          {/* ─── Universal Interactive Scrubber & Draggable Playhead (HTML5 & YouTube) ─── */}
+          <div
+            className={`reel-scrubber-container ${isScrubbing ? 'is-scrubbing' : ''}`}
+            ref={scrubberContainerRef}
+            onPointerDown={handleScrubberPointerDown}
+            onPointerMove={handleScrubberPointerMove}
+            onPointerUp={handleScrubberPointerUp}
+            onPointerCancel={handleScrubberPointerUp}
+            onMouseEnter={() => setIsHoveringScrubber(true)}
+            onMouseLeave={() => setIsHoveringScrubber(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              updateSeekFromPointer(e);
+            }}
+            title="Click or drag playhead to seek anywhere"
+            aria-label="Video timeline progress bar"
+          >
+            {/* Live seeking time tooltip above playhead */}
+            {(isScrubbing || isHoveringScrubber) && (
+              <div
+                className="reel-scrubber-tooltip"
+                style={{
+                  left: `${Math.max(6, Math.min(94, displayProgress))}%`,
+                }}
+              >
+                <span>{formatTime(isScrubbing ? scrubTime : currentTime)} / {formatTime(activeDuration)}</span>
               </div>
+            )}
+
+            <div className="reel-scrubber-track">
+              {/* Progress filled line */}
+              <div
+                className="reel-scrubber-fill"
+                style={{ width: `${displayProgress}%` }}
+              />
+              {/* Draggable Playhead Knob */}
+              <div
+                className="reel-scrubber-thumb"
+                style={{ left: `${displayProgress}%` }}
+                role="slider"
+                aria-label="Video seek playhead"
+                aria-valuenow={Math.round(displayProgress)}
+                aria-valuemin="0"
+                aria-valuemax="100"
+              />
             </div>
-          )}
+          </div>
 
           {/* Side Interaction Actions (Instagram Reels Style) */}
           <div className="reel-actions-panel" onClick={e => e.stopPropagation()}>
@@ -894,6 +1095,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                 className={`reel-action-btn ${isLiked ? 'active' : ''}`}
                 onClick={handleLikeToggle}
                 aria-label="Like video"
+                title="Like (L)"
               >
                 <svg
                   width="28"
@@ -918,6 +1120,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                 className={`reel-action-btn ${showComments ? 'active-comment' : ''}`}
                 onClick={() => setShowComments(prev => !prev)}
                 aria-label="Comments"
+                title="View comments"
               >
                 <svg
                   width="27"
@@ -942,6 +1145,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                 className="reel-action-btn"
                 onClick={handleShare}
                 aria-label="Share video"
+                title="Share reel"
               >
                 <svg
                   width="26"
@@ -962,7 +1166,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           </div>
         </div>
 
-        {/* Real-time Comments Drawer (Mobile Bottom Sheet / Desktop Side Panel) */}
+        {/* Real-Time Comments Drawer (Mobile Bottom Sheet / Desktop Side Panel) */}
         {showComments && (
           <div className="reel-comments-drawer" onClick={e => e.stopPropagation()}>
             <div className="reel-comments-head">

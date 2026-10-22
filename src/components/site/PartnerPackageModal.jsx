@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { savePackageRequest } from '@/lib/firestore';
 import { uploadToCloudinary } from '@/lib/upload';
+import { getItineraryMedia } from '@/lib/videoUtils';
 
 export default function PartnerPackageModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);
@@ -214,7 +215,7 @@ export default function PartnerPackageModal({ isOpen, onClose }) {
             day: d.day || `Day ${idx + 1}`,
             title: (d.title || '').trim(),
             description: (d.description || d.desc || '').trim(),
-            image: (d.image || d.photo || d.img || '').trim(),
+            image: getItineraryMedia(d) || (typeof d.image === 'string' ? d.image.trim() : ''),
           }))
           .filter(d => d.title || d.description || d.image),
       };
