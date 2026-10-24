@@ -160,6 +160,66 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     }
   }, []);
 
+  // Initialize and bind YouTube IFrame Player API instance
+  const setupYouTubePlayer = useCallback((idx, iframeEl) => {
+    if (typeof window === 'undefined') return;
+    if (!window.YT || !window.YT.Player) {
+      setTimeout(() => setupYouTubePlayer(idx, iframeEl), 150);
+      return;
+    }
+    const target = iframeEl || ytIframeRefs.current[idx] || document.getElementById(`yt-player-${idx}`);
+    if (!target) return;
+
+    if (ytPlayersRef.current[idx]) return;
+
+    try {
+      const player = new window.YT.Player(target, {
+        events: {
+          onReady: (event) => {
+            ytPlayersRef.current[idx] = event.target;
+            if (isMuted) {
+              try { event.target.mute(); } catch (_) {}
+            } else {
+              try {
+                event.target.unMute();
+                event.target.setVolume(100);
+              } catch (_) {}
+            }
+            if (idx === currentIndex) {
+              try { event.target.playVideo(); } catch (_) {}
+              const dur = event.target.getDuration();
+              if (typeof dur === 'number' && dur > 0) setDuration(dur);
+            }
+          },
+          onStateChange: (event) => {
+            if (idx === currentIndex) {
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                setIsPlaying(true);
+                const dur = event.target.getDuration();
+                if (typeof dur === 'number' && dur > 0) setDuration(dur);
+              } else if (event.data === window.YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+              } else if (event.data === window.YT.PlayerState.ENDED) {
+                event.target.seekTo(0, true);
+                event.target.playVideo();
+              }
+            }
+          },
+        },
+      });
+      ytPlayersRef.current[idx] = player;
+    } catch (err) {
+      console.warn('YT.Player bind fallback:', err);
+    }
+  }, [currentIndex, isMuted]);
+
+  // Bind YouTube player when current slide is YouTube
+  useEffect(() => {
+    if (isYt) {
+      setupYouTubePlayer(currentIndex);
+    }
+  }, [currentIndex, isYt, setupYouTubePlayer]);
+
   // Listen to YouTube postMessage events (infoDelivery)
   useEffect(() => {
     const handleWindowMessage = (e) => {
@@ -197,11 +257,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       if (isScrubbingRef.current) return;
 
       if (isYt) {
-        // Poll YouTube current time & duration
-        postToYt('getCurrentTime', []);
-        postToYt('getDuration', []);
-
-        // Also check if YT.Player instance exists
+        // 1. Read live time from YT.Player instance
         const player = ytPlayersRef.current[currentIndex];
         if (player && typeof player.getCurrentTime === 'function') {
           try {
@@ -218,6 +274,9 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
             }
           } catch (_) {}
         }
+        // 2. Also poll YouTube via postMessage for iframe
+        postToYt('getCurrentTime', []);
+        postToYt('getDuration', []);
       } else {
         const vid = videoRefs.current[currentIndex];
         if (vid && vid.duration) {
@@ -226,7 +285,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
           setProgress((vid.currentTime / vid.duration) * 100);
         }
       }
-    }, 250);
+    }, 150);
 
     return () => clearInterval(interval);
   }, [isYt, currentIndex, postToYt]);
@@ -257,7 +316,6 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         const p = vidEl.play();
         if (p !== undefined) {
           p.then(() => setIsPlaying(true)).catch(() => {
-            // Autoplay fallback: mute and play
             vidEl.muted = true;
             setIsMuted(true);
             vidEl.play().catch(() => {});
@@ -269,7 +327,23 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       }
     });
 
-    // YouTube Video Playback
+    // YouTube Video Playback via Player instance + postMessage
+    Object.entries(ytPlayersRef.current).forEach(([idx, player]) => {
+      const i = parseInt(idx, 10);
+      if (i === currentIndex) {
+        try {
+          if (isMuted) player.mute();
+          else { player.unMute(); player.setVolume(100); }
+          player.playVideo();
+        } catch (_) {}
+      } else {
+        try {
+          player.pauseVideo();
+          player.seekTo(0, true);
+        } catch (_) {}
+      }
+    });
+
     Object.entries(ytIframeRefs.current).forEach(([idx, ifrEl]) => {
       if (!ifrEl || !ifrEl.contentWindow) return;
       const i = parseInt(idx, 10);
@@ -326,7 +400,14 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         vid.muted = next;
         if (!next) vid.volume = 1.0;
       }
-      // YouTube
+      // YouTube Player
+      const player = ytPlayersRef.current[currentIndex];
+      if (player) {
+        try {
+          if (next) player.mute();
+          else { player.unMute(); player.setVolume(100); }
+        } catch (_) {}
+      }
       postToYt(next ? 'mute' : 'unMute', []);
       if (!next) {
         postToYt('setVolume', [100]);
@@ -383,6 +464,13 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
     setIsPlaying(nextPlay);
 
     if (isYt) {
+      const player = ytPlayersRef.current[currentIndex];
+      if (player) {
+        try {
+          if (nextPlay) player.playVideo();
+          else player.pauseVideo();
+        } catch (_) {}
+      }
       postToYt(nextPlay ? 'playVideo' : 'pauseVideo', []);
     } else {
       const vid = videoRefs.current[currentIndex];
@@ -905,11 +993,12 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
                               if (el) ytIframeRefs.current[idx] = el;
                               else delete ytIframeRefs.current[idx];
                             }}
-                            src={`https://www.youtube-nocookie.com/embed/${yt.videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${yt.videoId}&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                            src={`https://www.youtube.com/embed/${yt.videoId}?enablejsapi=1&autoplay=1&mute=${isMuted ? 1 : 0}&playsinline=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${yt.videoId}`}
                             title={`YouTube Reel ${idx + 1}`}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             className="reel-video-element"
                             onLoad={(e) => {
+                              setupYouTubePlayer(idx, e.currentTarget);
                               try {
                                 e.currentTarget.contentWindow.postMessage(
                                   JSON.stringify({ event: 'listening' }),
@@ -984,6 +1073,24 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
 
                 {/* Live Playback Time Badge + Quick 10s Skips */}
                 <div className="reel-time-controls-row">
+                  <button
+                    type="button"
+                    className="reel-mini-play-btn"
+                    onClick={(e) => { e.stopPropagation(); togglePlayPause(); }}
+                    title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+                    aria-label={isPlaying ? 'Pause video' : 'Play video'}
+                  >
+                    {isPlaying ? (
+                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+
                   <button
                     type="button"
                     className="reel-mini-skip-btn"

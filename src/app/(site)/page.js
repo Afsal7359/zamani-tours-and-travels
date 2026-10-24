@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/site/Navbar';
 import Footer from '@/components/site/Footer';
 import {
@@ -72,7 +71,6 @@ function normalizeGalleryList(list = [], isVideo = false) {
 }
 
 export default function HomePage() {
-  const router = useRouter();
   const [introFinished, setIntroFinished] = useState(false);
   const handleIntroFinished = useCallback(() => setIntroFinished(true), []);
   const [home, setHome] = useState(null);
