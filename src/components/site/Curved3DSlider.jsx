@@ -80,6 +80,7 @@ const Curved3DCard = memo(function Curved3DCard({
         cursor: 'pointer',
         pointerEvents: 'auto',
       }}
+      onPointerDown={(e) => e.stopPropagation()}
       onClick={handleCardClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -165,6 +166,7 @@ const Curved3DCard = memo(function Curved3DCard({
       {/* 4. Top Transparent Click Shield: guarantees 100% reliable click capture over all layers */}
       <div
         className="curved3d-click-shield"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={handleCardClick}
         aria-hidden="true"
       />
