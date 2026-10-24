@@ -430,9 +430,8 @@ export default memo(function Curved3DSlider({
           angleRef.current += velocityRef.current;
           velocityRef.current *= 0.94; // inertia decay
         } else {
-          // Smooth continuous motion: glides gently on mouse hover (0.45x) so it never freezes
-          const speedFactor = isHoveredRef.current ? 0.45 : 1.0;
-          angleRef.current += baseSpeedRef.current * speedFactor;
+          // Smooth continuous motion: always glides continuously so sliding is never lost
+          angleRef.current += baseSpeedRef.current;
         }
       }
 
