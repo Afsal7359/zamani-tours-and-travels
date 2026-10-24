@@ -587,7 +587,7 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
       if (isScrubbingRef.current) return;
       if (isWheelLockedRef.current) return;
 
-      if (Math.abs(e.deltaY) > 28) {
+      if (Math.abs(e.deltaY) > 18) {
         isWheelLockedRef.current = true;
         if (e.deltaY > 0) {
           goNext();
@@ -596,15 +596,12 @@ export default function ReelModal({ videos = [], initialIndex = 0, onClose }) {
         }
         setTimeout(() => {
           isWheelLockedRef.current = false;
-        }, 460);
+        }, 360);
       }
     };
 
-    const node = containerRef.current;
-    if (node) {
-      node.addEventListener('wheel', handleWheel, { passive: true });
-      return () => node.removeEventListener('wheel', handleWheel);
-    }
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheel);
   }, [goNext, goPrev, showComments]);
 
   // Card Pointer Gestures: Tactile Vertical Drag + Tap/Double-Tap

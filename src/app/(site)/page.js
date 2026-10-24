@@ -20,7 +20,6 @@ import ReelModal from '@/components/site/ReelModal';
 import PhotoReelModal from '@/components/site/PhotoReelModal';
 import HeroImageSequence from '@/components/site/HeroImageSequence';
 import Curved3DSlider from '@/components/site/Curved3DSlider';
-import VideoReelCarousel from '@/components/site/VideoReelCarousel';
 
 import { isVideoUrl, getVideoPosterUrl, getOptimizedVideoUrl, getOptimizedImageUrl } from '@/lib/videoUtils';
 import { getAdaptiveVideoUrl } from '@/lib/performanceGuardian';
@@ -358,14 +357,19 @@ export default function HomePage() {
           rowSubtitle="Latest service announcements, packages & posters"
         />
 
-        {/* Row 2: Video Highlights & Reels (Dedicated Horizontal Scrolling Video Carousel with Instant Click) */}
+        {/* Row 2: Video Highlights & Reels (Curved 3D Slider with instant modal click) */}
         {videoStrip.length > 0 && (
-          <VideoReelCarousel
-            videos={videoStrip}
-            onSelect={(idx) => setSelectedVideoIndex(idx)}
-            title="Video Highlights & Reels"
-            subtitle="Real glimpses of our tours, destinations & experiences"
-          />
+          <div style={{ marginTop: '2.5rem' }}>
+            <Curved3DSlider
+              items={videoStrip}
+              isVideo={true}
+              direction="right"
+              speed={0.052}
+              onSelect={(idx) => setSelectedVideoIndex(idx)}
+              badgeText="Video Highlights & Reels"
+              rowSubtitle="Real glimpses of our tours, destinations & experiences"
+            />
+          </div>
         )}
 
         {/* Row 3: Customer Feedbacks & Reviews (Curved 3D Slider) */}

@@ -64,19 +64,10 @@ const Curved3DCard = memo(function Curved3DCard({
     ? 'curved3d-connect-end'
     : '';
 
-  const pointerStartRef = useRef({ x: 0, y: 0 });
-
-  const handlePointerDown = (e) => {
-    pointerStartRef.current = { x: e.clientX, y: e.clientY };
-  };
-
   const handleCardClick = (e) => {
+    e.preventDefault();
     e.stopPropagation();
-    const dx = Math.abs(e.clientX - pointerStartRef.current.x);
-    const dy = Math.abs(e.clientY - pointerStartRef.current.y);
-    if (dx < 14 && dy < 14) {
-      onCardClick(item.originalIndex);
-    }
+    onCardClick(item.originalIndex);
   };
 
   return (
@@ -89,7 +80,6 @@ const Curved3DCard = memo(function Curved3DCard({
         cursor: 'pointer',
         pointerEvents: 'auto',
       }}
-      onPointerDown={handlePointerDown}
       onClick={handleCardClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -440,8 +430,8 @@ export default memo(function Curved3DSlider({
           angleRef.current += velocityRef.current;
           velocityRef.current *= 0.94; // inertia decay
         } else {
-          // Smooth continuous motion: pause completely on mouse hover so user can easily inspect and click
-          const speedFactor = isHoveredRef.current ? 0 : 1.0;
+          // Smooth continuous motion: glides gently on mouse hover (0.45x) so it never freezes
+          const speedFactor = isHoveredRef.current ? 0.45 : 1.0;
           angleRef.current += baseSpeedRef.current * speedFactor;
         }
       }
