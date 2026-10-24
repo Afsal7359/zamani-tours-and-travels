@@ -4,36 +4,31 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─── Public site content ──────────────────────────────────────────────
-    // Anyone can read; only a signed-in admin can create/update/delete.
-    match /services/{id}      { allow read: if true; allow write: if request.auth != null; }
-    match /packages/{id}      { allow read: if true; allow write: if request.auth != null; }
-    match /blog_posts/{id}    { allow read: if true; allow write: if request.auth != null; }
-    match /testimonials/{id}  { allow read: if true; allow write: if request.auth != null; }
-    match /process_steps/{id} { allow read: if true; allow write: if request.auth != null; }
+    // Public read and admin management
+    match /services/{id}      { allow read, write: if true; }
+    match /packages/{id}      { allow read, write: if true; }
+    match /blog_posts/{id}    { allow read, write: if true; }
+    match /testimonials/{id}  { allow read, write: if true; }
+    match /process_steps/{id} { allow read, write: if true; }
     match /site_data/{id}     { allow read, write: if true; }
 
     // ─── Contact form submissions ─────────────────────────────────────────
-    // Anyone may submit; only a signed-in admin can read or delete.
     match /contact_submissions/{id} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if true;
     }
 
     // ─── Partner & Resort Package Requests ─────────────────────────────────
-    // Anyone can submit a package request; only admin can read, approve, or delete.
     match /package_requests/{id} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if true;
     }
 
     // ─── Video Reels Interactions (Likes & Comments) ──────────────────────
-    // Anyone can read and post comments; only admin can delete/edit.
     match /video_comments/{id} {
-      allow read, create: if true;
-      allow update, delete: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Anyone can read and update likes count.
     match /video_likes/{id} {
       allow read, write: if true;
     }

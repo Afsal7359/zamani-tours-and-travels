@@ -76,7 +76,8 @@ export default function PackageDetailPage() {
   }
 
   const itinerary = Array.isArray(pkg.itinerary) ? pkg.itinerary : [];
-  const galleryImages = Array.from(new Set([pkg.image, ...(pkg.images || [])])).filter(Boolean);
+  const itineraryImages = itinerary.map(item => getItineraryMedia(item)).filter(Boolean);
+  const galleryImages = Array.from(new Set([pkg.image, ...(pkg.images || []), ...itineraryImages])).filter(Boolean);
   const heroImage = pkg.image || galleryImages[0] || '';
   const highlights = Array.isArray(pkg.highlights) ? pkg.highlights : [];
   const inclusions = Array.isArray(pkg.inclusions) ? pkg.inclusions : [];
@@ -260,9 +261,7 @@ export default function PackageDetailPage() {
                                         e.currentTarget.dataset.triedOpt = '1';
                                         e.currentTarget.src = opt;
                                       } else {
-                                        e.currentTarget.style.display = 'none';
-                                        const photoBox = e.currentTarget.closest('.pkg-itin-photo');
-                                        if (photoBox) photoBox.style.display = 'none';
+                                        e.currentTarget.style.opacity = '0.7';
                                       }
                                     }}
                                   />
